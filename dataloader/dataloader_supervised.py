@@ -1,5 +1,5 @@
 # ==============================================================================
-# Description: File to load and split images and labels by patient IDs
+# Description: File to load and split images and labels by patient IDs with Pytorch
 # Author: Gloria del Rocío Delicado Correa
 # Maintainer: Caterina Fuster-Barceló
 # Creation date: 29/08/2023
@@ -9,6 +9,7 @@ import os
 import random
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 import torch
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
@@ -121,3 +122,18 @@ class DataLoaderByPatient:
 # labels_folder = '/path/to/labels'
 # data_loader = DataLoaderByPatient()
 # train_loader, test_loader = data_loader.train_test_split_bypatient(images_folder, labels_folder, test_size=0.2, batch_size=8)
+
+# For Windows folder
+# images_folder = "..\\toydataset\\toydataset\\MRC\\images"
+
+# Show two images from data_loader 
+# for i, (image, label) in enumerate(train_loader):
+#     if i == 2:
+#         break
+#     print(image.shape, label.shape)
+#     print(image.dtype, label.dtype)
+#     print(image.min(), image.max())
+#     print(label.min(), label.max())
+#     image = image.permute(0, 2, 3, 1).numpy()
+#     label = label.permute(0, 2, 3, 1).numpy()
+#     plt.imshow(image[0])
