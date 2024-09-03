@@ -279,8 +279,8 @@ class AsymmetricUnifiedFocalLoss(nn.Module):
 
     def forward(self, y_pred, y_true):
         # Apply sigmoid to predictions if from_logits is True
-        if not self.from_logits:
-            y_pred = torch.sigmoid(y_pred)
+        # if not self.from_logits:
+        #     y_pred = torch.sigmoid(y_pred)
 
         # Adjust y_true and y_pred shapes for binary segmentation
         if y_true.size()[1] == 1:
@@ -359,3 +359,72 @@ class DC_and_BCE_loss(nn.Module):
         # Combine Dice and BCE losses
         result = self.weight_ce * ce_loss + self.weight_dice * dc_loss
         return result
+
+class BCE_and_Dice_loss(nn.Module):
+    """
+    Combined Binary Cross-Entropy (BCE) and Dice loss function for binary segmentation.
+    
+    Parameters
+    ----------
+    bce_kwargs : dict
+        Keyword arguments for BCELoss.
+    dice_class : class, optional
+        Class implementing the Dice loss, by default MemoryEfficientSoftDiceLoss.
+    weight_ce : float, optional
+        Weight for the BCE loss, by default 1.
+    weight_dice : float, optional
+        Weight for the Dice loss, by default 1.
+    """
+    def __init__(self, bce_kwargs=None, dice_class=None, weight_ce=1, weight_dice=1):
+        super(BCE_and_Dice_loss, self).__init__()
+        
+        # Initialize BCE loss with the provided arguments
+        if bce_kwargs is None:
+            bce_kwargs = {}
+        self.ce = nn.BCELoss(**bce_kwargs)
+
+        # Initialize Dice loss with the provided Dice class
+        if dice_class is None:
+            raise ValueError("dice_class must be provided")
+        self.dc = dice_class()
+
+        self.weight_ce = weight_ce
+        self.weight_dice = weight_dice
+
+    def forward(self, net_output: torch.Tensor, target: torch.Tensor):
+        """
+        Forward pass to compute the combined BCE and Dice loss.
+        
+        Args:
+        - net_output: torch.Tensor
+            The predicted output from the model (probabilities).
+        - target: torch.Tensor
+            The ground truth labels.
+        
+        Returns:
+        - result: torch.Tensor
+            The combined BCE and Dice loss.
+        """
+        # Compute BCE loss
+        ce_loss = self.ce(net_output, target.float())
+
+        # Compute Dice loss
+        dice_loss = self.dc(net_output, target.float())
+
+        # Combine BCE and Dice losses with their respective weights
+        result = self.weight_ce * ce_loss + self.weight_dice * dice_loss
+
+        return result
+
+class SimpleDiceLoss(nn.Module):
+    def __init__(self):
+        super(SimpleDiceLoss, self).__init__()
+    
+    def forward(self, y_pred, y_true):
+        smooth = 1e-6  # Small constant to avoid division by zero
+        y_pred = y_pred.contiguous()
+        y_true = y_true.contiguous()
+
+        intersection = (y_pred * y_true).sum(dim=2).sum(dim=2)
+        dice = (2. * intersection + smooth) / (y_pred.sum(dim=2).sum(dim=2) + y_true.sum(dim=2).sum(dim=2) + smooth)
+        return 1 - dice.mean()

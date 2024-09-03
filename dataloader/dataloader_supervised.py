@@ -46,10 +46,15 @@ class PatientDataset(Dataset):
         if self.transform:
             image, label = self.transform(image, label)
 
+        # Make images between 0 and 1
+        image = np.clip(image, 0, 1)
+        label = np.clip(label, 0, 1)
+
         # Convert to tensors
         image = torch.from_numpy(image).permute(2, 0, 1).float()  # Change to (C, H, W)
         label = torch.from_numpy(label).permute(2, 0, 1).float()  # Change to (C, H, W)
 
+        assert image.min() >= 0 and image.max() <= 1, "WARNING: Input values should be between 0 and 1"
         return image, label
 
 class DataLoaderByPatient:
@@ -61,10 +66,35 @@ class DataLoaderByPatient:
         return filename.split("_")[0]
 
     @staticmethod
-    def train_test_split_bypatient(images_folder, labels_folder, test_size=0.2, batch_size=8, shuffle=True, transform=None):
+    def train_val_test_split_bypatient(images_folder, labels_folder, splits=(0.7, 0.15, 0.15), batch_size=8, shuffle=True, transform=None):
         """
-        Splits the data into training and testing sets by patient ID and returns PyTorch DataLoaders.
+        Splits the data into training, validation, and testing sets by patient ID and returns PyTorch DataLoaders.
+        
+        Parameters:
+        - images_folder: str
+            Path to the folder containing image files.
+        - labels_folder: str
+            Path to the folder containing label files.
+        - splits: tuple of three floats
+            Proportions for train, validation, and test splits, respectively. They must sum to 1.0.
+        - batch_size: int, optional
+            How many samples per batch to load.
+        - shuffle: bool, optional
+            Whether to shuffle the data after splitting.
+        - transform: callable, optional
+            A function/transform to apply to the data.
+        
+        Returns:
+        - train_loader: DataLoader
+            DataLoader for the training set.
+        - val_loader: DataLoader
+            DataLoader for the validation set.
+        - test_loader: DataLoader
+            DataLoader for the testing set.
         """
+        # Ensure that splits sum to 1.0
+        assert sum(splits) == 1.0, "Splits must sum to 1.0"
+
         # Get the list of all image and label files in the folders
         image_files = os.listdir(images_folder)
         label_files = os.listdir(labels_folder)
@@ -96,33 +126,54 @@ class DataLoaderByPatient:
         patients = list(image_groups.keys())
         random.shuffle(patients)
 
-        # Split the patients into train and test sets
-        train_patients, test_patients = train_test_split(patients, test_size=test_size)
+        # Calculate the number of patients for each split
+        num_patients = len(patients)
+        num_train = int(splits[0] * num_patients)
+        num_val = int(splits[1] * num_patients)
+        
+        train_patients = patients[:num_train]
+        val_patients = patients[num_train:num_train + num_val]
+        test_patients = patients[num_train + num_val:]
 
-        # Create the final lists of image and label files for train and test sets
+        # Assert that there are no patients in more than one split
+        assert len(set(train_patients) & set(val_patients)) == 0, "WARNING: Patients in both train and val sets detected"
+        assert len(set(train_patients) & set(test_patients)) == 0, "WARNING: Patients in both train and test sets detected"
+        assert len(set(val_patients) & set(test_patients)) == 0, "WARNING: Patients in both val and test sets detected"
+
+        # Create the final lists of image and label files for train, val, and test sets
         train_image_files = [file for patient in train_patients for file in image_groups[patient]]
+        val_image_files = [file for patient in val_patients for file in image_groups[patient]]
         test_image_files = [file for patient in test_patients for file in image_groups[patient]]
 
         train_label_files = [file for patient in train_patients for file in label_groups[patient]]
+        val_label_files = [file for patient in val_patients for file in label_groups[patient]]
         test_label_files = [file for patient in test_patients for file in label_groups[patient]]
 
         # Create PyTorch datasets
         train_dataset = PatientDataset(train_image_files, train_label_files, images_folder, labels_folder, transform)
+        val_dataset = PatientDataset(val_image_files, val_label_files, images_folder, labels_folder, transform)
         test_dataset = PatientDataset(test_image_files, test_label_files, images_folder, labels_folder, transform)
 
         # Create PyTorch DataLoaders
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-        return train_loader, test_loader
+        return train_loader, val_loader, test_loader
 
 
 # Example usage: ========================================
 # images_folder = '/path/to/images'
 # labels_folder = '/path/to/labels'
 # data_loader = DataLoaderByPatient()
-# train_loader, test_loader = data_loader.train_test_split_bypatient(images_folder, labels_folder, test_size=0.2, batch_size=8)
-
+# train_loader, val_loader, test_loader = data_loader.train_val_test_split_bypatient(
+#    images_folder='path/to/images',
+#    labels_folder='path/to/labels',
+#    splits=(0.7, 0.15, 0.15),
+#    batch_size=8,
+#    shuffle=True,
+#    transform=None
+#)
 # For Windows folder
 # images_folder = "..\\toydataset\\toydataset\\MRC\\images"
 

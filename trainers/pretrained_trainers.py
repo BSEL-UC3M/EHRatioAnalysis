@@ -12,23 +12,6 @@ import torch.nn.functional as F
 from losses import losses
 from dataloader.dataloader_supervised import DataLoaderByPatient
 
-# Ensure reproducibility
-torch.manual_seed(42)
-
-# Load the pre-trained U-Net model from torch.hub
-model = torch.hub.load('mateuszbuda/brain-segmentation-pytorch', 'unet',
-                       in_channels=3, out_channels=1, init_features=32, pretrained=True)
-
-# Check if GPU is available, otherwise use CPU
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = model.to(device)
-
-# Define the loss function (Binary Cross-Entropy for segmentation)
-criterion = losses.AsymmetricUnifiedFocalLoss()
-
-# Define the optimizer (Adam optimizer with a learning rate of 1e-4)
-optimizer = optim.Adam(model.parameters(), lr=1e-4)
-
 # Training function
 def train_model(model, dataloader, criterion, optimizer, device, num_epochs=25):
     """
@@ -47,6 +30,8 @@ def train_model(model, dataloader, criterion, optimizer, device, num_epochs=25):
     """
     model.train()  # Set the model to training mode
     
+    epoch_losses = []  # Initialize list to store loss for each epoch
+    
     for epoch in range(num_epochs):
         running_loss = 0.0
         for i, data in enumerate(dataloader):
@@ -59,23 +44,36 @@ def train_model(model, dataloader, criterion, optimizer, device, num_epochs=25):
             
             # Forward pass
             outputs = model(inputs)
+            assert inputs.min() >= 0 and inputs.max() <= 1, "WARNING: Input values should be between 0 and 1"
             loss = criterion(outputs, labels)
             
             # Backward pass and optimize
             loss.backward()
             optimizer.step()
             
-            # Print statistics
+            # Accumulate loss
             running_loss += loss.item()
+            
             if i % 10 == 9:    # Print every 10 mini-batches
                 print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(dataloader)}], Loss: {running_loss / 10:.4f}')
                 running_loss = 0.0
+        
+        # Calculate average loss for the epoch and store it
+        epoch_loss = running_loss / len(dataloader)
+        epoch_losses.append(epoch_loss)
+        print(f'Epoch [{epoch + 1}/{num_epochs}] Loss: {epoch_loss:.4f}')
+    
+    # Save the losses to a text file
+    with open('training_losses.txt', 'w') as f:
+        for epoch, loss in enumerate(epoch_losses, 1):
+            f.write(f'Epoch {epoch}: Loss = {loss:.4f}\n')
     
     print('Finished Training')
     return model
 
+
 # Define the evaluation function
-def evaluate_model(model, dataloader, device):
+def evaluate_model(model, dataloader, device, criterion):
     """
     Function to evaluate the U-Net model on a validation/test set.
     
@@ -92,10 +90,12 @@ def evaluate_model(model, dataloader, device):
     with torch.no_grad():  # Disable gradient calculation for evaluation
         for i, data in enumerate(dataloader):
             inputs, labels = data
+            assert inputs.min() >= 0 and inputs.max() <= 1, "WARNING: Input values should be between 0 and 1"
             inputs, labels = inputs.to(device), labels.to(device)
             
             # Forward pass
             outputs = model(inputs)
+            assert inputs.min() >= 0 and inputs.max() <= 1, "WARNING: Input values should be between 0 and 1"
             loss = criterion(outputs, labels)
             
             total_loss += loss.item()
@@ -104,25 +104,3 @@ def evaluate_model(model, dataloader, device):
     print(f'Average loss on the evaluation set: {avg_loss:.4f}')
     return avg_loss
 
-# Set up the data directories
-images_folder = "toydataset\\toydataset\\MRC\\images"
-labels_folder = "toydataset\\toydataset\\MRC\\labels"
-
-# Initialize the data loader with your custom class
-data_loader = DataLoaderByPatient()
-train_loader, test_loader = data_loader.train_test_split_bypatient(
-    images_folder=images_folder, 
-    labels_folder=labels_folder, 
-    test_size=0.2, 
-    batch_size=8
-)
-
-# Train the model
-num_epochs = 1
-trained_model = train_model(model, train_loader, criterion, optimizer, device, num_epochs)
-
-# Evaluate the model on the test set
-evaluate_model(trained_model, test_loader, device)
-
-# Save the trained model
-torch.save(trained_model.state_dict(), 'unet_brain_segmentation.pth')
