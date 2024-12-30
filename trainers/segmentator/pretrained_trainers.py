@@ -4,10 +4,9 @@
 # Creation date: 30/08/2024
 # ==============================================================================
 
+import os
 import torch
 import random
-import os
-from datetime import datetime
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
@@ -19,7 +18,7 @@ from matplotlib import pyplot as plt
 from utils.metrics import dice_score, iou_score
 
 # Training function
-def train_model(model, dataloader, criterion, optimizer, device, num_epochs=25):
+def train_model(model, dataloader, criterion, optimizer, device, num_epochs=25, results_dir):
     """
     Function to train the U-Net model.
     
@@ -70,7 +69,7 @@ def train_model(model, dataloader, criterion, optimizer, device, num_epochs=25):
         print(f'Epoch [{epoch + 1}/{num_epochs}] Loss: {epoch_loss:.4f}')
     
         # Save the losses to a text file
-        with open('training_losses.txt', 'w') as f:
+        with open(results_dir+'training_losses.txt', 'w') as f:
             for epoch, loss in enumerate(epoch_losses, 1):
                 f.write(f'Epoch {epoch}: Loss = {loss:.4f}\n')
     
@@ -78,7 +77,7 @@ def train_model(model, dataloader, criterion, optimizer, device, num_epochs=25):
     return model
 
 
-def evaluate_model(model, dataloader, device, criterion, results_folder="results"):
+def evaluate_model(model, dataloader, device, criterion, results_dir):
     """
     Function to evaluate the U-Net model on a validation/test set.
     
@@ -123,14 +122,9 @@ def evaluate_model(model, dataloader, device, criterion, results_folder="results
     print(f'Average loss on the evaluation set: {avg_loss:.4f}')
     print(f'Mean Dice Score: {mean_dice:.4f}')
     print(f'Mean IoU: {mean_iou:.4f}')
-    
-    # Create results folder with a timestamp
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    result_dir = os.path.join(results_folder, timestamp)
-    os.makedirs(result_dir, exist_ok=True)
 
     # Save numerical results
-    with open(os.path.join(result_dir, 'results.txt'), 'w') as f:
+    with open(os.path.join(results_dir, 'results.txt'), 'w') as f:
         f.write(f'Average Loss: {avg_loss:.4f}\n')
         f.write(f'Mean Dice Score: {mean_dice:.4f}\n')
         f.write(f'Mean IoU: {mean_iou:.4f}\n')
@@ -147,7 +141,7 @@ def evaluate_model(model, dataloader, device, criterion, results_folder="results
         axes[2].imshow(true_img[0][0], cmap='gray')
         axes[2].set_title("Ground Truth")
         
-        plt.savefig(os.path.join(result_dir, f'prediction_{idx + 1}.png'), dpi=300)
+        plt.savefig(os.path.join(results_dir, f'prediction_{idx + 1}.png'), dpi=300)
         plt.close(fig)
 
     # Identify best and worst predictions based on Dice score
@@ -163,7 +157,7 @@ def evaluate_model(model, dataloader, device, criterion, results_folder="results
     axes[1].set_title(f"Best Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
     axes[2].imshow(true_img[0][0], cmap='gray')
     axes[2].set_title("Best Ground Truth")
-    plt.savefig(os.path.join(result_dir, 'best_prediction.png'), dpi=300)
+    plt.savefig(os.path.join(results_dir, 'best_prediction.png'), dpi=300)
     plt.close(fig)
 
     # Save worst prediction
@@ -175,8 +169,8 @@ def evaluate_model(model, dataloader, device, criterion, results_folder="results
     axes[1].set_title(f"Worst Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
     axes[2].imshow(true_img[0][0], cmap='gray')
     axes[2].set_title("Worst Ground Truth")
-    plt.savefig(os.path.join(result_dir, 'worst_prediction.png'), dpi=300)
+    plt.savefig(os.path.join(results_dir, 'worst_prediction.png'), dpi=300)
     plt.close(fig)
 
-    return avg_loss, mean_dice, mean_iou
+    return avg_loss, mean_dice, mean_iou, results_dir
 
