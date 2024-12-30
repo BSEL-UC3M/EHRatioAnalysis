@@ -8,7 +8,7 @@ This project implements a full pipeline for image processing and segmentation, i
 
 Below is the architecture of the complete pipeline:
 
-![Network Structure](Network-structure.png)
+![Network Structure](./Network-Structure.png)
 
 ---
 

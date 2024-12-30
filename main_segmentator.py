@@ -5,27 +5,19 @@
 # ==============================================================================
 
 import torch
-import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
-import torch.nn.functional as F
 from losses import losses
 from dataloader.dataloader_MRC import DataLoaderByPatient
 from trainers.segmentator.pretrained_trainers import train_model, evaluate_model
 from datetime import datetime
 import os
+from models.segmentator import Segmentator
 
-
-# Ensure reproducibility
-torch.manual_seed(42)
-
-# Load the pre-trained U-Net model from torch.hub
-model = torch.hub.load('mateuszbuda/brain-segmentation-pytorch', 'unet',
-                       in_channels=3, out_channels=1, init_features=32, pretrained=True)
+segmentator = Segmentator()
 
 # Check if GPU is available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = model.to(device)
+segmentator = segmentator.to(device)
 
 # Define the loss function (Binary Cross-Entropy for segmentation)
 criterion = losses.BCE_and_Dice_loss(
@@ -36,15 +28,17 @@ criterion = losses.BCE_and_Dice_loss(
 )
 
 # Define the optimizer (Adam optimizer with a learning rate of 1e-4)
-optimizer = optim.Adam(model.parameters(), lr=1e-4)
+optimizer = optim.Adam(segmentator.parameters(), lr=1e-4)
 
-# Set up the data directories - toy dataset
-# images_folder = "toydataset\\toydataset\\MRC\\images"
-# labels_folder = "toydataset\\toydataset\\MRC\\labels"
-
-images_folder = "D:\\Data\\VolumetricHydrops\\images\\MRC"
-labels_folder = "D:\\Data\\VolumetricHydrops\\labels\\MRC"
 results_folder = "./results/"
+
+# TOY DATASET
+images_folder = "toydataset\\toydataset\\MRC\\images"
+labels_folder = "toydataset\\toydataset\\MRC\\labels"
+
+# CAT's DATASET
+# images_folder = "D:\\Data\\VolumetricHydrops\\images\\MRC"
+# labels_folder = "D:\\Data\\VolumetricHydrops\\labels\\MRC"
 
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 results_dir = os.path.join(results_folder, timestamp)
@@ -61,14 +55,9 @@ train_loader, val_loader, test_loader = data_loader.train_val_test_split_bypatie
     transform=None
 )
 
-# print(f'Number of patients in the training set: {len(train_loader.dataset)}')
-# print(f'Number of patients in the validation set: {len(val_loader.dataset)}')
-# print(f'Number of patients in the test set: {len(test_loader.dataset)}')
-# print(f'Total number of patients: {len(train_loader.dataset) + len(val_loader.dataset) + len(test_loader.dataset)}')
-
 # Train the model
 num_epochs = 5
-trained_model = train_model(model, train_loader, criterion, optimizer, device, num_epochs, results_dir)
+trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, num_epochs, results_dir)
 
 # Evaluate the model on the test set
 avg_loss, mean_dice, mean_iou, results_dir = evaluate_model(trained_model, val_loader, device, criterion, results_dir)
