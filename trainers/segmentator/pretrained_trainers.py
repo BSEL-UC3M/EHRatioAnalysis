@@ -13,12 +13,12 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from losses import losses
-from dataloader.dataloader_supervised import DataLoaderByPatient
+from dataloader.dataloader_MRC import DataLoaderByPatient
 from matplotlib import pyplot as plt
 from utils.metrics import dice_score, iou_score
 
 # Training function
-def train_model(model, dataloader, criterion, optimizer, device, num_epochs=25, results_dir):
+def train_model(model, dataloader, criterion, optimizer, device, results_dir=None, num_epochs=25):
     """
     Function to train the U-Net model.
     
@@ -68,16 +68,17 @@ def train_model(model, dataloader, criterion, optimizer, device, num_epochs=25, 
         epoch_losses.append(epoch_loss)
         print(f'Epoch [{epoch + 1}/{num_epochs}] Loss: {epoch_loss:.4f}')
     
-        # Save the losses to a text file
-        with open(results_dir+'training_losses.txt', 'w') as f:
-            for epoch, loss in enumerate(epoch_losses, 1):
-                f.write(f'Epoch {epoch}: Loss = {loss:.4f}\n')
+        if results_dir is not None:
+            # Save the losses to a text file
+            with open(results_dir+'/training_losses.txt', 'w') as f:
+                for epoch, loss in enumerate(epoch_losses, 1):
+                    f.write(f'Epoch {epoch}: Loss = {loss:.4f}\n')
     
     print('Finished Training')
     return model
 
 
-def evaluate_model(model, dataloader, device, criterion, results_dir):
+def evaluate_model(model, dataloader, device, criterion, results_dir=None):
     """
     Function to evaluate the U-Net model on a validation/test set.
     
@@ -123,54 +124,55 @@ def evaluate_model(model, dataloader, device, criterion, results_dir):
     print(f'Mean Dice Score: {mean_dice:.4f}')
     print(f'Mean IoU: {mean_iou:.4f}')
 
-    # Save numerical results
-    with open(os.path.join(results_dir, 'results.txt'), 'w') as f:
-        f.write(f'Average Loss: {avg_loss:.4f}\n')
-        f.write(f'Mean Dice Score: {mean_dice:.4f}\n')
-        f.write(f'Mean IoU: {mean_iou:.4f}\n')
+    if results_dir is not None:
+        # Save numerical results
+        with open(os.path.join(results_dir, 'results.txt'), 'w') as f:
+            f.write(f'Average Loss: {avg_loss:.4f}\n')
+            f.write(f'Mean Dice Score: {mean_dice:.4f}\n')
+            f.write(f'Mean IoU: {mean_iou:.4f}\n')
 
-    # Get three random predictions to visualize
-    random_predictions = random.sample(predictions, min(3, len(predictions)))
+        # Get three random predictions to visualize
+        random_predictions = random.sample(predictions, min(3, len(predictions)))
 
-    for idx, (input_img, output_img, true_img, dice, iou) in enumerate(random_predictions):
+        for idx, (input_img, output_img, true_img, dice, iou) in enumerate(random_predictions):
+            fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+            axes[0].imshow(input_img[0].permute(1, 2, 0))
+            axes[0].set_title("Input Image")
+            axes[1].imshow(output_img[0][0], cmap='gray')
+            axes[1].set_title(f"Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
+            axes[2].imshow(true_img[0][0], cmap='gray')
+            axes[2].set_title("Ground Truth")
+            
+            plt.savefig(os.path.join(results_dir, f'prediction_{idx + 1}.png'), dpi=300)
+            plt.close(fig)
+
+        # Identify best and worst predictions based on Dice score
+        best_prediction = max(predictions, key=lambda x: x[3])
+        worst_prediction = min(predictions, key=lambda x: x[3])
+
+        # Save best prediction
+        input_img, output_img, true_img, dice, iou = best_prediction
         fig, axes = plt.subplots(1, 3, figsize=(15, 5))
         axes[0].imshow(input_img[0].permute(1, 2, 0))
-        axes[0].set_title("Input Image")
+        axes[0].set_title("Best Input Image")
         axes[1].imshow(output_img[0][0], cmap='gray')
-        axes[1].set_title(f"Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
+        axes[1].set_title(f"Best Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
         axes[2].imshow(true_img[0][0], cmap='gray')
-        axes[2].set_title("Ground Truth")
-        
-        plt.savefig(os.path.join(results_dir, f'prediction_{idx + 1}.png'), dpi=300)
+        axes[2].set_title("Best Ground Truth")
+        plt.savefig(os.path.join(results_dir, 'best_prediction.png'), dpi=300)
         plt.close(fig)
 
-    # Identify best and worst predictions based on Dice score
-    best_prediction = max(predictions, key=lambda x: x[3])
-    worst_prediction = min(predictions, key=lambda x: x[3])
+        # Save worst prediction
+        input_img, output_img, true_img, dice, iou = worst_prediction
+        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        axes[0].imshow(input_img[0].permute(1, 2, 0))
+        axes[0].set_title("Worst Input Image")
+        axes[1].imshow(output_img[0][0], cmap='gray')
+        axes[1].set_title(f"Worst Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
+        axes[2].imshow(true_img[0][0], cmap='gray')
+        axes[2].set_title("Worst Ground Truth")
+        plt.savefig(os.path.join(results_dir, 'worst_prediction.png'), dpi=300)
+        plt.close(fig)
 
-    # Save best prediction
-    input_img, output_img, true_img, dice, iou = best_prediction
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    axes[0].imshow(input_img[0].permute(1, 2, 0))
-    axes[0].set_title("Best Input Image")
-    axes[1].imshow(output_img[0][0], cmap='gray')
-    axes[1].set_title(f"Best Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
-    axes[2].imshow(true_img[0][0], cmap='gray')
-    axes[2].set_title("Best Ground Truth")
-    plt.savefig(os.path.join(results_dir, 'best_prediction.png'), dpi=300)
-    plt.close(fig)
-
-    # Save worst prediction
-    input_img, output_img, true_img, dice, iou = worst_prediction
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    axes[0].imshow(input_img[0].permute(1, 2, 0))
-    axes[0].set_title("Worst Input Image")
-    axes[1].imshow(output_img[0][0], cmap='gray')
-    axes[1].set_title(f"Worst Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
-    axes[2].imshow(true_img[0][0], cmap='gray')
-    axes[2].set_title("Worst Ground Truth")
-    plt.savefig(os.path.join(results_dir, 'worst_prediction.png'), dpi=300)
-    plt.close(fig)
-
-    return avg_loss, mean_dice, mean_iou, results_dir
+    return avg_loss, mean_dice, mean_iou
 

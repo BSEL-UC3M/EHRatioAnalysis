@@ -13,6 +13,7 @@ from datetime import datetime
 import os
 from models.segmentator import Segmentator
 
+save_results = False
 segmentator = Segmentator()
 
 # Check if GPU is available, otherwise use CPU
@@ -30,7 +31,11 @@ criterion = losses.BCE_and_Dice_loss(
 # Define the optimizer (Adam optimizer with a learning rate of 1e-4)
 optimizer = optim.Adam(segmentator.parameters(), lr=1e-4)
 
-results_folder = "./results/"
+if save_results:
+    results_folder = "./results/"
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    results_dir = os.path.join(results_folder, timestamp)
+    os.makedirs(results_dir, exist_ok=True)
 
 # TOY DATASET
 images_folder = "toydataset\\toydataset\\MRC\\images"
@@ -40,27 +45,33 @@ labels_folder = "toydataset\\toydataset\\MRC\\labels"
 # images_folder = "D:\\Data\\VolumetricHydrops\\images\\MRC"
 # labels_folder = "D:\\Data\\VolumetricHydrops\\labels\\MRC"
 
-timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-results_dir = os.path.join(results_folder, timestamp)
-os.makedirs(results_dir, exist_ok=True)
+
 
 # Initialize the data loader with your custom class
 data_loader = DataLoaderByPatient()
 train_loader, val_loader, test_loader = data_loader.train_val_test_split_bypatient(
     images_folder=images_folder,
     labels_folder=labels_folder,
-    splits=(0.7, 0.15, 0.15),
+    splits=(0.34, 0.33, 0.33),
     batch_size=8,
     shuffle=True,
     transform=None
 )
 
-# Train the model
 num_epochs = 5
-trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, num_epochs, results_dir)
+if save_results:
+    # Train the model
+    trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, num_epochs)
 
-# Evaluate the model on the test set
-avg_loss, mean_dice, mean_iou, results_dir = evaluate_model(trained_model, val_loader, device, criterion, results_dir)
+    # Evaluate the model on the test set
+    avg_loss, mean_dice, mean_iou = evaluate_model(trained_model, test_loader, device, criterion, results_dir)
 
-# Save the trained model
-torch.save(trained_model.state_dict(), results_dir +'unet_brain_segmentation.pth')
+    # Save the trained model
+    torch.save(trained_model.state_dict(), results_dir +'/unet_brain_segmentation.pth')
+else:
+   # Train the model
+    trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir=None, num_epochs=num_epochs)
+
+    # Evaluate the model on the test set
+    avg_loss, mean_dice, mean_iou = evaluate_model(trained_model, test_loader, device, criterion)
+ 
