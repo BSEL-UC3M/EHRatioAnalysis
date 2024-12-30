@@ -1,1 +1,5 @@
-Epoch 1: Loss = 0.1034
+Epoch 1: Loss = 0.1113
+Epoch 2: Loss = 0.0926
+Epoch 3: Loss = 0.0874
+Epoch 4: Loss = 0.0753
+Epoch 5: Loss = 0.0642
