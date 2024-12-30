@@ -25,8 +25,8 @@ DATA_SPLITS = (0.34, 0.33, 0.33)  # Train, validation, test splits
 
 # Dataset Paths
 # Toy dataset for testing
-IMAGES_FOLDER = "toydataset/toydataset/MRC/images"
-LABELS_FOLDER = "toydataset/toydataset/MRC/labels"
+IMAGES_FOLDER = "toydataset/segmentation/MRC/images"
+LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
 
 # Full dataset for training (uncomment when needed)
 # IMAGES_FOLDER = "D:/Data/VolumetricHydrops/images/MRC"
