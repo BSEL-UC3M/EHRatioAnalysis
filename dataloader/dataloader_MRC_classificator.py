@@ -16,7 +16,8 @@ import cv2
 
 class ClassificationDataset(Dataset):
     """
-    PyTorch Dataset for loading MRC TIFF images and their corresponding labels.
+    PyTorch Dataset for loading MRC TIFF images and their corresponding labels
+    from an xlsx file with each file containing one patient.
     """
 
     def __init__(self, image_files, image_folder, labels, transform=None):
@@ -63,18 +64,30 @@ class ClassificationDataLoader:
     """
 
     @staticmethod
-    def load_annotations(annotation_file):
-        """
-        Load annotations from an Excel file.
+    def load_annotations(images_folder):
+        labels_file = None
+        # Find the labels file in the dataset folder
+        for file in os.listdir(images_folder):
+            if file.endswith(".xlsx"):
+                labels_file= images_folder + "/" +file
+                break
+        if not labels_file:
+            raise FileNotFoundError("No .xlsx file found in the dataset folder.")
+        
+        # Get the list of patient folders
+        patient_folders = [folder for folder in os.listdir(images_folder) if os.path.isdir(os.path.join(images_folder, folder))]
 
-        Parameters:
-        - annotation_file: Path to the Excel file containing annotations.
-
-        Returns:
-        - Dictionary mapping image filenames to class labels.
-        """
-        annotations = pd.read_excel(annotation_file)
-        labels = dict(zip(annotations['Filename'], annotations['Class']))
+        all_patient_data = {}
+        with pd.ExcelFile(labels_file) as xls:
+            for patient_folder in patient_folders:
+                try:
+                    # Assuming the sheet name matches the patient folder name
+                    sheet_data = pd.read_excel(xls, sheet_name=patient_folder)
+                    all_patient_data[patient_folder] = sheet_data
+                except ValueError as e:
+                    print(f"WARNING: No sheet found for patient folder: {patient_folder}")
+        # TODO: Extract the labels from the Excel file
+        labels = {}
         return labels
 
     @staticmethod
@@ -150,33 +163,3 @@ class ClassificationDataLoader:
 
         return train_loader, val_loader, test_loader
 
-
-# Example usage:
-if __name__ == "__main__":
-    # Paths
-    images_folder = "path_to_images"
-    annotations_file = "path_to_annotations.xlsx"
-
-    # Initialize the DataLoader
-    dataloader = ClassificationDataLoader()
-
-    # Create train, val, and test DataLoaders
-    train_loader, val_loader, test_loader = dataloader.train_val_test_split(
-        images_folder=images_folder,
-        annotations_file=annotations_file,
-        splits=(0.7, 0.15, 0.15),
-        batch_size=8,
-        shuffle=True,
-        transform=None
-    )
-
-    # Print some information
-    print(f"Number of training samples: {len(train_loader.dataset)}")
-    print(f"Number of validation samples: {len(val_loader.dataset)}")
-    print(f"Number of test samples: {len(test_loader.dataset)}")
-
-    # Display a sample
-    for images, labels in train_loader:
-        print("Image batch shape:", images.shape)
-        print("Label batch shape:", labels.shape)
-        break
