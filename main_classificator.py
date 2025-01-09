@@ -1,5 +1,8 @@
 from dataloader.dataloader_MRC_classificator import ClassificationDataLoader
 import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 # ==============================================================================
 
@@ -13,18 +16,18 @@ IMAGES_FOLDER = "toydataset/classification/" # Path to the folder containing ima
 
 # Full dataset for training (uncomment when needed)
 # IMAGES_FOLDER = "D:/Data/VolumetricHydrops/images/MRC"
-# LABELS_FOLDER = "D:/Data/VolumetricHydrops/labels/MRC"
 
 # ==============================================================================
 
+# 
 
-# Initialize the DataLoader
-dataloader = ClassificationDataLoader()
+# Load annotations
+annotations = ClassificationDataLoader.load_annotations(IMAGES_FOLDER)
 
 # Create train, val, and test DataLoaders
-train_loader, val_loader, test_loader = dataloader.train_val_test_split(
+train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_split(
     images_folder=IMAGES_FOLDER,
-    annotations_file=LABELS_FILE,
+    annotations=annotations,
     splits=(0.7, 0.15, 0.15),
     batch_size=8,
     shuffle=True,
@@ -35,9 +38,3 @@ train_loader, val_loader, test_loader = dataloader.train_val_test_split(
 print(f"Number of training samples: {len(train_loader.dataset)}")
 print(f"Number of validation samples: {len(val_loader.dataset)}")
 print(f"Number of test samples: {len(test_loader.dataset)}")
-
-# Display a sample
-for images, labels in train_loader:
-    print("Image batch shape:", images.shape)
-    print("Label batch shape:", labels.shape)
-    break

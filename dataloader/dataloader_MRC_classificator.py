@@ -1,8 +1,8 @@
 # ==============================================================================
 # File: dataloader_classificator.py
 # Description: DataLoader for MRC TIFF images and annotations for classification tasks.
-# Author: [Your Name]
-# Creation Date: [Date]
+# Author: @cfusterbarcelo
+# Creation Date: 05/01/2025
 # ==============================================================================
 
 import os
@@ -17,14 +17,14 @@ import cv2
 class ClassificationDataset(Dataset):
     """
     PyTorch Dataset for loading MRC TIFF images and their corresponding labels
-    from an xlsx file with each file containing one patient.
+    from annotations extracted from an Excel file.
     """
 
     def __init__(self, image_files, image_folder, labels, transform=None):
         """
         Parameters:
         - image_files: List of image filenames.
-        - image_folder: Path to the folder containing image files.
+        - image_folder: Path to the folder containing patient folders with images.
         - labels: Dictionary mapping image filenames to their class labels.
         - transform: Optional transformations to apply to the images.
         """
@@ -45,8 +45,12 @@ class ClassificationDataset(Dataset):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
         image = image.astype('float32') / 255.0  # Normalize to [0, 1]
 
+        # Extract patient ID and filename
+        patient_id = os.path.dirname(image_file)
+        filename = os.path.basename(image_file)
+
         # Get the label
-        label = self.labels[image_file]
+        label = self.labels[patient_id][filename]
 
         if self.transform:
             image = self.transform(image)
@@ -56,6 +60,7 @@ class ClassificationDataset(Dataset):
         label = torch.tensor(label, dtype=torch.long)  # Convert label to tensor
 
         return image, label
+
 
 
 class ClassificationDataLoader:
@@ -86,18 +91,18 @@ class ClassificationDataLoader:
                     all_patient_data[patient_folder] = sheet_data
                 except ValueError as e:
                     print(f"WARNING: No sheet found for patient folder: {patient_folder}")
-        # TODO: Extract the labels from the Excel file
-        labels = {}
-        return labels
+        # TODO: See how the classification network will read the labels
+        return all_patient_data
 
     @staticmethod
-    def train_val_test_split(images_folder, annotations_file, splits=(0.7, 0.15, 0.15), batch_size=8, shuffle=True, transform=None):
+    def train_val_test_split(images_folder, annotations, splits=(0.7, 0.15, 0.15), batch_size=8, shuffle=True, transform=None):
         """
         Splits the data into training, validation, and testing sets by patient ID.
 
         Parameters:
         - images_folder: Path to the folder containing patient folders with images.
-        - annotations_file: Path to the Excel file containing annotations.
+        - annotations: Dictionary containing patient folder names as keys and their corresponding
+                    labels as values (from `load_annotations`).
         - splits: Tuple indicating the train, validation, and test split ratios.
         - batch_size: Batch size for the DataLoader.
         - shuffle: Whether to shuffle the patients before splitting.
@@ -110,13 +115,10 @@ class ClassificationDataLoader:
         """
         assert sum(splits) == 1.0, "Splits must sum to 1.0."
 
-        # Load annotations
-        labels = ClassificationDataLoader.load_annotations(annotations_file)
+        # Get the list of patient folders
+        patient_folders = list(annotations.keys())
 
-        # Get list of patient folders
-        patient_folders = [folder for folder in os.listdir(images_folder) if os.path.isdir(os.path.join(images_folder, folder))]
-
-        # Shuffle patients
+        # Shuffle patients if required
         if shuffle:
             random.shuffle(patient_folders)
 
@@ -133,7 +135,8 @@ class ClassificationDataLoader:
             image_files = []
             for patient in patients:
                 patient_folder = os.path.join(images_folder, patient)
-                image_files.extend([os.path.join(patient, file) for file in os.listdir(patient_folder) if file.endswith('.tif')])
+                patient_images = [os.path.join(patient, file) for file in os.listdir(patient_folder) if file.endswith('.tif')]
+                image_files.extend(patient_images)
             return image_files
 
         # Get image files for each split
@@ -146,10 +149,10 @@ class ClassificationDataLoader:
         assert len(set(train_files) & set(test_files)) == 0, "Train and Test sets overlap!"
         assert len(set(val_files) & set(test_files)) == 0, "Val and Test sets overlap!"
 
-        # Filter labels for the splits
-        train_labels = {file: labels[os.path.basename(file)] for file in train_files}
-        val_labels = {file: labels[os.path.basename(file)] for file in val_files}
-        test_labels = {file: labels[os.path.basename(file)] for file in test_files}
+        # Create label dictionaries for the splits
+        train_labels = {patient: annotations[patient] for patient in train_patients}
+        val_labels = {patient: annotations[patient] for patient in val_patients}
+        test_labels = {patient: annotations[patient] for patient in test_patients}
 
         # Create datasets
         train_dataset = ClassificationDataset(train_files, images_folder, train_labels, transform)
@@ -162,4 +165,5 @@ class ClassificationDataLoader:
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
         return train_loader, val_loader, test_loader
+
 
