@@ -37,20 +37,30 @@ class ClassificationDataset(Dataset):
         return len(self.image_files)
 
     def __getitem__(self, idx):
+        # Get the file name and patient ID
         image_file = self.image_files[idx]
-        image_path = os.path.join(self.image_folder, image_file)
+        patient_id = os.path.dirname(image_file).split(os.sep)[-1]
+        filename = os.path.basename(image_file).strip()
+        
+        # Normalize the 'File Name' column in the DataFrame
+        self.labels[patient_id]['File Name'] = self.labels[patient_id]['File Name'].str.strip()
+
+        # Check if the filename exists in the 'File Name' column
+        if filename not in self.labels[patient_id]['File Name'].values:
+            raise KeyError(f"File '{filename}' not found in annotations for patient '{patient_id}'. "
+                       f"Available files: {self.labels[patient_id]['File Name'].values}")
+
+        # Get the corresponding label
+        label_row = self.labels[patient_id][self.labels[patient_id]['File Name'] == filename]
+        if label_row.empty:
+            raise ValueError(f"No label found for file '{filename}' in patient '{patient_id}'.")
+        label = label_row['Annotation'].values[0]
 
         # Load the image
+        image_path = os.path.join(self.image_folder, image_file)
         image = cv2.imread(image_path, cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
         image = image.astype('float32') / 255.0  # Normalize to [0, 1]
-
-        # Extract patient ID and filename
-        patient_id = os.path.dirname(image_file)
-        filename = os.path.basename(image_file)
-
-        # Get the label
-        label = self.labels[patient_id][filename]
 
         if self.transform:
             image = self.transform(image)
