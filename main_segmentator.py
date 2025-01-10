@@ -1,7 +1,7 @@
 # ==============================================================================
 # File: main_segmentator.py
 # Description: Main script for training and evaluating the segmentation model.
-# Author: Caterina Fuster-Barceló
+# Author: @cfusterbarcelo
 # Creation Date: 03/09/2024
 # ==============================================================================
 
