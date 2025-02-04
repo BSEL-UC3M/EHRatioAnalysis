@@ -66,7 +66,7 @@ class DataLoaderByPatient:
         return filename.split("_")[0]
 
     @staticmethod
-    def train_val_test_split_bypatient(images_folder, labels_folder, splits=(0.7, 0.15, 0.15), batch_size=8, shuffle=True, transform=None):
+    def train_val_test_split_bypatient(images_folder, labels_folder, splits=(0.7, 0.15, 0.15), batch_size=8, shuffle=True, transform=None): #añadir seed=42
         """
         Splits the data into training, validation, and testing sets by patient ID and returns PyTorch DataLoaders.
         
@@ -92,6 +92,13 @@ class DataLoaderByPatient:
         - test_loader: DataLoader
             DataLoader for the testing set.
         """
+        # Fijar la semilla para reproducibilidad
+        #random.seed(seed)
+        #np.random.seed(seed)
+        #torch.manual_seed(seed)
+        #if torch.cuda.is_available():
+            #torch.cuda.manual_seed_all(seed)
+                    
         # Ensure that splits sum to 1.0
         assert sum(splits) == 1.0, "Splits must sum to 1.0"
 
