@@ -65,7 +65,7 @@ else:
 
 # Initialize the data loader with your custom DataLoader class
 data_loader = DataLoaderByPatient()
-train_loader, val_loader, test_loader = data_loader.train_val_test_split_bypatient(
+train_loader, val_loader, test_loader= data_loader.train_val_test_split_bypatient(
     images_folder=IMAGES_FOLDER,
     labels_folder=LABELS_FOLDER,
     splits=DATA_SPLITS,
@@ -73,7 +73,6 @@ train_loader, val_loader, test_loader = data_loader.train_val_test_split_bypatie
     shuffle=True,
     transform=None
 )
-
 # ==============================================================================
 
 # Train the model
