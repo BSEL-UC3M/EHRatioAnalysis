@@ -106,6 +106,7 @@ class ClassificationDataLoader:
 
     @staticmethod
     def train_val_test_split(images_folder, annotations, splits=(0.7, 0.15, 0.15), batch_size=8, shuffle=True, transform=None):
+    
         """
         Splits the data into training, validation, and testing sets by patient ID.
 
@@ -124,6 +125,12 @@ class ClassificationDataLoader:
         - test_loader: DataLoader for testing data.
         """
         assert sum(splits) == 1.0, "Splits must sum to 1.0."
+
+        # Set seed for reproducibility
+        # random.seed(seed)
+        # np.random.seed(seed)
+        # torch.manual_seed(seed)
+        # torch.cuda.manual_seed_all(seed)
 
         # Get the list of patient folders
         patient_folders = list(annotations.keys())

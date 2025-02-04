@@ -8,7 +8,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
+import numpy as np
 
 def train_model(model, dataloader, criterion, optimizer, device, num_epochs=10):
     """
@@ -63,21 +63,28 @@ def evaluate_model(model, dataloader, device):
 
     Returns:
     - accuracy: Accuracy of the model on the evaluation data.
+    - y_true
+    - y_pred
+    - average loss
     """
+    y_true = []
+    y_pred = []
+    total_loss = 0
+    criterion = torch.nn.CrossEntropyLoss()  # Define criterion inside the function
+    
     model.eval()
-    correct = 0
-    total = 0
-
     with torch.no_grad():
-        for inputs, labels in dataloader:
-            inputs, labels = inputs.to(device), labels.to(device)
-
-            outputs = model(inputs)
+        for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
+            
             _, predicted = torch.max(outputs, 1)
+            y_true.extend(labels.cpu().numpy())
+            y_pred.extend(predicted.cpu().numpy())
 
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-    accuracy = 100 * correct / total
-    print(f"Accuracy: {accuracy:.2f}%")
-    return accuracy
+    avg_loss = total_loss / len(test_loader)
+    accuracy = (np.array(y_true) == np.array(y_pred)).mean() * 100
+    
+    return y_true, y_pred, avg_loss, accuracy
