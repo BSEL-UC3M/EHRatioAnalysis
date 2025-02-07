@@ -4,6 +4,9 @@
 # Author: @cfusterbarcelo
 # Created: 09/01/2025
 # ==============================================================================
+import torch
+print(torch.device("mps" if torch.backends.mps.is_available() else "cpu"))
+
 
 import os
 import sys
@@ -37,7 +40,8 @@ IMAGES_FOLDER = "toydataset/classification/"  # Path to the folder containing im
 # ==============================================================================
 
 # Device configuration
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+
 
 # Load annotations
 annotations = ClassificationDataLoader.load_annotations(IMAGES_FOLDER)
@@ -87,11 +91,20 @@ TN, FP, FN, TP = conf_matrix.ravel() if conf_matrix.size == 4 else (0, 0, 0, 0)
 
 # Save results if enabled
 if SAVE_RESULTS:
-    results_folder = "./results/results_classificator/"
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    results_dir = os.path.join(results_folder, timestamp)
+    # Define the root results folder
+    results_root = "./results"
+    results_classificator = os.path.join(results_root, "results_classificator")
+
+    # Create 'results/results_classificator/' if it doesn't exist
+    os.makedirs(results_classificator, exist_ok=True)
+
+    # Generate a subfolder using date-time format YYYYMMDD-HHMMSS
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")  # Example: 20250207-145528
+    results_dir = os.path.join(results_classificator, timestamp)
+
+    # Create the final results directory
     os.makedirs(results_dir, exist_ok=True)
-    
+
     # Save results in a text file
     with open(os.path.join(results_dir, "results.txt"), "w") as f:
         f.write(f"Learning Rate: {LEARNING_RATE}\n")
@@ -118,3 +131,4 @@ if SAVE_RESULTS:
     print(f"Results saved in {results_dir}")
 
 print("Process completed.")
+
