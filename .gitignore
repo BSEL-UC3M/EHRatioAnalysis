@@ -166,4 +166,4 @@ cython_debug/
 
 # Custom
 .vs/
-.DS_Store
+.DS_StoreEHRA/
