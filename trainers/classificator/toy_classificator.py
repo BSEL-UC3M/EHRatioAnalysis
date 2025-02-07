@@ -74,7 +74,7 @@ def evaluate_model(model, dataloader, device):
     
     model.eval()
     with torch.no_grad():
-        for images, labels in test_loader:
+        for images, labels in dataloader:
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             loss = criterion(outputs, labels)
@@ -84,7 +84,7 @@ def evaluate_model(model, dataloader, device):
             y_true.extend(labels.cpu().numpy())
             y_pred.extend(predicted.cpu().numpy())
 
-    avg_loss = total_loss / len(test_loader)
+    avg_loss = total_loss / len(dataloader)
     accuracy = (np.array(y_true) == np.array(y_pred)).mean() * 100
     
     return y_true, y_pred, avg_loss, accuracy
