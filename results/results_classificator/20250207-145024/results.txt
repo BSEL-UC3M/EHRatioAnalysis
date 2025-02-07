@@ -1,0 +1,13 @@
+Learning Rate: 0.0001
+Number of Epochs: 5
+Optimizer: Adam
+Number of Layers: 5
+Accuracy: 76.34%
+Average Loss: 0.5479
+Confusion Matrix:
+[[171   0]
+ [ 53   0]]
+True Positives: 0
+False Positives: 0
+True Negatives: 171
+False Negatives: 53
