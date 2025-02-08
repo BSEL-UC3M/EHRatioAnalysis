@@ -31,8 +31,8 @@ DATA_SPLITS = (0.34, 0.33, 0.33)  # Train, validation, test splits
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
     # Si estamos en Kaggle, usar la ruta de Kaggle
-    IMAGES_FOLDER = '/kaggle/input/toydataset/toydataset/segmentation/MRC/images/'
-    LABELS_FOLDER = '/kaggle/input/toydataset/toydataset/segmentation/MRC/labels/'
+    IMAGES_FOLDER = '/kaggle/input/tif-dataset-segmentator/TIF_DATASET/images/MRC'
+    LABELS_FOLDER = '/kaggle/input/tif-dataset-segmentator/TIF_DATASET/labels/MRC'
 else:
     # Si estamos en local, usar la ruta local
     IMAGES_FOLDER = 'toydataset/segmentation/MRC/images/'
