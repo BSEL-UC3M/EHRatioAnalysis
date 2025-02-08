@@ -25,8 +25,18 @@ DATA_SPLITS = (0.34, 0.33, 0.33)  # Train, validation, test splits
 
 # Dataset Paths
 # Toy dataset for testing
-IMAGES_FOLDER = "toydataset/segmentation/MRC/images"
-LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
+#IMAGES_FOLDER = "toydataset/segmentation/MRC/images"
+#LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
+
+# Verificar si estamos en Kaggle o en local
+if '/kaggle/input' in os.listdir('/'):
+    # Si estamos en Kaggle, usar la ruta de Kaggle
+    IMAGES_FOLDER = '/kaggle/input/toydataset/toydataset/segmentation/MRC/images/'
+    LABELS_FOLDER = '/kaggle/input/toydataset/toydataset/segmentation/MRC/labels/'
+else:
+    # Si estamos en local, usar la ruta local
+    IMAGES_FOLDER = 'toydataset/segmentation/MRC/images/'
+    LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
 
 # Full dataset for training (uncomment when needed)
 # IMAGES_FOLDER = "D:/Data/VolumetricHydrops/images/MRC"
@@ -56,7 +66,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/"
+    results_folder = "./results/results_segmentator/MRC"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)

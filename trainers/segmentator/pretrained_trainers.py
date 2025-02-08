@@ -16,6 +16,8 @@ from losses import losses
 from dataloader.dataloader_MRC import DataLoaderByPatient
 from matplotlib import pyplot as plt
 from utils.metrics import dice_score, iou_score
+import torch
+
 
 # Training function
 def train_model(model, dataloader, criterion, optimizer, device, results_dir=None, num_epochs=25):
@@ -43,7 +45,7 @@ def train_model(model, dataloader, criterion, optimizer, device, results_dir=Non
             # Get the inputs and labels from the dataloader
             inputs, labels = data
             inputs, labels = inputs.to(device), labels.to(device)
-            
+
             # Zero the parameter gradients
             optimizer.zero_grad()
             
@@ -175,4 +177,3 @@ def evaluate_model(model, dataloader, device, criterion, results_dir=None):
         plt.close(fig)
 
     return avg_loss, mean_dice, mean_iou
-
