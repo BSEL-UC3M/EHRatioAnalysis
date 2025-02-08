@@ -29,7 +29,7 @@ DATA_SPLITS = (0.34, 0.33, 0.33)  # Train, validation, test splits
 #LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
 
 # Verificar si estamos en Kaggle o en local
-if 'KAGGLE_KERNEL_RUN_ID' in os.environ:
+if os.path.exists('/kaggle/input'):
     # Si estamos en Kaggle, usar la ruta de Kaggle
     IMAGES_FOLDER = '/kaggle/input/toydataset/toydataset/segmentation/MRC/images/'
     LABELS_FOLDER = '/kaggle/input/toydataset/toydataset/segmentation/MRC/labels/'
