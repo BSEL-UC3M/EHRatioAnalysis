@@ -5,12 +5,8 @@
 # Created: 09/01/2025
 # ==============================================================================
 import torch
-print(torch.device("mps" if torch.backends.mps.is_available() else "cpu"))
-
-
 import os
 import sys
-import torch
 import numpy as np
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
@@ -18,8 +14,7 @@ import seaborn as sns
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 from dataloader.dataloader_MRC_classificator import ClassificationDataLoader
-from models.classificator import SimpleCNN
-from trainers.classificator.toy_classificator import train_model, evaluate_model
+from trainers.classificator.updated_toy_classificator import train_model, evaluate_model, fine_tune_resnet, FiveLayerCNN, cross_validate_model
 
 # Add the current directory to Python's module search path
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -28,22 +23,14 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
-NUM_EPOCHS = 5  # Number of training epochs
+NUM_EPOCHS = 30  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 8  # Batch size for training
-DATA_SPLITS = (0.34, 0.33, 0.33)  # Train, validation, test splits
-IMAGES_FOLDER = "toydataset/classification/"  # Path to the folder containing images
-
-# Full dataset for training (uncomment when needed)
-# IMAGES_FOLDER = "D:/Data/VolumetricHydrops/images/MRC"
-
-# ==============================================================================
+DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
+IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/MRC_data/MRC_images/" # Path to the folder containing images
 
 # Device configuration
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-
-
-# Load annotations
 annotations = ClassificationDataLoader.load_annotations(IMAGES_FOLDER)
 
 # Create train, val, and test DataLoaders
@@ -70,42 +57,41 @@ num_classes = len(set(
     for patient_data in annotations.values() 
     for annotation in patient_data['Annotation']
 ))
-# Initialize the model
-model = SimpleCNN(num_classes=num_classes).to(device)
 
-# Define the loss function and optimizer
-criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+# Select model type
+MODEL_TYPE = "resnet"  # Change to "cnn" for 5-layer CNN
+
+if MODEL_TYPE == "resnet":
+    model, criterion, optimizer = fine_tune_resnet(num_classes, device, LEARNING_RATE)
+else:
+    best_params = cross_validate_model(FiveLayerCNN, train_loader, num_classes, device)
+    model = FiveLayerCNN(num_classes).to(device)
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=best_params['lr'])
+    BATCH_SIZE = best_params['batch_size']
+
+train_loader = torch.utils.data.DataLoader(train_loader.dataset, batch_size=BATCH_SIZE, shuffle=True)
 
 # Train the model
-print("Starting training...")
-trained_model = train_model(model, train_loader, criterion, optimizer, device, NUM_EPOCHS)
-
+print(f"Training {MODEL_TYPE.upper()} model...")
+trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
+    model, train_loader, val_loader, criterion, optimizer, device, NUM_EPOCHS)
 # Evaluate the model
-print("Evaluating model...")
+print(f"Evaluating {MODEL_TYPE.upper()} model...")
 y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device)
 
 # Compute confusion matrix
 conf_matrix = confusion_matrix(y_true, y_pred)
-TN, FP, FN, TP = conf_matrix.ravel() if conf_matrix.size == 4 else (0, 0, 0, 0)
 
 # Save results if enabled
 if SAVE_RESULTS:
-    # Define the root results folder
     results_root = "./results"
     results_classificator = os.path.join(results_root, "results_classificator")
-
-    # Create 'results/results_classificator/' if it doesn't exist
     os.makedirs(results_classificator, exist_ok=True)
-
-    # Generate a subfolder using date-time format YYYYMMDD-HHMMSS
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")  # Example: 20250207-145528
-    results_dir = os.path.join(results_classificator, timestamp)
-
-    # Create the final results directory
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    results_dir = os.path.join(results_classificator, f"{MODEL_TYPE}_{timestamp}")
     os.makedirs(results_dir, exist_ok=True)
 
-    # Save results in a text file
     with open(os.path.join(results_dir, "results.txt"), "w") as f:
         f.write(f"Learning Rate: {LEARNING_RATE}\n")
         f.write(f"Number of Epochs: {NUM_EPOCHS}\n")
@@ -114,21 +100,38 @@ if SAVE_RESULTS:
         f.write(f"Accuracy: {accuracy:.2f}%\n")
         f.write(f"Average Loss: {avg_loss:.4f}\n")
         f.write(f"Confusion Matrix:\n{conf_matrix}\n")
-        f.write(f"True Positives: {TP}\n")
-        f.write(f"False Positives: {FP}\n")
-        f.write(f"True Negatives: {TN}\n")
-        f.write(f"False Negatives: {FN}\n")
 
     # Generate and save confusion matrix plot
     plt.figure(figsize=(6,5))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=['Class 0', 'Class 1'], yticklabels=['Class 0', 'Class 1'])
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=[f'Class {i}' for i in range(num_classes)], yticklabels=[f'Class {i}' for i in range(num_classes)])
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
     plt.title("Confusion Matrix")
     plt.savefig(os.path.join(results_dir, "confusion_matrix.png"), dpi=300, bbox_inches='tight')
     plt.close()
-    
+
+    # Plot training & validation loss
+    plt.figure(figsize=(8,6))
+    plt.plot(range(1, NUM_EPOCHS+1), train_losses, label='Train Loss', marker='o')
+    plt.plot(range(1, NUM_EPOCHS+1), val_losses, label='Validation Loss', marker='o')
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.title("Training and Validation Loss")
+    plt.legend()
+    plt.savefig(os.path.join(results_dir, "train_val_loss.png"), dpi=300, bbox_inches='tight')
+    plt.close()
+
+    # Plot training & validation accuracy
+    plt.figure(figsize=(8,6))
+    plt.plot(range(1, NUM_EPOCHS+1), train_accuracies, label='Train Accuracy', marker='o')
+    plt.plot(range(1, NUM_EPOCHS+1), val_accuracies, label='Validation Accuracy', marker='o')
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy (%)")
+    plt.title("Training and Validation Accuracy")
+    plt.legend()
+    plt.savefig(os.path.join(results_dir, "train_val_accuracy.png"), dpi=300, bbox_inches='tight')
+    plt.close()
+
     print(f"Results saved in {results_dir}")
 
 print("Process completed.")
-

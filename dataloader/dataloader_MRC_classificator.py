@@ -84,24 +84,21 @@ class ClassificationDataLoader:
         # Find the labels file in the dataset folder
         for file in os.listdir(images_folder):
             if file.endswith(".xlsx"):
-                labels_file= images_folder + "/" +file
+                labels_file = os.path.join(images_folder, file)
                 break
         if not labels_file:
             raise FileNotFoundError("No .xlsx file found in the dataset folder.")
         
-        # Get the list of patient folders
-        patient_folders = [folder for folder in os.listdir(images_folder) if os.path.isdir(os.path.join(images_folder, folder))]
-
         all_patient_data = {}
+
+        # Open the Excel file
         with pd.ExcelFile(labels_file) as xls:
-            for patient_folder in patient_folders:
-                try:
-                    # Assuming the sheet name matches the patient folder name
-                    sheet_data = pd.read_excel(xls, sheet_name=patient_folder)
-                    all_patient_data[patient_folder] = sheet_data
-                except ValueError as e:
-                    print(f"WARNING: No sheet found for patient folder: {patient_folder}")
-        # TODO: See how the classification network will read the labels
+            # Get all sheet names dynamically
+            sheet_names = xls.sheet_names
+            print(f"Sheet names found in the file: {sheet_names}")
+
+            # Read and store all sheets while inside the `with` block
+            all_patient_data = {sheet: pd.read_excel(xls, sheet_name=sheet) for sheet in sheet_names}
         return all_patient_data
 
     @staticmethod
@@ -149,11 +146,25 @@ class ClassificationDataLoader:
         test_patients = patient_folders[num_train + num_val:]
 
         def get_image_files(patients):
-            image_files = []
+
+            image_files=[]
             for patient in patients:
                 patient_folder = os.path.join(images_folder, patient)
-                patient_images = [os.path.join(patient, file) for file in os.listdir(patient_folder) if file.endswith('.tif')]
+                if not os.path.exists(patient_folder):
+                    print(f"WARNING: Folder {patient_folder} not found!")
+                    continue
+        
+                patient_images = [
+                    os.path.join(patient, file)
+                    for file in os.listdir(patient_folder)
+                    if file.endswith('.tif') and "(1)" not in file and "(2)" not in file  # Ignore duplicates
+                ]
+        
+                if len(patient_images) == 0:
+                    print(f"WARNING: No valid .tif images found in {patient_folder}")
+        
                 image_files.extend(patient_images)
+    
             return image_files
 
         # Get image files for each split
