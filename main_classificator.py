@@ -23,7 +23,7 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
-NUM_EPOCHS = 30  # Number of training epochs
+NUM_EPOCHS = 10  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 8  # Batch size for training
 DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
