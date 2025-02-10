@@ -141,7 +141,7 @@ class FiveLayerCNN(nn.Module):
     """
     5-layer CNN for classification.
     """
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, dropout_prob=0.7):
         super(FiveLayerCNN, self).__init__()
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(32)
