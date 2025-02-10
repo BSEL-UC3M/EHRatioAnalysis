@@ -31,18 +31,18 @@ DATA_SPLITS = (0.34, 0.33, 0.33)  # Train, validation, test splits
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
     # Si estamos en Kaggle, usar la ruta de Kaggle
-    IMAGES_FOLDER = '/kaggle/input/tif-dataset/TIF_DATASET/images/MRC'
-    LABELS_FOLDER = '/kaggle/input/tif-dataset/TIF_DATASET/labels/MRC'
+    IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/MRC'
+    LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/MRC'
 else:
     # Si estamos en local, usar la ruta local
-    IMAGES_FOLDER = 'toydataset/segmentation/MRC/images/'
-    LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
+    IMAGES_FOLDER = 'toydataset/segmentation/PEI/images/'
+    LABELS_FOLDER = "toydataset/segmentation/PEI/labels"
 
 # Full dataset for training (uncomment when needed)
 # IMAGES_FOLDER = "D:/Data/VolumetricHydrops/images/MRC"
 # LABELS_FOLDER = "D:/Data/VolumetricHydrops/labels/MRC"
 
-# ==============================================================================
+# ================================================================================
 
 # Initialize the segmentation model
 segmentator = Segmentator()
@@ -73,6 +73,8 @@ if SAVE_RESULTS:
 else:
     results_dir = None
 
+# ================================================================================
+
 # Initialize the data loader with your custom DataLoader class
 data_loader = DataLoaderByPatient()
 train_loader, val_loader, test_loader= data_loader.train_val_test_split_bypatient(
@@ -84,6 +86,14 @@ train_loader, val_loader, test_loader= data_loader.train_val_test_split_bypatien
     transform=None
 )
 # ==============================================================================
+
+# Check shape of data: Obtener un batch del train_loader
+for images, labels in train_loader:
+    print(f"Dimensiones de las imágenes: {images.shape}")
+    print(f"Dimensiones de las etiquetas: {labels.shape}")
+    break  
+
+# =================================
 
 # Train the model
 print("Starting training...")
@@ -100,3 +110,4 @@ if SAVE_RESULTS:
     print(f"Model saved to {model_save_path}")
 
 # ==============================================================================
+
