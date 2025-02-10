@@ -31,8 +31,8 @@ DATA_SPLITS = (0.34, 0.33, 0.33)  # Train, validation, test splits
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
     # Si estamos en Kaggle, usar la ruta de Kaggle
-    IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/MRC_images'
-    LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/MRC_labels'
+    IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/PEI_images'
+    LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/PEI_labels'
 else:
     # Si estamos en local, usar la ruta local
     IMAGES_FOLDER = 'toydataset/segmentation/PEI/images/'
