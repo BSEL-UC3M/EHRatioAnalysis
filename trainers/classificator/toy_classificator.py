@@ -9,11 +9,14 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as models
+import torch.nn.functional as F
 import numpy as np
 from sklearn.model_selection import KFold
 
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=10):
+# Train a given model for the specified number of epochs. Use a training and validation dataset, 
+# compute loss and accuracy at each epoch and use backpropagation and optimizer updates
+def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs):
     """
     Trains the model and tracks loss/accuracy over epochs.
 
@@ -43,6 +46,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         correct_train, total_train = 0, 0
 
         # Training loop
+        # forward pass --> loss computation --> backward pass --> optimizer update
         for inputs, labels in train_loader:
             inputs, labels = inputs.to(device), labels.to(device)
 
@@ -61,7 +65,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         avg_train_loss = running_loss / len(train_loader)
         train_accuracy = 100 * correct_train / total_train
 
-        # Validation loop
+        # Validation loop, compute validation loss and accuracy 
         model.eval()
         running_val_loss = 0.0
         correct_val, total_val = 0, 0
@@ -95,7 +99,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
     print("Training complete.")
     return model, train_losses, val_losses, train_accuracies, val_accuracies
 
-
+# Evaluates trained model on test/validation data, computes loss and accuracy
 def evaluate_model(model, dataloader, device):
     """
     Evaluates the model.
@@ -112,7 +116,7 @@ def evaluate_model(model, dataloader, device):
             loss = criterion(outputs, labels)
             total_loss += loss.item()
             
-            _, predicted = torch.max(outputs, 1)
+            _, predicted = torch.max(outputs, 1) # get predicted labels
             y_true.extend(labels.cpu().numpy())
             y_pred.extend(predicted.cpu().numpy())
     
@@ -120,27 +124,25 @@ def evaluate_model(model, dataloader, device):
     accuracy = (np.array(y_true) == np.array(y_pred)).mean() * 100
     
     return y_true, y_pred, avg_loss, accuracy
+# y_true are ground truth labels, y_pred are predicted labels, avg_loss is the average loss and overall accuracy 
 
-
+# load ResNet18 and replaces the fc layer for the new dataset 
 def fine_tune_resnet(num_classes, device, learning_rate):
     """
     Fine-tune ResNet18 on the dataset.
     """
-    resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+    resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT) # load pre-trained weights 
     num_ftrs = resnet.fc.in_features
-    resnet.fc = nn.Linear(num_ftrs, num_classes)
-    resnet = resnet.to(device)
+    resnet.fc = nn.Linear(num_ftrs, num_classes) # replace fc with a new layer that matches the number of classes in the dataset
+    resnet = resnet.to(device) # move to gpu 
     
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(resnet.parameters(), lr=learning_rate)
     
-    return resnet, criterion, optimizer
+    return resnet, criterion, optimizer # returns resnet18 model, cross entropy loss function, adam optimizer 
 
-
+# 5 layer CNN_ 5 convolutional layers, batch normalization, maxpooling layers, fc layers and dropout layer to prevent overfitting 
 class FiveLayerCNN(nn.Module):
-    """
-    5-layer CNN for classification.
-    """
     def __init__(self, num_classes, dropout_prob=0.7):
         super(FiveLayerCNN, self).__init__()
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1)
@@ -156,61 +158,87 @@ class FiveLayerCNN(nn.Module):
         
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.dropout = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(512 * 7 * 7, 1024)
+
+        # 🔹 Compute dynamically the input size for fc1
+        self._to_linear = None
+        self._compute_fc1_input_size()
+
+        self.fc1 = nn.Linear(512 * 10 * 10, 1024)
         self.fc2 = nn.Linear(1024, num_classes)
-        
+
+    def _compute_fc1_input_size(self):
+        # Forward a dummy input to compute the size of the last conv layer output
+        with torch.no_grad():
+            x = torch.randn(1, 3, 224, 224)  # Adjust 224x224 if your input size is different
+            x = self.pool(F.relu(self.bn1(self.conv1(x))))
+            x = self.pool(F.relu(self.bn2(self.conv2(x))))
+            x = self.pool(F.relu(self.bn3(self.conv3(x))))
+            x = self.pool(F.relu(self.bn4(self.conv4(x))))
+            x = self.pool(F.relu(self.bn5(self.conv5(x))))
+            self._to_linear = x.numel()  # Number of elements after flattening
+
     def forward(self, x):
         x = self.pool(F.relu(self.bn1(self.conv1(x))))
         x = self.pool(F.relu(self.bn2(self.conv2(x))))
         x = self.pool(F.relu(self.bn3(self.conv3(x))))
         x = self.pool(F.relu(self.bn4(self.conv4(x))))
         x = self.pool(F.relu(self.bn5(self.conv5(x))))
-        x = x.view(x.size(0), -1)
+        # printing 
+        x = x.view(x.size(0), -1)  # Flatten dynamically
         x = self.dropout(F.relu(self.fc1(x)))
         x = self.fc2(x)
         return x
 
 
-def cross_validate_model(model_class, train_loader, num_classes, device, k_folds=5):
+# k-fold cross validation to find best hyperparameters
+# loop through different learning rates, batch sizes, optimizers 
+def cross_validate_model(model_class, train_loader, num_classes, device, k_folds=5, num_epochs=5):
+
     """
-    Perform cross-validation to find optimal hyperparameters.
+    Perform cross-validation to find optimal hyperparameters and train the model only once.
     """
     learning_rates = [1e-4, 1e-3]
     batch_sizes = [8, 16]
     optimizers = ['adam', 'sgd']
-    
+
     best_accuracy = 0
-    best_params = {}
-    
+    best_params = {"trained_during_cv": True}  # ✅ Prevents retraining after CV
+    best_model = None  # Stores the best trained model
+
     for lr in learning_rates:
         for batch_size in batch_sizes:
             for opt in optimizers:
                 print(f"Testing params: LR={lr}, Batch Size={batch_size}, Optimizer={opt}")
-                model = model_class(num_classes).to(device)
-                criterion = nn.CrossEntropyLoss()
-                
-                optimizer = optim.Adam(model.parameters(), lr=lr) if opt == 'adam' else optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-                
-                kf = KFold(n_splits=k_folds, shuffle=True)
+
                 fold_acc = []
-                
+                kf = KFold(n_splits=k_folds, shuffle=True)
+
                 for fold, (train_idx, val_idx) in enumerate(kf.split(train_loader.dataset)):
+                    print(f"Processing Fold {fold+1}/{k_folds}...")
+
+                    model = model_class(num_classes).to(device)
+                    criterion = nn.CrossEntropyLoss()
+                    optimizer = optim.Adam(model.parameters(), lr=lr) if opt == 'adam' else optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+
                     train_fold = torch.utils.data.Subset(train_loader.dataset, train_idx)
                     val_fold = torch.utils.data.Subset(train_loader.dataset, val_idx)
-                    
+
                     train_loader_fold = torch.utils.data.DataLoader(train_fold, batch_size=batch_size, shuffle=True)
                     val_loader_fold = torch.utils.data.DataLoader(val_fold, batch_size=batch_size, shuffle=False)
-                    
-                    train_model(model, train_loader_fold, criterion, optimizer, device, num_epochs=10)
+
+                    print(f"Training model for Fold {fold+1}/{k_folds}...")
+                    train_model(model, train_loader_fold, val_loader_fold, criterion, optimizer, device, num_epochs)  # ✅ Only training here
+
                     _, _, _, acc = evaluate_model(model, val_loader_fold, device)
                     fold_acc.append(acc)
-                
+
                 mean_acc = np.mean(fold_acc)
-                print(f"Mean Accuracy: {mean_acc:.2f}%")
-                
+                print(f"Mean Accuracy for LR={lr}, Batch Size={batch_size}, Optimizer={opt}: {mean_acc:.2f}%")
+
                 if mean_acc > best_accuracy:
                     best_accuracy = mean_acc
-                    best_params = {'lr': lr, 'batch_size': batch_size, 'optimizer': opt}
-    
+                    best_params.update({'lr': lr, 'batch_size': batch_size, 'optimizer': opt, "accuracy": mean_acc})
+                    best_model = model  # ✅ Store the best trained model
+
     print(f"Best Hyperparameters: {best_params} with Accuracy: {best_accuracy:.2f}%")
-    return best_params
+    return best_params, best_model 
