@@ -14,7 +14,7 @@ import seaborn as sns
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 from dataloader.dataloader_MRC_classificator import ClassificationDataLoader
-from trainers.classificator.updated_toy_classificator import train_model, evaluate_model, fine_tune_resnet, FiveLayerCNN, cross_validate_model
+from trainers.classificator.toy_classificator import train_model, evaluate_model, fine_tune_resnet, FiveLayerCNN, cross_validate_model
 
 # Add the current directory to Python's module search path
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -23,14 +23,15 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
-NUM_EPOCHS = 10  # Number of training epochs
+# NUM_EPOCHS = 5  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 8  # Batch size for training
 DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
 IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/MRC_data/MRC_images/" # Path to the folder containing images
 
-# Device configuration
+# Device configuration: select apple silicon GPU (mps)
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+# Load dataset annotations 
 annotations = ClassificationDataLoader.load_annotations(IMAGES_FOLDER)
 
 # Create train, val, and test DataLoaders
@@ -51,7 +52,7 @@ print(f"Number of training samples: {len(train_loader.dataset)}")
 print(f"Number of validation samples: {len(val_loader.dataset)}")
 print(f"Number of test samples: {len(test_loader.dataset)}")
 
-# Extract unique class labels from annotations
+# Extract unique class labels from annotations --> determine num_classes dynamically 
 num_classes = len(set(
     annotation 
     for patient_data in annotations.values() 
@@ -59,23 +60,42 @@ num_classes = len(set(
 ))
 
 # Select model type
-MODEL_TYPE = "resnet"  # Change to "cnn" for 5-layer CNN
+MODEL_TYPE = "cnn"  # Change to "cnn" for 5-layer CNN
 
-if MODEL_TYPE == "resnet":
-    model, criterion, optimizer = fine_tune_resnet(num_classes, device, LEARNING_RATE)
-else:
-    best_params = cross_validate_model(FiveLayerCNN, train_loader, num_classes, device)
+if MODEL_TYPE == "cnn":
+    # ✅ Perform cross-validation (training happens here only)
+    best_params, best_model = cross_validate_model(FiveLayerCNN, train_loader, num_classes, device, k_folds=5, num_epochs=5)
+
+
+    # ✅ No extra training after CV, only testing
+    print("Evaluating final model on test set...")
+    y_true, y_pred, avg_loss, accuracy = evaluate_model(best_model, test_loader, device)
+    print(f"Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
+
+elif MODEL_TYPE == "resnet":
+    # ✅ If using ResNet, perform normal training
     model = FiveLayerCNN(num_classes).to(device)
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=best_params['lr'])
-    BATCH_SIZE = best_params['batch_size']
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)  # Default LR, modify if needed
+    train_loader = torch.utils.data.DataLoader(train_loader.dataset, batch_size=8, shuffle=True)
+
+    print(f"Training {MODEL_TYPE.upper()} model...")
+    trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
+        model, train_loader, val_loader, criterion, optimizer, device, num_epochs=5
+    )okay
+
+    # ✅ Only evaluate after training
+    print(f"Evaluating {MODEL_TYPE.upper()} model...")
+    y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device)
+    print(f"Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
+
 
 train_loader = torch.utils.data.DataLoader(train_loader.dataset, batch_size=BATCH_SIZE, shuffle=True)
 
 # Train the model
 print(f"Training {MODEL_TYPE.upper()} model...")
 trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
-    model, train_loader, val_loader, criterion, optimizer, device, NUM_EPOCHS)
+    model, train_loader, val_loader, criterion, optimizer, device,num_epochs=5)
 # Evaluate the model
 print(f"Evaluating {MODEL_TYPE.upper()} model...")
 y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device)
@@ -83,7 +103,7 @@ y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, 
 # Compute confusion matrix
 conf_matrix = confusion_matrix(y_true, y_pred)
 
-# Save results if enabled
+# Save results if enabled and plots 
 if SAVE_RESULTS:
     results_root = "./results"
     results_classificator = os.path.join(results_root, "results_classificator")
@@ -91,7 +111,7 @@ if SAVE_RESULTS:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_classificator, f"{MODEL_TYPE}_{timestamp}")
     os.makedirs(results_dir, exist_ok=True)
-
+    # save performance metrics 
     with open(os.path.join(results_dir, "results.txt"), "w") as f:
         f.write(f"Learning Rate: {LEARNING_RATE}\n")
         f.write(f"Number of Epochs: {NUM_EPOCHS}\n")
