@@ -20,9 +20,14 @@ import torch
 
 
 # Training function
-def train_model(model, dataloader, criterion, optimizer, device, results_dir=None, num_epochs=25):
+import torch
+import numpy as np
+import os
+
+def train_model(model, dataloader, criterion, optimizer, device, results_dir=None, num_epochs=25, 
+                val_dataloader=None, patience=5):
     """
-    Function to train the U-Net model.
+    Train the U-Net model with early stopping.
     
     Args:
     - model: The neural network model to be trained.
@@ -31,53 +36,97 @@ def train_model(model, dataloader, criterion, optimizer, device, results_dir=Non
     - optimizer: Optimization algorithm.
     - device: Device to run the training on (CPU or GPU).
     - num_epochs: Number of training epochs.
+    - val_dataloader: Validation DataLoader for early stopping.
+    - patience: Number of epochs to wait before stopping if no improvement.
     
     Returns:
     - model: The trained model.
     """
     model.train()  # Set the model to training mode
     
-    epoch_losses = []  # Initialize list to store loss for each epoch
+    epoch_losses = []  # Track training loss
+    val_losses = []  # Track validation loss
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+
+    best_val_loss = float("inf")  # Initialize best validation loss
+    epochs_without_improvement = 0  # Counter for early stopping
     
     for epoch in range(num_epochs):
         running_loss = 0.0
+        model.train()  # Ensure model is in training mode
+        
         for i, data in enumerate(dataloader):
-            # Get the inputs and labels from the dataloader
             inputs, labels = data
             inputs, labels = inputs.to(device), labels.to(device)
 
-            # Zero the parameter gradients
             optimizer.zero_grad()
             
-            # Forward pass
             outputs = model(inputs)
             assert inputs.min() >= 0 and inputs.max() <= 1, "WARNING: Input values should be between 0 and 1"
             loss = criterion(outputs, labels)
             
-            # Backward pass and optimize
             loss.backward()
             optimizer.step()
             
-            # Accumulate loss
             running_loss += loss.item()
             
-            if i % 10 == 9:    # Print every 10 mini-batches
+            if i % 10 == 9:  # Print every 10 mini-batches
                 print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(dataloader)}], Loss: {running_loss / 10:.4f}')
                 running_loss = 0.0
         
-        # Calculate average loss for the epoch and store it
+        # Calculate average training loss for the epoch
         epoch_loss = running_loss / len(dataloader)
         epoch_losses.append(epoch_loss)
         print(f'Epoch [{epoch + 1}/{num_epochs}] Loss: {epoch_loss:.4f}')
-    
-        if results_dir is not None:
-            # Save the losses to a text file
-            with open(results_dir+'/training_losses.txt', 'w') as f:
-                for epoch, loss in enumerate(epoch_losses, 1):
-                    f.write(f'Epoch {epoch}: Loss = {loss:.4f}\n')
-    
+
+        # Validation Phase
+        if val_dataloader is not None:
+            model.eval()  # Set model to evaluation mode
+            val_loss = 0.0
+            with torch.no_grad():  # No need to compute gradients during validation
+                for val_data in val_dataloader:
+                    val_inputs, val_labels = val_data
+                    val_inputs, val_labels = val_inputs.to(device), val_labels.to(device)
+
+                    val_outputs = model(val_inputs)
+                    loss = criterion(val_outputs, val_labels)
+                    val_loss += loss.item()
+            
+            val_loss /= len(val_dataloader)
+            val_losses.append(val_loss)
+            print(f'Epoch [{epoch + 1}/{num_epochs}] Validation Loss: {val_loss:.4f}')
+
+            # Early Stopping Logic
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                epochs_without_improvement = 0  # Reset counter
+                # Save the best model
+                if results_dir:
+                    os.makedirs(results_dir, exist_ok=True)
+                    torch.save(model.state_dict(), os.path.join(results_dir, "best_model.pth"))
+            else:
+                epochs_without_improvement += 1
+
+            if epochs_without_improvement >= patience:
+                print(f"Early stopping triggered after {epoch + 1} epochs!")
+                break
+
+        scheduler.step()
+
+        # Save training and validation losses
+        if results_dir:
+            with open(os.path.join(results_dir, 'training_losses.txt'), 'w') as f:
+                for e, loss in enumerate(epoch_losses, 1):
+                    f.write(f'Epoch {e}: Training Loss = {loss:.4f}\n')
+            
+            if val_dataloader:
+                with open(os.path.join(results_dir, 'validation_losses.txt'), 'w') as f:
+                    for e, loss in enumerate(val_losses, 1):
+                        f.write(f'Epoch {e}: Validation Loss = {loss:.4f}\n')
+
     print('Finished Training')
     return model
+
 
 
 def evaluate_model(model, dataloader, device, criterion, results_dir=None):

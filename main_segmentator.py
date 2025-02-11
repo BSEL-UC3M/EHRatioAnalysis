@@ -12,16 +12,16 @@ from datetime import datetime
 from losses import losses
 from dataloader.dataloader_MRC import DataLoaderByPatient
 from trainers.segmentator.pretrained_trainers import train_model, evaluate_model
-from models.segmentator import Segmentator
+from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized
 
 # ==============================================================================
 
 # Configuration Parameters
 SAVE_RESULTS = False  # Toggle to save results
-NUM_EPOCHS = 5  # Number of training epochs
+NUM_EPOCHS = 2  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 8  # Batch size for training
-DATA_SPLITS = (0.34, 0.33, 0.33)  # Train, validation, test splits
+DATA_SPLITS = (0.5, 0.25, 0.25)  # Train, validation, test splits
 
 # Dataset Paths
 # Toy dataset for testing
@@ -31,12 +31,14 @@ DATA_SPLITS = (0.34, 0.33, 0.33)  # Train, validation, test splits
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
     # Si estamos en Kaggle, usar la ruta de Kaggle
-    IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/PEI_images'
-    LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/PEI_labels'
+    IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/MRC_images'
+    LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/MRC_labels'
 else:
     # Si estamos en local, usar la ruta local
-    IMAGES_FOLDER = 'toydataset/segmentation/PEI/images/'
-    LABELS_FOLDER = "toydataset/segmentation/PEI/labels"
+    #IMAGES_FOLDER = 'toydataset/segmentation/MRC/images/'
+    #LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
+    IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\MRC_images"
+    LABELS_FOLDER = "D:\Desktop\CROPPED_DATASET\labels\MRC_labels"
 
 # Full dataset for training (uncomment when needed)
 # IMAGES_FOLDER = "D:/Data/VolumetricHydrops/images/MRC"
@@ -45,7 +47,7 @@ else:
 # ================================================================================
 
 # Initialize the segmentation model
-segmentator = Segmentator()
+segmentator = UNetOptimized()
 
 # Check if GPU is available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -110,4 +112,3 @@ if SAVE_RESULTS:
     print(f"Model saved to {model_save_path}")
 
 # ==============================================================================
-
