@@ -10,6 +10,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 
 # ==============================================================================
@@ -439,6 +440,46 @@ class UNetOptimized(nn.Module):
         dec1 = self.decoder1(dec1)
 
         return torch.sigmoid(self.conv(dec1))
+    
+    def visualize_segmentation(self, data_loader, device='cpu'):
+        self.eval()  # Set the model to evaluation mode
+        with torch.no_grad():  # Disable gradient calculations for inference
+            for i, (image, label) in enumerate(data_loader):
+                if i == 1:  # Visualize only one example
+                    break
+
+                # Move data to the same device as the model (GPU/CPU)
+                image = image.to(device)
+                label = label.to(device)
+
+                # Forward pass: Get prediction from the model
+                prediction = self(image)
+
+                # Convert tensors to numpy arrays for visualization
+                image_np = image[0].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+                label_np = label[0].squeeze().cpu().numpy()  # Remove channel dimension
+                pred_np = prediction[0].squeeze().cpu().numpy()  # Remove channel dimension
+
+                # Plot Original Image, Ground Truth Label, and Predicted Mask
+                fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+
+                # Original Image
+                ax[0].imshow(image_np)
+                ax[0].set_title("Original Image")
+                ax[0].axis("off")
+
+                # Ground Truth Label
+                ax[1].imshow(label_np, cmap='gray')
+                ax[1].set_title("Ground Truth Label")
+                ax[1].axis("off")
+
+                # Predicted Segmentation Mask
+                ax[2].imshow(pred_np, cmap='gray')
+                ax[2].set_title("Predicted Segmentation")
+                ax[2].axis("off")
+
+                plt.tight_layout()
+                plt.show()
 
     @staticmethod
     def _block(in_channels, features, name):
@@ -466,10 +507,7 @@ class UNetOptimized(nn.Module):
             elif isinstance(m, nn.GroupNorm):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
-
+    
 
 # Ensure classes are properly exposed
 __all__ = ["Segmentator", "first_UNet", "UNet_new", "UNet", "UNetOptimized"]
-
-
-

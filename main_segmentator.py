@@ -15,11 +15,12 @@ from dataloader.dataloader_MRC import DataLoaderByPatient
 from trainers.segmentator.pretrained_trainers import train_model, evaluate_model
 from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized
 
+
 # ==============================================================================
 
 # Configuration Parameters
 SAVE_RESULTS = False  # Toggle to save results
-NUM_EPOCHS = 1  # Number of training epochs
+NUM_EPOCHS = 5  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 8  # Batch size for training
 DATA_SPLITS = (0.5, 0.25, 0.25)  # Train, validation, test splits
@@ -195,3 +196,4 @@ if SAVE_RESULTS:
     print(f"Model saved to {model_save_path}")
 
 # ==============================================================================
+trained_model.visualize_segmentation(test_loader, device=device)
