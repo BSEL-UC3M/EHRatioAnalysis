@@ -8,6 +8,7 @@
 import os
 import torch
 import torch.optim as optim
+import numpy as np
 from datetime import datetime
 from losses import losses
 from dataloader.dataloader_MRC import DataLoaderByPatient
@@ -18,7 +19,7 @@ from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized
 
 # Configuration Parameters
 SAVE_RESULTS = False  # Toggle to save results
-NUM_EPOCHS = 2  # Number of training epochs
+NUM_EPOCHS = 1  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 8  # Batch size for training
 DATA_SPLITS = (0.5, 0.25, 0.25)  # Train, validation, test splits
@@ -87,6 +88,88 @@ train_loader, val_loader, test_loader= data_loader.train_val_test_split_bypatien
     shuffle=True,
     transform=None
 )
+
+
+# ==================
+
+# LET'S VISUALIZE SOME OF OUR INPUT DATA FROM THE DATALOADER
+import matplotlib.pyplot as plt
+import torchvision.transforms as transforms
+
+# Obtener un lote del train_loader
+data_iter = iter(train_loader)
+images, labels = next(data_iter)
+
+# Seleccionar la primera imagen y su correspondiente label
+image = images[5]  # Primera imagen
+label = labels[5]  # Primer label
+
+# Transponer la imagen de [3, 96, 96] a [96, 96, 3] para visualización
+image = image.permute(1, 2, 0)
+label = label.permute(1,2,0)
+
+# Normalizar los valores de la imagen para mostrarlos (si es necesario)
+image = image.numpy()  # Convertir a numpy
+label = label.numpy()
+
+# Crear un plot con dos secciones
+fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+
+# Mostrar la imagen en la primera sección
+ax[0].imshow(image, cmap="gray")
+ax[0].set_title("Imagen")
+ax[0].axis("off")
+
+# Mostrar el label correspondiente en la segunda sección
+ax[1].imshow(label, cmap="gray")
+ax[1].set_title("Label")
+ax[1].axis("off")
+
+# Mostrar el plot
+plt.tight_layout()
+plt.show()
+
+# LET'S VISUALIZE SOME OF OUR INPUT DATA STRAIGHT FROM THE FOLDER 
+import os
+from PIL import Image
+import matplotlib.pyplot as plt
+
+# Selecciona un archivo de imagen y etiqueta (usa el mismo nombre de base)
+image_filename = "PAC5_right_main_right.tif"  # Reemplaza con un nombre de archivo válido
+label_filename = "PAC5_right_main_right.tif"  # Reemplaza con el nombre correspondiente
+
+# Construir rutas completas
+image_path = os.path.join(IMAGES_FOLDER, image_filename)
+label_path = os.path.join(LABELS_FOLDER, label_filename)
+
+# Cargar la imagen y la etiqueta usando PIL
+image = Image.open(image_path)
+label = Image.open(label_path)
+
+# Mostrar imagen y etiqueta en un subplot de dos secciones
+fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+
+# Mostrar la imagen
+ax[0].imshow(image, cmap="gray")
+ax[0].set_title("Imagen")
+ax[0].axis("off")
+
+# Mostrar la etiqueta
+ax[1].imshow(label, cmap="gray")  # Cambia cmap según el formato de la etiqueta
+ax[1].set_title("Etiqueta")
+ax[1].axis("off")
+
+# Mostrar el plot
+plt.tight_layout()
+plt.show()
+
+# Convert to numpy array
+image = np.array(image)
+
+print("Image min:", image.min())
+print("Image max:", image.max())
+
+
 # ==============================================================================
 
 # Check shape of data: Obtener un batch del train_loader
