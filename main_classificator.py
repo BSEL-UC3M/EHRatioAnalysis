@@ -1,8 +1,8 @@
 # ==============================================================================
 # File: main_classificator.py
 # Description: Main script for training and evaluating the classification model.
-# Author: @cfusterbarcelo
-# Created: 09/01/2025
+# Author: @claudiacastrillon
+# Created: 13/02/2025
 # ==============================================================================
 import torch
 import os
@@ -14,27 +14,27 @@ import seaborn as sns
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 from dataloader.dataloader_MRC_classificator import ClassificationDataLoader
-from trainers.classificator.toy_classificator import train_model, evaluate_model, fine_tune_resnet, FiveLayerCNN, cross_validate_model
+from trainers.classificator.five_layer_cnn import train_model, evaluate_model, FiveLayerCNN
+from trainers.classificator.resnet50 import fine_tune_resnet, train_model, evaluate_model
 
-# Add the current directory to Python's module search path
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 # ==============================================================================
-
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
-# NUM_EPOCHS = 5  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
-BATCH_SIZE = 8  # Batch size for training
+BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
-IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/MRC_data/MRC_images/" # Path to the folder containing images
+IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/MRC_data/MRC_images/" 
+NUM_EPOCHS = 20  # Define number of epochs
 
-# Device configuration: select apple silicon GPU (mps)
+# Select computing device (use Apple Silicon GPU if available)
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-# Load dataset annotations 
+
+# ==============================================================================
+# ✅ Step 1: Load Dataset
 annotations = ClassificationDataLoader.load_annotations(IMAGES_FOLDER)
 
-# Create train, val, and test DataLoaders
 train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_split(
     images_folder=IMAGES_FOLDER,
     annotations=annotations,
@@ -44,66 +44,54 @@ train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_
     transform=None
 )
 
-# ==============================================================================
-
-# Print information about the dataset
-print("DataLoader Information:")
-print(f"Number of training samples: {len(train_loader.dataset)}")
-print(f"Number of validation samples: {len(val_loader.dataset)}")
-print(f"Number of test samples: {len(test_loader.dataset)}")
-
-# Extract unique class labels from annotations --> determine num_classes dynamically 
+# Determine the number of classes dynamically
 num_classes = len(set(
     annotation 
     for patient_data in annotations.values() 
     for annotation in patient_data['Annotation']
 ))
 
-# Select model type
-MODEL_TYPE = "cnn"  # Change to "cnn" for 5-layer CNN
+# ==============================================================================
+# ✅ Step 2: User selects the model type
+MODEL_TYPE = input("Select model type ('cnn' or 'resnet50'): ").strip().lower()
 
+while MODEL_TYPE not in ["cnn", "resnet50"]:
+    MODEL_TYPE = input("Invalid choice. Please select 'cnn' or 'resnet50': ").strip().lower()
+
+print(f"\nTraining {MODEL_TYPE.upper()} model...\n")
+
+# ==============================================================================
+# ✅ Step 3: Model Definition & Training
 if MODEL_TYPE == "cnn":
-    # ✅ Perform cross-validation (training happens here only)
-    best_params, best_model = cross_validate_model(FiveLayerCNN, train_loader, num_classes, device, k_folds=5, num_epochs=5)
-
-
-    # ✅ No extra training after CV, only testing
-    print("Evaluating final model on test set...")
-    y_true, y_pred, avg_loss, accuracy = evaluate_model(best_model, test_loader, device)
-    print(f"Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
-
-elif MODEL_TYPE == "resnet":
-    # ✅ If using ResNet, perform normal training
+    # Initialize CNN model
     model = FiveLayerCNN(num_classes).to(device)
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)  # Default LR, modify if needed
-    train_loader = torch.utils.data.DataLoader(train_loader.dataset, batch_size=8, shuffle=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=5e-4)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
 
-    print(f"Training {MODEL_TYPE.upper()} model...")
-    trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
-        model, train_loader, val_loader, criterion, optimizer, device, num_epochs=5
-    )okay
+elif MODEL_TYPE == "resnet50":
+    # Initialize ResNet50 model
+    model, criterion, optimizer, scheduler = fine_tune_resnet(
+        num_classes, device, learning_rate=LEARNING_RATE, model_type="resnet50"
+    )
 
-    # ✅ Only evaluate after training
-    print(f"Evaluating {MODEL_TYPE.upper()} model...")
-    y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device)
-    print(f"Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
-
-
-train_loader = torch.utils.data.DataLoader(train_loader.dataset, batch_size=BATCH_SIZE, shuffle=True)
-
-# Train the model
-print(f"Training {MODEL_TYPE.upper()} model...")
+# Train the model explicitly
+print(f"\n🚀 Training {MODEL_TYPE.upper()} model for {NUM_EPOCHS} epochs...\n")
 trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
-    model, train_loader, val_loader, criterion, optimizer, device,num_epochs=5)
-# Evaluate the model
-print(f"Evaluating {MODEL_TYPE.upper()} model...")
+    model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS
+)
+
+# ==============================================================================
+# ✅ Step 4: Evaluate Model and Compute Confusion Matrix
+print(f"\n📊 Evaluating {MODEL_TYPE.upper()} model on the test set...\n")
 y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device)
+print(f"✅ Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
 
 # Compute confusion matrix
 conf_matrix = confusion_matrix(y_true, y_pred)
 
-# Save results if enabled and plots 
+# ==============================================================================
+# ✅ Step 5: Save Results
 if SAVE_RESULTS:
     results_root = "./results"
     results_classificator = os.path.join(results_root, "results_classificator")
@@ -111,29 +99,32 @@ if SAVE_RESULTS:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_classificator, f"{MODEL_TYPE}_{timestamp}")
     os.makedirs(results_dir, exist_ok=True)
-    # save performance metrics 
+
+    # Save performance metrics
     with open(os.path.join(results_dir, "results.txt"), "w") as f:
         f.write(f"Learning Rate: {LEARNING_RATE}\n")
         f.write(f"Number of Epochs: {NUM_EPOCHS}\n")
-        f.write(f"Optimizer: Adam\n")
-        f.write(f"Number of Layers: {len(list(model.children()))}\n")
+        f.write(f"Optimizer: {'Adam' if MODEL_TYPE == 'cnn' else 'SGD'}\n")
         f.write(f"Accuracy: {accuracy:.2f}%\n")
         f.write(f"Average Loss: {avg_loss:.4f}\n")
         f.write(f"Confusion Matrix:\n{conf_matrix}\n")
 
     # Generate and save confusion matrix plot
     plt.figure(figsize=(6,5))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=[f'Class {i}' for i in range(num_classes)], yticklabels=[f'Class {i}' for i in range(num_classes)])
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
+                xticklabels=[f'Class {i}' for i in range(num_classes)], 
+                yticklabels=[f'Class {i}' for i in range(num_classes)])
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
     plt.title("Confusion Matrix")
     plt.savefig(os.path.join(results_dir, "confusion_matrix.png"), dpi=300, bbox_inches='tight')
     plt.close()
+    epochs_range = range(1, len(train_losses) + 1)  # Match the actual number of epochs
 
     # Plot training & validation loss
     plt.figure(figsize=(8,6))
-    plt.plot(range(1, NUM_EPOCHS+1), train_losses, label='Train Loss', marker='o')
-    plt.plot(range(1, NUM_EPOCHS+1), val_losses, label='Validation Loss', marker='o')
+    plt.plot(epochs_range, train_losses, label='Train Loss', marker='o')
+    plt.plot(epochs_range, val_losses, label='Validation Loss', marker='o')
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.title("Training and Validation Loss")
@@ -143,8 +134,8 @@ if SAVE_RESULTS:
 
     # Plot training & validation accuracy
     plt.figure(figsize=(8,6))
-    plt.plot(range(1, NUM_EPOCHS+1), train_accuracies, label='Train Accuracy', marker='o')
-    plt.plot(range(1, NUM_EPOCHS+1), val_accuracies, label='Validation Accuracy', marker='o')
+    plt.plot(epochs_range, train_accuracies, label='Train Accuracy', marker='o')
+    plt.plot(epochs_range, val_accuracies, label='Validation Accuracy', marker='o')
     plt.xlabel("Epochs")
     plt.ylabel("Accuracy (%)")
     plt.title("Training and Validation Accuracy")
@@ -152,6 +143,6 @@ if SAVE_RESULTS:
     plt.savefig(os.path.join(results_dir, "train_val_accuracy.png"), dpi=300, bbox_inches='tight')
     plt.close()
 
-    print(f"Results saved in {results_dir}")
+    print(f"\n✅ Results saved in {results_dir}\n")
 
-print("Process completed.")
+print("🎉 Process completed.")
