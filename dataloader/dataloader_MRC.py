@@ -49,7 +49,9 @@ class PatientDataset(Dataset):
         # Make images between 0 and 1
         image = np.array(image)
         image_max = image.max()
-        image = image/image_max  
+        image_min = image.min()
+        image = (image-image_min)/(image_max-image_min)
+        #image = np.clip(image, 0, 1) 
         label = np.clip(label, 0, 1)
 
         # Convert to tensors

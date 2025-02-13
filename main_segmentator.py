@@ -20,7 +20,7 @@ from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized
 
 # Configuration Parameters
 SAVE_RESULTS = False  # Toggle to save results
-NUM_EPOCHS = 50  # Number of training epochs
+NUM_EPOCHS = 25  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 8  # Batch size for training
 DATA_SPLITS = (0.5, 0.25, 0.25)  # Train, validation, test splits
@@ -102,8 +102,8 @@ data_iter = iter(train_loader)
 images, labels = next(data_iter)
 
 # Seleccionar la primera imagen y su correspondiente label
-image = images[5]  # Primera imagen
-label = labels[5]  # Primer label
+image = images[0]  # Primera imagen
+label = labels[0]  # Primer label
 
 # Transponer la imagen de [3, 96, 96] a [96, 96, 3] para visualización
 image = image.permute(1, 2, 0)
