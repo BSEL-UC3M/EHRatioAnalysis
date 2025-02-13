@@ -20,7 +20,7 @@ from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized
 
 # Configuration Parameters
 SAVE_RESULTS = False  # Toggle to save results
-NUM_EPOCHS = 5  # Number of training epochs
+NUM_EPOCHS = 50  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 8  # Batch size for training
 DATA_SPLITS = (0.5, 0.25, 0.25)  # Train, validation, test splits
@@ -183,7 +183,7 @@ for images, labels in train_loader:
 
 # Train the model
 print("Starting training...")
-trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, NUM_EPOCHS)
+trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, NUM_EPOCHS, val_dataloader=val_loader)
 
 # Evaluate the model
 print("Evaluating model...")

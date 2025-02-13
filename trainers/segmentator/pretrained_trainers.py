@@ -25,7 +25,7 @@ import numpy as np
 import os
 
 def train_model(model, dataloader, criterion, optimizer, device, results_dir=None, num_epochs=25, 
-                val_dataloader=None, patience=5):
+                val_dataloader=None, patience=15):
     """
     Train the U-Net model with early stopping.
     
@@ -70,9 +70,9 @@ def train_model(model, dataloader, criterion, optimizer, device, results_dir=Non
             
             running_loss += loss.item()
             
-            if i % 10 == 9:  # Print every 10 mini-batches
-                print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(dataloader)}], Loss: {running_loss / 10:.4f}')
-                running_loss = 0.0
+            #if i % 10 == 9:  # Print every 10 mini-batches
+                #print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(dataloader)}], Loss: {running_loss / 10:.4f}')
+                #running_loss = 0.0
         
         # Calculate average training loss for the epoch
         epoch_loss = running_loss / len(dataloader)
@@ -123,6 +123,19 @@ def train_model(model, dataloader, criterion, optimizer, device, results_dir=Non
                 with open(os.path.join(results_dir, 'validation_losses.txt'), 'w') as f:
                     for e, loss in enumerate(val_losses, 1):
                         f.write(f'Epoch {e}: Validation Loss = {loss:.4f}\n')
+    
+    # 🔹 Plot losses at the end of training
+    plt.figure(figsize=(10, 5))
+    plt.plot(epoch_losses, label='Training Loss', marker='o')
+    if val_losses:
+        plt.plot(val_losses, label='Validation Loss', marker='o')
+
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Loss')
+    plt.legend()
+    plt.grid()
+    plt.show()
 
     print('Finished Training')
     return model
