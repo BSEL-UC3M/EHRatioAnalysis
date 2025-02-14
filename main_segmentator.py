@@ -20,10 +20,10 @@ from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized
 
 # Configuration Parameters
 SAVE_RESULTS = False  # Toggle to save results
-NUM_EPOCHS = 25  # Number of training epochs
+NUM_EPOCHS = 50  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
-BATCH_SIZE = 8  # Batch size for training
-DATA_SPLITS = (0.5, 0.25, 0.25)  # Train, validation, test splits
+BATCH_SIZE = 16  # Batch size for training
+DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
 # Dataset Paths
 # Toy dataset for testing
