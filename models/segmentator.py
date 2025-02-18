@@ -420,6 +420,7 @@ class UNet(nn.Module):
             )
         )
 
+# =============== OPTIMIZED UNET, WORKS WELL
 
 import torch
 import torch.nn as nn
@@ -547,7 +548,178 @@ class UNetOptimized(nn.Module):
             elif isinstance(m, nn.GroupNorm):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
-    
+
+
+
+# ====================== WITH ADDED SE
+import torch
+import torch.nn as nn
+import matplotlib.pyplot as plt
+from collections import OrderedDict
+
+class SEBlock(nn.Module):
+    def __init__(self, channels, reduction=16):
+        """
+        Squeeze-and-Excitation block for channel-wise attention.
+
+        Args:
+        - channels (int): Number of input channels.
+        - reduction (int): Reduction ratio for the SE block.
+        """
+        super(SEBlock, self).__init__()
+        self.global_avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc1 = nn.Conv2d(channels, channels // reduction, kernel_size=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Conv2d(channels // reduction, channels, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        # Global average pooling: (B, C, H, W) -> (B, C, 1, 1)
+        se_weight = self.global_avg_pool(x)
+        se_weight = self.fc1(se_weight)
+        se_weight = self.relu(se_weight)
+        se_weight = self.fc2(se_weight)
+        se_weight = self.sigmoid(se_weight)
+        # Scale the input by learned weights
+        return x * se_weight
+
+
+class UNetOptimizedSE(nn.Module):
+    def __init__(self, in_channels=3, out_channels=1, init_features=32):
+        """
+        A modified U-Net architecture with SE blocks added to each convolutional block.
+        """
+        super(UNetOptimized, self).__init__()
+
+        features = init_features
+        self.encoder1 = UNetOptimized._block(in_channels, features, name="enc1")
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.encoder2 = UNetOptimized._block(features, features * 2, name="enc2")
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.encoder3 = UNetOptimized._block(features * 2, features * 4, name="enc3")
+        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.encoder4 = UNetOptimized._block(features * 4, features * 8, name="enc4")
+        self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        self.bottleneck = nn.Sequential(
+            UNetOptimized._block(features * 8, features * 16, name="bottleneck"),
+            nn.InstanceNorm2d(features * 16)  # InstanceNorm for better generalization
+        )
+
+        self.upconv4 = nn.ConvTranspose2d(features * 16, features * 8, kernel_size=2, stride=2)
+        self.decoder4 = UNetOptimized._block((features * 8) * 2, features * 8, name="dec4")
+        self.upconv3 = nn.ConvTranspose2d(features * 8, features * 4, kernel_size=2, stride=2)
+        self.decoder3 = UNetOptimized._block((features * 4) * 2, features * 4, name="dec3")
+        self.upconv2 = nn.ConvTranspose2d(features * 4, features * 2, kernel_size=2, stride=2)
+        self.decoder2 = UNetOptimized._block((features * 2) * 2, features * 2, name="dec2")
+        self.upconv1 = nn.ConvTranspose2d(features * 2, features, kernel_size=2, stride=2)
+        self.decoder1 = UNetOptimized._block(features * 2, features, name="dec1")
+
+        self.conv = nn.Conv2d(in_channels=features, out_channels=out_channels, kernel_size=1)
+
+        self._initialize_weights()  # Initialize weights
+
+    def forward(self, x):
+        enc1 = self.encoder1(x)
+        enc2 = self.encoder2(self.pool1(enc1))
+        enc3 = self.encoder3(self.pool2(enc2))
+        enc4 = self.encoder4(self.pool3(enc3))
+
+        bottleneck = self.bottleneck(self.pool4(enc4))
+
+        dec4 = self.upconv4(bottleneck)
+        dec4 = torch.cat((dec4, enc4), dim=1)
+        dec4 = self.decoder4(dec4)
+        dec3 = self.upconv3(dec4)
+        dec3 = torch.cat((dec3, enc3), dim=1)
+        dec3 = self.decoder3(dec3)
+        dec2 = self.upconv2(dec3)
+        dec2 = torch.cat((dec2, enc2), dim=1)
+        dec2 = self.decoder2(dec2)
+        dec1 = self.upconv1(dec2)
+        dec1 = torch.cat((dec1, enc1), dim=1)
+        dec1 = self.decoder1(dec1)
+
+        return torch.sigmoid(self.conv(dec1))
+
+    @staticmethod
+    def _block(in_channels, features, name):
+        """
+        Creates a convolutional block with Squeeze-and-Excitation (SE) added.
+        """
+        block = nn.Sequential(
+            OrderedDict(
+                [
+                    (name + "conv1", nn.Conv2d(in_channels, features, kernel_size=3, padding=1, bias=False)),
+                    (name + "norm1", nn.GroupNorm(num_groups=8, num_channels=features)),
+                    (name + "relu1", nn.LeakyReLU(0.1, inplace=True)),
+                    (name + "dropout", nn.Dropout2d(0.2)),
+                    (name + "conv2", nn.Conv2d(features, features, kernel_size=3, padding=1, bias=False)),
+                    (name + "norm2", nn.GroupNorm(num_groups=8, num_channels=features)),
+                    (name + "relu2", nn.LeakyReLU(0.1, inplace=True)),
+                ]
+            )
+        )
+        # Add SE block after the second activation
+        block.add_module(name + "_se", SEBlock(features))
+        return block
+
+    def _initialize_weights(self):
+        """
+        Applies Xavier/He initialization to convolutional layers.
+        """
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.GroupNorm):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def visualize_segmentation(self, data_loader, device='cpu'):
+        """
+        Visualizes segmentation results from a given data loader.
+        """
+        self.eval()  # Set the model to evaluation mode
+        with torch.no_grad():  # Disable gradient calculations for inference
+            for i, (image, label) in enumerate(data_loader):
+                if i == 1:  # Visualize only one example
+                    break
+
+                # Move data to the same device as the model (GPU/CPU)
+                image = image.to(device)
+                label = label.to(device)
+
+                # Forward pass: Get prediction from the model
+                prediction = self(image)
+
+                # Convert tensors to numpy arrays for visualization
+                image_np = image[0].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+                label_np = label[0].squeeze().cpu().numpy()  # Remove channel dimension
+                pred_np = prediction[0].squeeze().cpu().numpy()  # Remove channel dimension
+
+                # Plot Original Image, Ground Truth Label, and Predicted Mask
+                fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+
+                # Original Image
+                ax[0].imshow(image_np)
+                ax[0].set_title("Original Image")
+                ax[0].axis("off")
+
+                # Ground Truth Label
+                ax[1].imshow(label_np, cmap='gray')
+                ax[1].set_title("Ground Truth Label")
+                ax[1].axis("off")
+
+                # Predicted Segmentation Mask
+                ax[2].imshow(pred_np, cmap='gray')
+                ax[2].set_title("Predicted Segmentation")
+                ax[2].axis("off")
+
+                plt.tight_layout()
+                plt.show()
+
 
 # Ensure classes are properly exposed
-__all__ = ["Segmentator", "first_UNet", "UNet_new", "UNet", "UNetOptimized"]
+__all__ = ["Segmentator", "first_UNet", "UNet_new", "UNet", "UNetOptimized", "SEBlock", "UNetOptimizedSE" ]

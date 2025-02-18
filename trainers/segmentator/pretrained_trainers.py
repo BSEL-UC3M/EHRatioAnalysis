@@ -15,7 +15,7 @@ import torch.nn.functional as F
 from losses import losses
 from dataloader.dataloader_MRC import DataLoaderByPatient
 from matplotlib import pyplot as plt
-from utils.metrics import dice_score, iou_score, local_dice_score
+from utils.metrics import dice_score, iou_score, local_dice_score, new_local_dice_score
 import torch
 
 

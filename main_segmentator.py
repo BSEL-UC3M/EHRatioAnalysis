@@ -13,14 +13,14 @@ from datetime import datetime
 from losses import losses
 from dataloader.dataloader_MRC import DataLoaderByPatient
 from trainers.segmentator.pretrained_trainers import train_model, evaluate_model
-from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized
+from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetOptimizedSE
 
 
 # ==============================================================================
 
 # Configuration Parameters
 SAVE_RESULTS = False  # Toggle to save results
-NUM_EPOCHS = 50  # Number of training epochs
+NUM_EPOCHS = 2  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
