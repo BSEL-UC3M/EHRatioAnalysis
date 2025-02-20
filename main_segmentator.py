@@ -13,14 +13,14 @@ from datetime import datetime
 from losses import losses
 from dataloader.dataloader_MRC import DataLoaderByPatient
 from trainers.segmentator.pretrained_trainers import train_model, evaluate_model
-from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetOptimizedSE
+from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetOptimizedSE, UNetOptimizedDO
 
 
 # ==============================================================================
 
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
-NUM_EPOCHS = 50  # Number of training epochs
+NUM_EPOCHS = 10  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
@@ -53,7 +53,7 @@ elif USE_PEI:
 # ================================================================================
 
 # Initialize the segmentation model
-segmentator = UNetOptimized()
+segmentator = UNetOptimizedDO()
 
 # Check if GPU is available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
