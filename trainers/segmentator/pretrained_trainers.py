@@ -173,7 +173,7 @@ def evaluate_model(model, dataloader, device, criterion, results_dir=None):
             total_loss += loss.item()
 
             # Calculate Dice and IoU scores
-            dice = local_dice_score(outputs, labels)
+            dice = dice_score(outputs, labels)
             iou = iou_score(outputs, labels)
             dice_scores.append(dice)
             iou_scores.append(iou)

@@ -19,33 +19,37 @@ from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetO
 # ==============================================================================
 
 # Configuration Parameters
-SAVE_RESULTS = False  # Toggle to save results
-NUM_EPOCHS = 2  # Number of training epochs
+SAVE_RESULTS = True  # Toggle to save results
+NUM_EPOCHS = 50  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-# Dataset Paths
-# Toy dataset for testing
-#IMAGES_FOLDER = "toydataset/segmentation/MRC/images"
-#LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
+USE_MRC = True   # Toggle to use the MRC dataset
+USE_PEI = False  # Toggle to use the PEI dataset
 
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
     # Si estamos en Kaggle, usar la ruta de Kaggle
-    IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/MRC_images'
-    LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/MRC_labels'
+    MRC_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/MRC_images'
+    MRC_LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/MRC_labels'
+    PEI_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/PEI_images'
+    PEI_LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/PEI_labels'
 else:
     # Si estamos en local, usar la ruta local
     #IMAGES_FOLDER = 'toydataset/segmentation/MRC/images/'
     #LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
-    IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\MRC_images"
-    LABELS_FOLDER = "D:\Desktop\CROPPED_DATASET\labels\MRC_labels"
+    MRC_IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\MRC_images"
+    MRC_LABELS_FOLDER = "D:\Desktop\CROPPED_DATASET\labels\MRC_labels"
+    PEI_IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\PEI_images"
+    PEI_LABELS_FOLDER = "D:\Desktop\CROPPED_DATASET\labels\PEI_labels"
 
-# Full dataset for training (uncomment when needed)
-# IMAGES_FOLDER = "D:/Data/VolumetricHydrops/images/MRC"
-# LABELS_FOLDER = "D:/Data/VolumetricHydrops/labels/MRC"
-
+if USE_MRC:
+    IMAGES_FOLDER = MRC_IMAGES_FOLDER
+    LABELS_FOLDER = MRC_LABELS_FOLDER
+elif USE_PEI:
+    IMAGES_FOLDER = PEI_IMAGES_FOLDER
+    LABELS_FOLDER = PEI_LABELS_FOLDER
 # ================================================================================
 
 # Initialize the segmentation model
