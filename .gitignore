@@ -176,4 +176,6 @@ cython_debug/
 .DS_StoreEHRA/
 !results/results_classificator/
 !results/results_segmentator/
+!results/
+!results/*.pth
 

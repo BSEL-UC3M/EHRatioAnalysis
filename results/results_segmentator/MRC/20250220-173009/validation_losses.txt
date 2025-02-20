@@ -1,0 +1,10 @@
+Epoch 1: Validation Loss = 1.1671
+Epoch 2: Validation Loss = 1.1012
+Epoch 3: Validation Loss = 0.8909
+Epoch 4: Validation Loss = 0.5703
+Epoch 5: Validation Loss = 0.3731
+Epoch 6: Validation Loss = 0.2771
+Epoch 7: Validation Loss = 0.2893
+Epoch 8: Validation Loss = 0.2265
+Epoch 9: Validation Loss = 0.2396
+Epoch 10: Validation Loss = 0.2208
