@@ -23,7 +23,7 @@ import re
 base_dataset_folder = "./toydataset/object_detection/"
 
 # Define bounding box size
-bbox_size = 56  # Fixed bounding box size for U-Net compatibility
+bbox_size = 96  # Fixed bounding box size for U-Net compatibility
 
 # Load all CSV files (only one file is expected now)
 csv_files = [f for f in os.listdir(base_dataset_folder) if f.endswith('.csv')]
