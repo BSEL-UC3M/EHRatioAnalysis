@@ -69,38 +69,40 @@ class YoloObjectDetectorDataset(Dataset):
 
 class ObjectDetectionDataLoader:
     """
-    Utility class to load and split images and annotations for YOLO object detection.
+    Utility class to load object detection datasets.
     """
 
     @staticmethod
-    def train_val_test_split(images_folder, annotations_folder, splits=(0.7, 0.15, 0.15), batch_size=8, shuffle=True, seed=None, transform=None):
+    def load_from_existing_split(images_folder, annotations_folder, batch_size=8, shuffle=True, transform=None):
         """
-        Splits the dataset into training, validation, and test sets.
+        Loads pre-split YOLO train, val, and test datasets.
+
+        Parameters:
+        - images_folder: Path to the folder containing train/val/test images.
+        - annotations_folder: Path to the folder containing YOLO annotations.
+        - batch_size: Batch size for the DataLoader.
+        - shuffle: Whether to shuffle the dataset.
+        - transform: Optional image transformations.
+
+        Returns:
+        - train_loader, val_loader, test_loader
         """
-        assert sum(splits) == 1.0, "Splits must sum to 1.0."
-
-        patient_folders = [f for f in os.listdir(images_folder) if os.path.isdir(os.path.join(images_folder, f))]
-        if seed is not None:
-            random.seed(seed)
-        if shuffle:
-            random.shuffle(patient_folders)
-
-        num_patients = len(patient_folders)
-        num_train = int(splits[0] * num_patients)
-        num_val = int(splits[1] * num_patients)
-
-        train_patients = patient_folders[:num_train]
-        val_patients = patient_folders[num_train:num_train + num_val]
-        test_patients = patient_folders[num_train + num_val:]
-
-        def get_image_files(patients):
-            image_files = []
-            for patient in patients:
-                patient_folder = os.path.join(images_folder, patient)
-                if os.path.exists(patient_folder):
-                    image_files.extend([os.path.join(patient, file) for file in os.listdir(patient_folder) if file.endswith('.tif')])
+        def get_image_files(split):
+            split_folder = os.path.join(images_folder, split)
+            image_files = [
+                os.path.join(split, file)
+                for file in os.listdir(split_folder) if file.endswith('.tif')
+            ]
             return image_files
 
-        return DataLoader(YoloObjectDetectorDataset(get_image_files(train_patients), images_folder, annotations_folder, transform), batch_size=batch_size, shuffle=True), \
-               DataLoader(YoloObjectDetectorDataset(get_image_files(val_patients), images_folder, annotations_folder, transform), batch_size=batch_size, shuffle=False), \
-               DataLoader(YoloObjectDetectorDataset(get_image_files(test_patients), images_folder, annotations_folder, transform), batch_size=batch_size, shuffle=False)
+        train_files = get_image_files("train")
+        val_files = get_image_files("val")
+        test_files = get_image_files("test")
+
+        train_dataset = YoloObjectDetectorDataset(train_files, images_folder, annotations_folder, transform=transform)
+        val_dataset = YoloObjectDetectorDataset(val_files, images_folder, annotations_folder, transform=transform)
+        test_dataset = YoloObjectDetectorDataset(test_files, images_folder, annotations_folder, transform=transform)
+
+        return DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle), \
+               DataLoader(val_dataset, batch_size=batch_size, shuffle=False), \
+               DataLoader(test_dataset, batch_size=batch_size, shuffle=False)

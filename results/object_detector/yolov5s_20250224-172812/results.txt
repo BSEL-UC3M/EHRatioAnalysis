@@ -1,0 +1,6 @@
+Model: yolov5s
+Dataset Path: ./toydataset/object_detection/
+Trained Model Path: trained_yolov5s.pt
+Mean Average Precision (mAP@0.5): 0.8429
+Precision: 0.8844
+Recall: 0.8338
