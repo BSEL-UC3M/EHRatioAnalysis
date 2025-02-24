@@ -1,65 +1,58 @@
-from torch.utils.data import Dataset, DataLoader
 import os
-import torch
+import pandas as pd
 import cv2
 
-class YoloObjectDetectorDataset(Dataset):
-    """
-    PyTorch Dataset for loading MRC images and YOLO-compatible bounding box annotations.
-    """
-    def __init__(self, images_folder, labels_folder, transform=None):
-        """
-        Parameters:
-        - images_folder: Path to the folder containing images.
-        - labels_folder: Path to the folder containing YOLO annotations (.txt files).
-        - transform: Optional transformations to apply to the images.
-        """
-        self.images_folder = images_folder
-        self.labels_folder = labels_folder
-        self.image_files = [f for f in os.listdir(images_folder) if f.endswith('.tif')]
-        self.transform = transform
+# User-defined parameters
+base_dataset_folder = "./toydataset/object_detection/"
+# Load all CSV files
+csv_files = [f for f in os.listdir(base_dataset_folder) if f.endswith('.csv')]
 
-    def __len__(self):
-        return len(self.image_files)
+# Define bounding box size
+bbox_size = 56  # Since it will be used as input for U-Net
 
-    def __getitem__(self, idx):
-        file_name = self.image_files[idx]
-        image_path = os.path.join(self.images_folder, file_name)
-        label_path = os.path.join(self.labels_folder, file_name.replace('.tif', '.txt'))
+# Process each CSV file
+for csv_file in csv_files:
+    patient_folder = os.path.splitext(csv_file)[0]  # Extract patient folder name (remove ".csv")
+    csv_path = os.path.join(base_dataset_folder, csv_file)
 
-        # Load the image
-        image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-        if image is None:
-            raise FileNotFoundError(f"Image file {image_path} not found.")
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
-        image = image.astype('float32') / 255.0
+    # Read the CSV file
+    df = pd.read_csv(csv_path, skiprows=1, names=["filename", "x_left", "y_left", "x_right", "y_right"])
 
-        # Load the annotations
-        yolo_annotations = []
-        with open(label_path, 'r') as f:
-            for line in f.readlines():
-                class_id, x_center, y_center, width, height = map(float, line.strip().split())
-                yolo_annotations.append([class_id, x_center, y_center, width, height])
+    # Process each row (each image annotation)
+    for _, row in df.iterrows():
+        image_filename = row["filename"]
+        image_path = os.path.join(base_dataset_folder, patient_folder, image_filename)
+        image_path = image_path.replace("\\", "/")  # Normalize path for compatibility
 
-        # Apply transformations if specified
-        if self.transform:
-            image = self.transform(image)
+        # Check if the image exists
+        if not os.path.exists(image_path):
+            print(f"Warning: Image {image_path} not found, skipping...")
+            continue
 
-        # Convert to tensors
-        image = torch.from_numpy(image).permute(2, 0, 1).float()  # Change to (C, H, W)
-        yolo_annotations = torch.tensor(yolo_annotations, dtype=torch.float32)
+        # Load image to get dimensions
+        img = cv2.imread(image_path)
+        img_height, img_width, _ = img.shape
 
-        return image, yolo_annotations
+        # Normalize bounding box parameters
+        x_left_norm = row["x_left"] / img_width
+        y_left_norm = row["y_left"] / img_height
+        x_right_norm = row["x_right"] / img_width
+        y_right_norm = row["y_right"] / img_height
+        width_norm = bbox_size / img_width
+        height_norm = bbox_size / img_height
 
+        # Create YOLO annotation lines
+        yolo_lines = [
+            f"0 {x_left_norm:.6f} {y_left_norm:.6f} {width_norm:.6f} {height_norm:.6f}",  # Left ear (class 0)
+            f"1 {x_right_norm:.6f} {y_right_norm:.6f} {width_norm:.6f} {height_norm:.6f}"  # Right ear (class 1)
+        ]
 
-# Example Usage
-dataset = YoloObjectDetectorDataset(
-    images_folder='path/to/images',
-    labels_folder='path/to/yolo_annotations',
-    transform=None
-)
-dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
+        # Save annotation file in the same patient folder
+        annotations_folder = os.path.join(base_dataset_folder, patient_folder, "yolo_annotations")
+        os.makedirs(annotations_folder, exist_ok=True)  # Ensure folder exists
 
-for images, annotations in dataloader:
-    print(images.shape)  # (batch_size, 3, H, W)
-    print(annotations)   # List of bounding boxes for each image
+        yolo_filename = os.path.join(annotations_folder, image_filename.replace(".tif", ".txt"))
+        with open(yolo_filename, "w") as f:
+            f.write("\n".join(yolo_lines))
+
+print("Conversion complete! YOLO annotations are saved.")
