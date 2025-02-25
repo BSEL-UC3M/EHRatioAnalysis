@@ -1,0 +1,9 @@
+Learning Rate: 0.0001
+Number of Epochs: 5
+Optimizer: Adam
+Number of Layers: 10
+Accuracy: 95.17%
+Average Loss: 0.1599
+Confusion Matrix:
+[[1361   53]
+ [  34  352]]
