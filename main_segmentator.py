@@ -74,7 +74,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/MRC"
+    results_folder = "./results/results_segmentator/PEI/20250225 PEI"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
