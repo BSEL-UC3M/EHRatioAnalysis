@@ -44,8 +44,12 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         correct_train, total_train = 0, 0
         
         # Adjust Dropout after epoch 10
-        if epoch >= 10:
-            model.fc[0] = nn.Dropout(0.6)  # Adjust dropout dynamically
+        if epoch == 10:  # Only modify once at epoch 10
+            model.fc = nn.Sequential(
+                nn.Dropout(0.6),  # ✅ Correct way to modify dropout dynamically
+                nn.Linear(model.fc[1].in_features, 2)
+            ).to(device)
+
             
         model.train()
         
