@@ -1,0 +1,8 @@
+Learning Rate: 0.0001
+Number of Epochs: 20
+Optimizer: SGD
+Accuracy: 94.36%
+Average Loss: 0.2546
+Confusion Matrix:
+[[2008    0]
+ [ 120    0]]
