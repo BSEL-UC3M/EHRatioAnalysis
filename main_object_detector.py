@@ -13,8 +13,8 @@ from trainers.object_detector.yolo_trainer import train_yolo
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-SAVE_RESULTS = False  # Toggle this flag to enable/disable result saving
-EPOCHS = 10  # Number of training epochs
+SAVE_RESULTS = True  # Toggle this flag to enable/disable result saving
+EPOCHS = 50  # Number of training epochs
 BATCH_SIZE = 8  # Training batch size
 DATASET_YAML = "./toydataset/object_detection/YOLO/dataset.yaml"  # Path to dataset.yaml
 
