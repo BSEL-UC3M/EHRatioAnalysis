@@ -9,7 +9,9 @@ import os
 from dataloader.dataloader_MRC_object_detector import ObjectDetectionDataLoader
 from trainers.object_detector.yolo_trainer import train_yolo
 
-SAVE_RESULTS = True  # Toggle this flag to enable/disable result saving
+SAVE_RESULTS = False  # Toggle this flag to enable/disable result saving
+EPOCHS = 10 # Number of training epochs
+BATCH_SIZE = 8  # Training batch size
 
 if __name__ == "__main__":  # ✅ Prevent multiprocessing issues on Windows
     # ✅ Define the correct dataset path (inside YOLO/)
@@ -23,8 +25,7 @@ if __name__ == "__main__":  # ✅ Prevent multiprocessing issues on Windows
     # ✅ Load Train, Validation, and Test Data
     print("📂 Loading dataset...")
     train_loader, val_loader, test_loader = ObjectDetectionDataLoader.load_from_existing_split(
-        images_folder="./toydataset/object_detection/YOLO/",
-        annotations_folder="./toydataset/object_detection/YOLO/",
+        dataset_yaml=dataset_yaml,
         batch_size=8,
         shuffle=True,
         transform=None  # Apply any data augmentation if needed
@@ -53,7 +54,7 @@ if __name__ == "__main__":  # ✅ Prevent multiprocessing issues on Windows
 
     train_yolo(
     dataset_yaml=dataset_yaml,
-    epochs=50,
+    epochs=EPOCHS,
     batch_size=8,
     model_name="yolov5s",
     save_results=SAVE_RESULTS,
