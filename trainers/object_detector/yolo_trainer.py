@@ -31,10 +31,15 @@ def train_yolo(dataset_yaml, epochs=50, batch_size=8, model_name="yolov5s", save
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = YOLOv5(model_name=model_name, pretrained=True, device=device)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
     # If save_results is False, we set a temporary run directory that will be discarded
-    project = "runs/detect" if save_results else "/tmp/yolo_no_save"
-    name = "train" if save_results else "temp_train"
+    if save_results:
+        project = "./results/object_detector"
+        name = f"{model_name}-{timestamp}"
+    else:
+        project = "/tmp/yolo_no_save"  # Temporary directory for testing
+        name = "temp_train"
     
     # Run YOLO training
     model.model.train(
