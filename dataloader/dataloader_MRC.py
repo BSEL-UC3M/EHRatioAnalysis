@@ -51,6 +51,7 @@ class PatientDataset(Dataset):
         image_max = image.max()
         image_min = image.min()
         image = (image-image_min)/(image_max-image_min)
+        #image = 1.0 - image
         #image = np.clip(image, 0, 1) 
         label = np.clip(label, 0, 1)
 

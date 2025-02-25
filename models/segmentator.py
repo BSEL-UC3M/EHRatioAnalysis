@@ -841,9 +841,9 @@ class UNetOptimizedDO(nn.Module):
                 prediction = self(image)
 
                 # Convert tensors to numpy arrays for visualization
-                image_np = image[0].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
-                label_np = label[0].squeeze().cpu().numpy()  # Remove channel dimension
-                pred_np = prediction[0].squeeze().cpu().numpy()  # Remove channel dimension
+                image_np = image[5].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+                label_np = label[5].squeeze().cpu().numpy()  # Remove channel dimension
+                pred_np = prediction[5].squeeze().cpu().numpy()  # Remove channel dimension
 
                 # Plot Original Image, Ground Truth Label, and Predicted Mask
                 fig, ax = plt.subplots(1, 3, figsize=(15, 5))

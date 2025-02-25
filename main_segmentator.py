@@ -20,20 +20,20 @@ from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetO
 
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
-NUM_EPOCHS = 10  # Number of training epochs
+NUM_EPOCHS = 50  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-USE_MRC = True   # Toggle to use the MRC dataset
-USE_PEI = False  # Toggle to use the PEI dataset
+USE_MRC = False   # Toggle to use the MRC dataset
+USE_PEI = True  # Toggle to use the PEI dataset
 
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
     # Si estamos en Kaggle, usar la ruta de Kaggle
     MRC_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/MRC_images'
     MRC_LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/MRC_labels'
-    PEI_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/PEI_images'
+    PEI_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/PEI_images_preprocessed'
     PEI_LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/PEI_labels'
 else:
     # Si estamos en local, usar la ruta local
