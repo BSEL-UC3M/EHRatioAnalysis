@@ -73,3 +73,8 @@ Annotations should be saved directly in `train/`, `val/`, and `test/` instead of
 - [ ] Update `generate_yolo_annotations.py` to save annotations in the correct folder.
 - [ ] Verify that the YOLO model reads the annotations correctly.
 
+### CHange location of `.pt` files
+Some `.pt` files are being saved in the root directory. Everything from every run should be saved in the results folder where it belongs.
+- [ ] Remove the `yolo11n.pt` and `yolov5su.pt` files from the root directory.
+- [ ] Check how are they created and stored and change its location.
+
