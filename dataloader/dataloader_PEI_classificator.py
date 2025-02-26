@@ -94,7 +94,6 @@ class ClassificationDataLoader:
         all_patient_data = {}
 
         # Open the Excel file
-        # Open the Excel file
         with pd.ExcelFile(labels_file) as xls:
         # Get all sheet names dynamically
             sheet_names = xls.sheet_names
