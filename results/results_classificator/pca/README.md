@@ -28,28 +28,29 @@ We reduced the **image feature space** to **2D** using **Principal Component Ana
 | **Class 1 Recall** | **0%** | **86%** | 📈 Massive improvement! Model now detects class 1 |
 | **Class 1 Precision** | **0%** | **60%** | 📈 Model now predicts class 1 correctly |
 
+### **Understanding Key Metrics**
+- **Macro Avg**: The **unweighted average** of precision, recall, and F1-score across all classes, treating each class equally.
+- **Weighted Avg**: The **average weighted by the number of samples in each class**, giving more importance to larger classes.
+- **Support**: The **number of actual occurrences of each class** in the dataset (i.e., how many samples belong to each class).
+
 ### **🔹 Classification Report WITHOUT SMOTE**
-```yaml
-          precision    recall  f1-score   support
+| Metric         | Class 0 | Class 1 | Accuracy | Macro Avg | Weighted Avg |
+|---------------|--------|--------|----------|-----------|--------------|
+| **Precision**  | 0.94   | 0.00   | -        | 0.47      | 0.88         |
+| **Recall**     | 1.00   | 0.00   | 0.94     | 0.50      | 0.94         |
+| **F1-score**   | 0.97   | 0.00   | -        | 0.48      | 0.91         |
+| **Support**    | 6416   | 416    | 6832     | 6832      | 6832         |
 
-       0       0.94      1.00      0.97      6416
-       1       0.00      0.00      0.00       416
-
-accuracy                           0.94      6832
-macro avg 0.47 0.50 0.48 6832 weighted avg 0.88 0.94 0.91 6832
-```
 ➡️ **Class 1 is completely ignored** by the model because the dataset is **highly imbalanced**.
 ---
 ### **🔹 Classification Report WITH SMOTE**
-```yaml
-          precision    recall  f1-score   support
+| Metric         | Class 0 | Class 1 | Accuracy | Macro Avg | Weighted Avg |
+|---------------|--------|--------|----------|-----------|--------------|
+| **Precision**  | 0.75   | 0.60   | -        | 0.68      | 0.68         |
+| **Recall**     | 0.43   | 0.86   | 0.65     | 0.65      | 0.65         |
+| **F1-score**   | 0.55   | 0.71   | -        | 0.63      | 0.63         |
+| **Support**    | 6416   | 6416   | 12832    | 12832     | 12832        |
 
-       0       0.75      0.43      0.55      6416
-       1       0.60      0.86      0.71      6416
-
-accuracy                           0.65     12832
-macro avg 0.68 0.65 0.63 12832 weighted avg 0.68 0.65 0.63 12832
-```
 ➡️ **Class 1 recall improved from 0% to 86%!** However, **Class 0 recall dropped significantly**, meaning many Class 0 samples were misclassified as Class 1.
 
 ---
