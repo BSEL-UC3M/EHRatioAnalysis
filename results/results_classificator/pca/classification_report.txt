@@ -1,0 +1,21 @@
+Classification Report WITHOUT SMOTE:
+              precision    recall  f1-score   support
+
+           0       0.94      1.00      0.97      6416
+           1       0.00      0.00      0.00       416
+
+    accuracy                           0.94      6832
+   macro avg       0.47      0.50      0.48      6832
+weighted avg       0.88      0.94      0.91      6832
+
+
+Classification Report WITH SMOTE:
+              precision    recall  f1-score   support
+
+           0       0.75      0.43      0.55      6416
+           1       0.60      0.86      0.71      6416
+
+    accuracy                           0.65     12832
+   macro avg       0.68      0.65      0.63     12832
+weighted avg       0.68      0.65      0.63     12832
+

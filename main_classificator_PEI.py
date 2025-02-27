@@ -5,6 +5,7 @@
 # Created: 13/02/2025
 # ==============================================================================
 import torch
+import platform
 import os
 import sys
 import numpy as np
@@ -16,27 +17,46 @@ from sklearn.metrics import confusion_matrix
 from dataloader.dataloader_PEI_classificator import ClassificationDataLoader
 from trainers.classificator.five_layer_cnn_PEI import train_model, evaluate_model, FiveLayerCNN
 from trainers.classificator.resnet50 import fine_tune_resnet, train_model, evaluate_model
+from utils.preprocessing_all_images import preprocess_all_images
 
 # Add utils folder to path to import preprocessing script
-sys.path.append("/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/utils")
-from preprocessing_all_images import preprocess_all_images
+# CAT: Why are you adding the path to the preprocessing script here?
+# sys.path.append("/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/utils")
+# from preprocessing_all_images import preprocess_all_images
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 # ==============================================================================
 # Configuration Parameters
-SAVE_RESULTS = True  # Toggle to save results
-SAVE_PREPROCESSING = True  # Toggle to save preprocessed images
+SAVE_RESULTS = False  # Toggle to save results
+SAVE_PREPROCESSING = False  # Toggle to save preprocessed images
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
-RAW_IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/PEI_data/PEI_TIFF/"
-
-PROCESSED_IMAGES_FOLDER = os.path.join(os.path.dirname(RAW_IMAGES_FOLDER), "PEI_processed_data")
 NUM_EPOCHS = 20  # Define number of epochs
 
-# Select computing device (use Apple Silicon GPU if available)
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+# CAT's paths
+RAW_IMAGES_FOLDER = "D:/Data/EHRatioAnalysis/PEI TIFF"
+ANNOTATIONS_FOLDER = "D:/Data/EHRatioAnalysis"
+
+# CLAUDIA's paths
+# RAW_IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/PEI_data/PEI_TIFF/"
+# ANNOTATIONS_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/PEI_data/"
+
+PROCESSED_IMAGES_FOLDER = os.path.join(os.path.dirname(RAW_IMAGES_FOLDER), "PEI_processed_data")
+
+# Detect OS
+system_name = platform.system().lower()
+
+# Select GPU backend based on OS (Windows or macOS)
+if system_name == "darwin":  # macOS
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+elif system_name in ["windows", "linux"]:  # Windows or Linux
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+else:
+    device = torch.device("cpu")  # Fallback to CPU for unknown OS
+
+print(f"✅ Using device: {device}")
 
 # ==============================================================================
 # ✅ Step 1: Preprocess Images
@@ -50,7 +70,6 @@ else:
 
 # ==============================================================================
 # ✅ Step 2: Load Dataset
-ANNOTATIONS_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/PEI_data/"
 
 annotations = ClassificationDataLoader.load_annotations(ANNOTATIONS_FOLDER)
 
