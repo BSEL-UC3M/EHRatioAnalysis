@@ -501,6 +501,7 @@ class UNetOptimized(nn.Module):
                 label_np = label[0].squeeze().cpu().numpy()  # Remove channel dimension
                 pred_np = prediction[0].squeeze().cpu().numpy()  # Remove channel dimension
 
+
                 # Plot Original Image, Ground Truth Label, and Predicted Mask
                 fig, ax = plt.subplots(1, 3, figsize=(15, 5))
 
@@ -726,6 +727,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from collections import OrderedDict
+import torch
+import numpy as np
+import matplotlib.pyplot as plt
 
 class UNetOptimizedDO(nn.Module):
     def __init__(self, in_channels=3, out_channels=1, init_features=32):
@@ -823,6 +827,8 @@ class UNetOptimizedDO(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
     
+
+
     def visualize_segmentation(self, data_loader, device='cpu'):
         """
         Visualizes segmentation results from a given data loader.
@@ -844,27 +850,108 @@ class UNetOptimizedDO(nn.Module):
                 image_np = image[5].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
                 label_np = label[5].squeeze().cpu().numpy()  # Remove channel dimension
                 pred_np = prediction[5].squeeze().cpu().numpy()  # Remove channel dimension
+                pred_np = (pred_np - np.min(pred_np)) / (np.max(pred_np) - np.min(pred_np) + 1e-8)
+                th = 0.5  # O ajusta según la distribución de los valores
+                binary_pred_mask = (pred_np > th).astype(np.uint8)
 
-                # Plot Original Image, Ground Truth Label, and Predicted Mask
-                fig, ax = plt.subplots(1, 3, figsize=(15, 5))
 
-                # Original Image
+                # # Create RGBA masks for overlay (initialize with zeros)
+                overlay_label = np.zeros((label_np.shape[0], label_np.shape[1], 4))  # (H, W, 4)
+                #overlay_pred = np.zeros((pred_np.shape[0], pred_np.shape[1], 4))  # (H, W, 4)
+
+
+                # Mask the regions where label and prediction are non-zero (white)
+                overlay_label[label_np > 0] = [1, 1, 0, 0.5]  # Yellow with 50% transparency
+                #overlay_pred[binary_pred_mask > 0] = [1, 0, 0, 0.5]  # Red with 50% transparency
+
+                # # Plot the Original Image and the overlays (Ground Truth in Yellow, Prediction in Red)
+                #fig, ax = plt.subplots(figsize=(6, 6))
+
+                # # Display the original image
+                # ax.imshow(image_np)
+                
+                # # Superimpose the Ground Truth label (Yellow) and Prediction (Red)
+                # ax.imshow(overlay_label)  # Ground truth overlay
+                # ax.imshow(overlay_pred)  # Prediction overlay
+
+                # # Title and remove axis
+                # ax.set_title("Image with Ground Truth and Prediction Overlays")
+                # ax.axis("off")
+
+                # # Show the result
+                # plt.tight_layout()
+                # plt.show()
+
+                # # Predicted Segmentation Mask
+                # ax.imshow(pred_np, cmap='Reds')
+                # #ax.imshow(overlay_label)
+                # ax.imshow(image_np)
+                # #ax.imshow(binary_pred_mask, cmap="grey")
+                # ax.set_title("Predicted Segmentation")
+                # ax.axis("off")
+                # plt.tight_layout()
+                # plt.show()
+
+                fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+
+    #             # Original Image
                 ax[0].imshow(image_np)
+                ax[0].imshow(overlay_label)
                 ax[0].set_title("Original Image")
                 ax[0].axis("off")
 
-                # Ground Truth Label
-                ax[1].imshow(label_np, cmap='gray')
+    #             # Ground Truth Label
+                ax[1].imshow(image_np)
+                ax[1].imshow(pred_np, cmap='Reds')
+                ax[1].imshow(overlay_label)
                 ax[1].set_title("Ground Truth Label")
                 ax[1].axis("off")
 
-                # Predicted Segmentation Mask
-                ax[2].imshow(pred_np, cmap='gray')
-                ax[2].set_title("Predicted Segmentation")
-                ax[2].axis("off")
 
-                plt.tight_layout()
-                plt.show()
+
+
+    # def visualize_segmentation(self, data_loader, device='cpu'):
+    #     """
+    #     Visualizes segmentation results from a given data loader.
+    #     """
+    #     self.eval()  # Set the model to evaluation mode
+    #     with torch.no_grad():  # Disable gradient calculations for inference
+    #         for i, (image, label) in enumerate(data_loader):
+    #             if i == 1:  # Visualize only one example
+    #                 break
+
+    #             # Move data to the same device as the model (GPU/CPU)
+    #             image = image.to(device)
+    #             label = label.to(device)
+
+    #             # Forward pass: Get prediction from the model
+    #             prediction = self(image)
+
+    #             # Convert tensors to numpy arrays for visualization
+    #             image_np = image[5].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+    #             label_np = label[5].squeeze().cpu().numpy()  # Remove channel dimension
+    #             pred_np = prediction[5].squeeze().cpu().numpy()  # Remove channel dimension
+
+    #             # Plot Original Image, Ground Truth Label, and Predicted Mask
+    #             fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+
+    #             # Original Image
+    #             ax[0].imshow(image_np)
+    #             ax[0].set_title("Original Image")
+    #             ax[0].axis("off")
+
+    #             # Ground Truth Label
+    #             ax[1].imshow(label_np, cmap='gray')
+    #             ax[1].set_title("Ground Truth Label")
+    #             ax[1].axis("off")
+
+    #             # Predicted Segmentation Mask
+    #             ax[2].imshow(pred_np, cmap='gray')
+    #             ax[2].set_title("Predicted Segmentation")
+    #             ax[2].axis("off")
+
+    #             plt.tight_layout()
+    #             plt.show()
 
 
 

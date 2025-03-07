@@ -19,14 +19,14 @@ from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetO
 # ==============================================================================
 
 # Configuration Parameters
-SAVE_RESULTS = True  # Toggle to save results
-NUM_EPOCHS = 50  # Number of training epochs
+SAVE_RESULTS = False  # Toggle to save results
+NUM_EPOCHS = 10  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-USE_MRC = False   # Toggle to use the MRC dataset
-USE_PEI = True  # Toggle to use the PEI dataset
+USE_MRC = True   # Toggle to use the MRC dataset
+USE_PEI = False  # Toggle to use the PEI dataset
 
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
@@ -41,7 +41,7 @@ else:
     #LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
     MRC_IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\MRC_images"
     MRC_LABELS_FOLDER = "D:\Desktop\CROPPED_DATASET\labels\MRC_labels"
-    PEI_IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\PEI_images"
+    PEI_IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\PEI_images_preprocessed"
     PEI_LABELS_FOLDER = "D:\Desktop\CROPPED_DATASET\labels\PEI_labels"
 
 if USE_MRC:
@@ -106,8 +106,8 @@ data_iter = iter(train_loader)
 images, labels = next(data_iter)
 
 # Seleccionar la primera imagen y su correspondiente label
-image = images[0]  # Primera imagen
-label = labels[0]  # Primer label
+image = images[5]  # Primera imagen
+label = labels[5]  # Primer label
 
 # Transponer la imagen de [3, 96, 96] a [96, 96, 3] para visualización
 image = image.permute(1, 2, 0)
@@ -117,6 +117,7 @@ label = label.permute(1,2,0)
 image = image.numpy()  # Convertir a numpy
 label = label.numpy()
 
+# ============= PLOT IMAHES AND LABELS THAT GO INTO THE MODEL FOR TRAINING
 # Crear un plot con dos secciones
 fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
@@ -134,45 +135,108 @@ ax[1].axis("off")
 plt.tight_layout()
 plt.show()
 
-# LET'S VISUALIZE SOME OF OUR INPUT DATA STRAIGHT FROM THE FOLDER 
-import os
-from PIL import Image
+# =================== NEW PLOT 
+
+import numpy as np
 import matplotlib.pyplot as plt
 
-# Selecciona un archivo de imagen y etiqueta (usa el mismo nombre de base)
-image_filename = "PAC5_right_main_right.tif"  # Reemplaza con un nombre de archivo válido
-label_filename = "PAC5_right_main_right.tif"  # Reemplaza con el nombre correspondiente
+# Asegurarnos de que 'label' sea 2D
+if label.ndim == 3:
+    label_red = label[:, :, 0]  # Eliminar dimensión extra si existe
 
-# Construir rutas completas
-image_path = os.path.join(IMAGES_FOLDER, image_filename)
-label_path = os.path.join(LABELS_FOLDER, label_filename)
+# Crear una imagen RGBA vacía con el mismo tamaño que la imagen
+mask_rgba = np.zeros((label_red.shape[0], label_red.shape[1], 4))  # (H, W, 4)
 
-# Cargar la imagen y la etiqueta usando PIL
-image = Image.open(image_path)
-label = Image.open(label_path)
+# Asignar color rojo con 50% de transparencia solo a los píxeles blancos de la máscara
+mask_rgba[label_red > 0] = [1, 0, 0, 0.4]  # (Rojo, Verde, Azul, Transparencia)
 
-# Mostrar imagen y etiqueta en un subplot de dos secciones
-fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+# Crear el plot
+fig, ax = plt.subplots(figsize=(6, 6))
 
-# Mostrar la imagen
-ax[0].imshow(image, cmap="gray")
-ax[0].set_title("Imagen")
-ax[0].axis("off")
+# Mostrar la imagen original en escala de grises
+ax.imshow(image, cmap="gray")
 
-# Mostrar la etiqueta
-ax[1].imshow(label, cmap="gray")  # Cambia cmap según el formato de la etiqueta
-ax[1].set_title("Etiqueta")
-ax[1].axis("off")
+# Superponer la máscara en rojo semitransparente
+ax.imshow(mask_rgba)
 
-# Mostrar el plot
-plt.tight_layout()
+# Configurar el título y quitar ejes
+ax.set_title("Image with Superposed Label (Red)")
+ax.axis("off")
+
+# Mostrar el resultado
 plt.show()
 
-# Convert to numpy array
-image = np.array(image)
+ #----------- CONTOUR PLOT
 
-print("Image min:", image.min())
-print("Image max:", image.max())
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Asegurar que la máscara es binaria (0 y 255)
+label_bin = (label > 0).astype(np.uint8) * 255  
+
+# Encontrar contornos con cv2 (RETR_EXTERNAL para solo el borde externo)
+contours, _ = cv2.findContours(label_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+# Crear el plot
+fig, ax = plt.subplots(figsize=(6, 6))
+
+# Mostrar la imagen original
+ax.imshow(image, cmap="gray")
+
+# Dibujar los contornos sobre la imagen en rojo, pixel-perfect
+for contour in contours:
+    contour = contour.squeeze()  # Asegurar que está en el formato correcto
+    ax.plot(contour[:, 0], contour[:, 1], color='red', linewidth=1)  # Contorno fino
+
+# Configurar el título y quitar ejes
+ax.set_title("Imagen con Contorno Exacto de la Máscara")
+ax.axis("off")
+
+# Mostrar el resultado
+plt.show()
+
+
+# --------------
+# # LET'S VISUALIZE SOME OF OUR INPUT DATA STRAIGHT FROM THE FOLDER 
+# import os
+# from PIL import Image
+# import matplotlib.pyplot as plt
+
+# # Selecciona un archivo de imagen y etiqueta (usa el mismo nombre de base)
+# image_filename = "PAC5_right_main_right.tif"  # Reemplaza con un nombre de archivo válido
+# label_filename = "PAC5_right_main_right.tif"  # Reemplaza con el nombre correspondiente
+
+# # Construir rutas completas
+# image_path = os.path.join(IMAGES_FOLDER, image_filename)
+# label_path = os.path.join(LABELS_FOLDER, label_filename)
+
+# # Cargar la imagen y la etiqueta usando PIL
+# image = Image.open(image_path)
+# label = Image.open(label_path)
+
+# # Mostrar imagen y etiqueta en un subplot de dos secciones
+# fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+
+# # Mostrar la imagen
+# ax[0].imshow(image, cmap="gray")
+# ax[0].set_title("Imagen")
+# ax[0].axis("off")
+
+# # Mostrar la etiqueta
+# ax[1].imshow(label, cmap="gray")  # Cambia cmap según el formato de la etiqueta
+# ax[1].set_title("Etiqueta")
+# ax[1].axis("off")
+
+# # Mostrar el plot
+# plt.tight_layout()
+# plt.show()
+
+# # Convert to numpy array
+# image = np.array(image)
+
+# print("Image min:", image.min())
+# print("Image max:", image.max())
 
 
 # ==============================================================================
