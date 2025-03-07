@@ -1,8 +1,8 @@
 # ==============================================================================
 # File: dataloader_classificator.py
 # Description: DataLoader for MRC TIFF images and annotations for classification tasks.
-# Author: @cfusterbarcelo
-# Creation Date: 05/01/2025
+# Author: @claudiacastrillon
+# Creation Date: 25/02/2025
 # ==============================================================================
 
 import os
@@ -93,7 +93,6 @@ class ClassificationDataLoader:
         
         all_patient_data = {}
 
-        # Open the Excel file
         # Open the Excel file
         with pd.ExcelFile(labels_file) as xls:
         # Get all sheet names dynamically
