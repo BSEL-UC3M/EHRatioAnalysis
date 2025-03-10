@@ -730,6 +730,7 @@ from collections import OrderedDict
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 class UNetOptimizedDO(nn.Module):
     def __init__(self, in_channels=3, out_channels=1, init_features=32):
@@ -829,7 +830,7 @@ class UNetOptimizedDO(nn.Module):
     
 
 
-    def visualize_segmentation(self, data_loader, device='cpu'):
+    def visualize_segmentation(self, data_loader, device='cpu', results_dir=None, save_results=False):
         """
         Visualizes segmentation results from a given data loader.
         """
@@ -861,7 +862,7 @@ class UNetOptimizedDO(nn.Module):
 
 
                 # Mask the regions where label and prediction are non-zero (white)
-                overlay_label[label_np > 0] = [1, 1, 0, 0.5]  # Yellow with 50% transparency
+                overlay_label[label_np > 0] = [0, 0, 1, 0.5]  # Blue with 50% transparency
                 #overlay_pred[binary_pred_mask > 0] = [1, 0, 0, 0.5]  # Red with 50% transparency
 
                 # # Plot the Original Image and the overlays (Ground Truth in Yellow, Prediction in Red)
@@ -906,6 +907,20 @@ class UNetOptimizedDO(nn.Module):
                 ax[1].imshow(overlay_label)
                 ax[1].set_title("Ground Truth Label")
                 ax[1].axis("off")
+
+                # Guardar la imagen si `SAVE_RESULTS` está activado
+                if save_results and results_dir is not None:
+                    os.makedirs(results_dir, exist_ok=True)
+                    save_path = os.path.join(results_dir, "segmentation_result.png")
+                    plt.savefig(save_path, bbox_inches='tight')
+                    print(f"Imagen guardada en: {save_path}")
+
+                # Mostrar la imagen en pantalla si no se guarda
+                else:
+                    plt.show()
+
+                # Cerrar la figura para liberar memoria
+                plt.close(fig)
 
 
 

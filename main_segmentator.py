@@ -19,8 +19,9 @@ from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetO
 # ==============================================================================
 
 # Configuration Parameters
-SAVE_RESULTS = False  # Toggle to save results
-NUM_EPOCHS = 10  # Number of training epochs
+SAVE_RESULTS = True  # Toggle to save results
+SAVE_WEIGHTS = True
+NUM_EPOCHS = 30  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
@@ -74,7 +75,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/PEI/20250225 PEI"
+    results_folder = "./results/results_segmentator/PEI/20250310 MRC Weights"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
@@ -263,5 +264,11 @@ if SAVE_RESULTS:
     torch.save(trained_model.state_dict(), model_save_path)
     print(f"Model saved to {model_save_path}")
 
+if SAVE_WEIGHTS:
+    #best_epoch = np.argmin(val_losses)  # Find the epoch with the lowest validation loss
+    weights_save_path = os.path.join(results_dir, "mrc_segmentator_best_weights.pt")
+    torch.save(trained_model.state_dict(), weights_save_path)
+    print(f"Model weights saved at {weights_save_path}")
+
 # ==============================================================================
-trained_model.visualize_segmentation(test_loader, device=device)
+trained_model.visualize_segmentation(test_loader, device=device, results_dir=results_dir, save_results=SAVE_RESULTS)
