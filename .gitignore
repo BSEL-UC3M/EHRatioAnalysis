@@ -4,13 +4,15 @@ __pycache__/
 *$py.class
 # Ignore results folders
 results/
-.DS_Store
+*.DS_Store
 # C extensions
 *.so
 
 MRC_Data/
+
 # Data
 /toydataset/*
+*.tif
 
 # Distribution / packaging
 .Python
