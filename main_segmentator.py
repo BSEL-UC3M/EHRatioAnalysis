@@ -13,7 +13,7 @@ from datetime import datetime
 from losses import losses
 from dataloader.dataloader_MRC import DataLoaderByPatient
 from trainers.segmentator.pretrained_trainers import train_model, evaluate_model
-from models.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetOptimizedSE, UNetOptimizedDO
+from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetOptimizedSE, UNetOptimizedDO
 
 
 # ==============================================================================
@@ -26,8 +26,8 @@ LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-USE_MRC = True   # Toggle to use the MRC dataset
-USE_PEI = False  # Toggle to use the PEI dataset
+USE_MRC = False   # Toggle to use the MRC dataset
+USE_PEI = True  # Toggle to use the PEI dataset
 
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
@@ -75,7 +75,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/PEI/20250310 MRC Weights"
+    results_folder = "./results/results_segmentator/PEI/20250310 PEI Weights"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
@@ -191,7 +191,7 @@ for contour in contours:
     ax.plot(contour[:, 0], contour[:, 1], color='red', linewidth=1)  # Contorno fino
 
 # Configurar el título y quitar ejes
-ax.set_title("Imagen con Contorno Exacto de la Máscara")
+ax.set_title("Image with contour of the Ground Truth label")
 ax.axis("off")
 
 # Mostrar el resultado

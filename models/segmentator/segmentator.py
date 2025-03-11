@@ -898,14 +898,14 @@ class UNetOptimizedDO(nn.Module):
     #             # Original Image
                 ax[0].imshow(image_np)
                 ax[0].imshow(overlay_label)
-                ax[0].set_title("Original Image")
+                ax[0].set_title("Original Image + Ground Truth Label")
                 ax[0].axis("off")
 
     #             # Ground Truth Label
                 ax[1].imshow(image_np)
                 ax[1].imshow(pred_np, cmap='Reds')
                 ax[1].imshow(overlay_label)
-                ax[1].set_title("Ground Truth Label")
+                ax[1].set_title("Ground Truth Label + Predicted Label")
                 ax[1].axis("off")
 
                 # Guardar la imagen si `SAVE_RESULTS` está activado
