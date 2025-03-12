@@ -15,8 +15,8 @@ import seaborn as sns
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 from dataloader.dataloader_PEI_classificator import ClassificationDataLoader
-from trainers.classificator.five_layer_cnn_PEI import train_model, evaluate_model, FiveLayerCNN
-from trainers.classificator.resnet50 import fine_tune_resnet, train_model, evaluate_model
+from models.classificator.five_layer_cnn_PEI import train_model, evaluate_model, FiveLayerCNN
+from models.classificator.resnet50 import fine_tune_resnet, train_model, evaluate_model
 from utils.preprocessing_all_images import preprocess_all_images
 
 # Add utils folder to path to import preprocessing script
@@ -28,22 +28,23 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 # ==============================================================================
 # Configuration Parameters
-SAVE_RESULTS = False  # Toggle to save results
-SAVE_PREPROCESSING = False  # Toggle to save preprocessed images
+SAVE_RESULTS = input("Save results? (yes/no): ").strip().lower() == "yes"
+SAVE_WEIGHTS = input("Save model weights? (yes/no): ").strip().lower() == "yes"
+SAVE_PREPROCESSING = True  # Toggle to save preprocessed images
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
 NUM_EPOCHS = 20  # Define number of epochs
 
 # CAT's paths
-RAW_IMAGES_FOLDER = "D:/Data/EHRatioAnalysis/PEI TIFF"
-ANNOTATIONS_FOLDER = "D:/Data/EHRatioAnalysis"
+# RAW_IMAGES_FOLDER = "D:/Data/EHRatioAnalysis/PEI TIFF"
+# ANNOTATIONS_FOLDER = "D:/Data/EHRatioAnalysis"
 
 # CLAUDIA's paths
-# RAW_IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/PEI_data/PEI_TIFF/"
-# ANNOTATIONS_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/PEI_data/"
+RAW_IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/data/PEI_data/PEI_images/"
+ANNOTATIONS_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/data/PEI_data/PEI_images/"
 
-PROCESSED_IMAGES_FOLDER = os.path.join(os.path.dirname(RAW_IMAGES_FOLDER), "PEI_processed_data")
+PROCESSED_IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/data/PEI_data/"
 
 # Detect OS
 system_name = platform.system().lower()
@@ -118,7 +119,24 @@ trained_model, train_losses, val_losses, train_accuracies, val_accuracies = trai
 )
 
 # ==============================================================================
-# ✅ Step 5: Evaluate Model and Compute Confusion Matrix
+# ✅ Step 5: Prepare Result Directory
+if SAVE_RESULTS or SAVE_WEIGHTS:
+    results_root = "./results/results_classificator/results_classificator_PEI"
+    os.makedirs(results_root, exist_ok=True)  # Ensure base directory exists
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    results_dir = os.path.join(results_root, f"cnn_{timestamp}")
+    os.makedirs(results_dir, exist_ok=True)  # Create timestamped directory
+
+# ==============================================================================
+# ✅ Step 6: Save Best Weights Based on Validation Loss
+if SAVE_WEIGHTS:
+    best_epoch = np.argmin(val_losses)  # Find the epoch with the lowest validation loss
+    weights_save_path = os.path.join(results_dir, "cnn_best_weights_PEI.pt")
+    torch.save(trained_model.state_dict(), weights_save_path)
+    print(f"✅ Best model weights saved at {weights_save_path} (Epoch {best_epoch + 1})")
+
+# ==============================================================================
+# ✅ Step 7: Evaluate Model and Compute Confusion Matrix
 print(f"\n📊 Evaluating {MODEL_TYPE.upper()} model on the test set...\n")
 y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device)
 print(f"✅ Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
@@ -126,7 +144,7 @@ print(f"✅ Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
 conf_matrix = confusion_matrix(y_true, y_pred)
 
 # ==============================================================================
-# ✅ Step 6: Save Results in results/results_classificator/results_classificator_PEI/
+# ✅ Step 8: Save Results in results/results_classificator/results_classificator_PEI/
 if SAVE_RESULTS:
     results_root = "./results"
     results_classificator = os.path.join(results_root, "results_classificator", "results_classificator_PEI")

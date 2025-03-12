@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as models
 import torch.nn.functional as F
-
+import sys 
 
 
 class FiveLayerCNN(nn.Module):
@@ -66,19 +66,27 @@ class FiveLayerCNN(nn.Module):
         return x
 
 
+from tqdm import tqdm
+import sys
+
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=10):
     """
-    Train the model and track training/validation performance with L2 Regularization.
+    Train the model and track training/validation performance with real-time feedback.
     """
     model.train()
     train_losses, val_losses = [], []
     train_accuracies, val_accuracies = [], []
     
+    print(f"\n🚀 Training started for {num_epochs} epochs...\n")  # ✅ Startup message
+    
     for epoch in range(num_epochs):
         running_loss = 0.0
         correct_train, total_train = 0, 0
-        
-        for inputs, labels in train_loader:
+
+        # ✅ Create Progress Bar for Training Batches (For macOS Terminal & VS Code)
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", unit="batch", leave=True, file=sys.stdout)
+
+        for batch_idx, (inputs, labels) in enumerate(progress_bar):
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -90,14 +98,25 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             _, predicted = torch.max(outputs, 1)
             total_train += labels.size(0)
             correct_train += (predicted == labels).sum().item()
+            
+            # ✅ Print Updates Every 10 Batches (For Debugging in macOS Terminal)
+            if batch_idx % 10 == 0:
+                print(f"Epoch {epoch+1}/{num_epochs} - Batch {batch_idx}/{len(train_loader)} - Loss: {running_loss / (batch_idx + 1):.4f}")
+
+            # ✅ Update tqdm Progress Bar with Live Metrics
+            progress_bar.set_postfix({
+                "Loss": f"{running_loss / (batch_idx + 1):.4f}",
+                "Acc": f"{(100 * correct_train / total_train):.2f}%"
+            })
         
         avg_train_loss = running_loss / len(train_loader)
         train_accuracy = 100 * correct_train / total_train
-        
-        # Validation
+
+        # ✅ Validation Step
         model.eval()
         running_val_loss = 0.0
         correct_val, total_val = 0, 0
+
         with torch.no_grad():
             for inputs, labels in val_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
@@ -115,12 +134,14 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         val_losses.append(avg_val_loss)
         train_accuracies.append(train_accuracy)
         val_accuracies.append(val_accuracy)
+
+        # ✅ Print Summary per Epoch (For macOS Terminal)
+        print(f"\n✅ Epoch {epoch + 1}/{num_epochs} | Train Loss: {avg_train_loss:.4f}, Train Acc: {train_accuracy:.2f}% | Val Loss: {avg_val_loss:.4f}, Val Acc: {val_accuracy:.2f}%\n")
         
-        print(f"Epoch [{epoch + 1}/{num_epochs}], Train Loss: {avg_train_loss:.4f}, Train Acc: {train_accuracy:.2f}% | Val Loss: {avg_val_loss:.4f}, Val Acc: {val_accuracy:.2f}%")
         scheduler.step(avg_val_loss)
-        model.train()
+        model.train()  # Switch back to training mode
     
-    print("Training complete.")
+    print("🎉 Training complete!")
     return model, train_losses, val_losses, train_accuracies, val_accuracies
 
 def evaluate_model(model, test_loader, device):

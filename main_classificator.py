@@ -14,8 +14,8 @@ import seaborn as sns
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 from dataloader.dataloader_MRC_classificator import ClassificationDataLoader
-from trainers.classificator.five_layer_cnn import train_model, evaluate_model, FiveLayerCNN
-from trainers.classificator.resnet50 import fine_tune_resnet, train_model, evaluate_model
+from models.classificator.five_layer_cnn import train_model, evaluate_model, FiveLayerCNN
+from models.classificator.resnet50 import fine_tune_resnet, train_model, evaluate_model
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
@@ -26,7 +26,7 @@ SAVE_WEIGHTS = input("Save model weights? (yes/no): ").strip().lower() == "yes"
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
-IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/MRC_data/MRC_images/" 
+IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/data/MRC_data/MRC_images/" 
 NUM_EPOCHS = 20  # Define number of epochs
 
 # Select computing device (use Apple Silicon GPU if available)

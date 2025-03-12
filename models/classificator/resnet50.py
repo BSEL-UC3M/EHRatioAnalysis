@@ -16,7 +16,7 @@ def fine_tune_resnet(num_classes, device, learning_rate=0.0001, model_type='resn
     num_ftrs = resnet.fc.in_features
     
     # Modify fully connected layer: add dropout (0.5 initially)
-    resnet.fc = nn.Sequential(
+    resnet.fc_layers = nn.Sequential(
         nn.Dropout(0.5),
         nn.Linear(num_ftrs, num_classes)
     )
@@ -45,9 +45,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         
         # Adjust Dropout after epoch 10
         if epoch == 10:  # Only modify once at epoch 10
-            model.fc = nn.Sequential(
+            model.fc_layers = nn.Sequential(
                 nn.Dropout(0.6),  # ✅ Correct way to modify dropout dynamically
-                nn.Linear(model.fc[1].in_features, 2)
+                nn.Linear(model.fc_layers[1].in_features, 2)
             ).to(device)
 
             
