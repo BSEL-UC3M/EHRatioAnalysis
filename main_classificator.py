@@ -21,7 +21,8 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 # ==============================================================================
 # Configuration Parameters
-SAVE_RESULTS = True  # Toggle to save results
+SAVE_RESULTS = input("Save results? (yes/no): ").strip().lower() == "yes"
+SAVE_WEIGHTS = input("Save model weights? (yes/no): ").strip().lower() == "yes"
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
@@ -80,48 +81,58 @@ print(f"\n🚀 Training {MODEL_TYPE.upper()} model for {NUM_EPOCHS} epochs...\n"
 trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
     model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS
 )
+# ==============================================================================
+# ✅ Step 4: Prepare Result Directory
+if SAVE_RESULTS or SAVE_WEIGHTS:
+    results_root = "./results/results_classificator/results_classificator_MRC"
+    os.makedirs(results_root, exist_ok=True)  # Ensure base directory exists
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    results_dir = os.path.join(results_root, f"cnn_{timestamp}")
+    os.makedirs(results_dir, exist_ok=True)  # Create timestamped directory
 
 # ==============================================================================
-# ✅ Step 4: Evaluate Model and Compute Confusion Matrix
+# ✅ Step 5: Save Best Weights Based on Validation Loss
+if SAVE_WEIGHTS:
+    best_epoch = np.argmin(val_losses)  # Find the epoch with the lowest validation loss
+    weights_save_path = os.path.join(results_dir, "cnn_best_weights.pt")
+    torch.save(trained_model.state_dict(), weights_save_path)
+    print(f"✅ Best model weights saved at {weights_save_path} (Epoch {best_epoch + 1})")
+
+# ==============================================================================
+# ✅ Step 6: Evaluate Model on Test Set
 print(f"\n📊 Evaluating {MODEL_TYPE.upper()} model on the test set...\n")
 y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device)
-print(f"✅ Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
+print(f"✅ {MODEL_TYPE.upper()} Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
 
-# Compute confusion matrix
-conf_matrix = confusion_matrix(y_true, y_pred)
+# Compute confusion matrix BEFORE post-processing
+conf_matrix_before = confusion_matrix(y_true, y_pred)
 
 # ==============================================================================
-# ✅ Step 5: Save Results
+# ✅ Step 7: Save Results (confusion matrix, train and validation losses/accuracies, .txt file)
 if SAVE_RESULTS:
-    results_root = "./results"
-    results_classificator = os.path.join(results_root, "results_classificator")
-    os.makedirs(results_classificator, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    results_dir = os.path.join(results_classificator, f"{MODEL_TYPE}_{timestamp}")
-    os.makedirs(results_dir, exist_ok=True)
-
     # Save performance metrics
     with open(os.path.join(results_dir, "results.txt"), "w") as f:
         f.write(f"Learning Rate: {LEARNING_RATE}\n")
         f.write(f"Number of Epochs: {NUM_EPOCHS}\n")
-        f.write(f"Optimizer: {'Adam' if MODEL_TYPE == 'cnn' else 'SGD'}\n")
+        f.write(f"Optimizer: Adam\n")
+        f.write(f"Best Epoch: {best_epoch + 1}\n")
         f.write(f"Accuracy: {accuracy:.2f}%\n")
         f.write(f"Average Loss: {avg_loss:.4f}\n")
-        f.write(f"Confusion Matrix:\n{conf_matrix}\n")
-
-    # Generate and save confusion matrix plot
+        f.write(f"Confusion Matrix Before Post-Processing:\n{conf_matrix_before}\n")
+    
+    # Save confusion matrix plot
     plt.figure(figsize=(6,5))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
+    sns.heatmap(conf_matrix_before, annot=True, fmt='d', cmap='Blues',
                 xticklabels=[f'Class {i}' for i in range(num_classes)], 
                 yticklabels=[f'Class {i}' for i in range(num_classes)])
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
-    plt.title("Confusion Matrix")
-    plt.savefig(os.path.join(results_dir, "confusion_matrix.png"), dpi=300, bbox_inches='tight')
+    plt.title("Confusion Matrix Before Post-Processing")
+    plt.savefig(os.path.join(results_dir, "confusion_matrix_before.png"), dpi=300, bbox_inches='tight')
     plt.close()
-    epochs_range = range(1, len(train_losses) + 1)  # Match the actual number of epochs
-
-    # Plot training & validation loss
+    
+    # Save training & validation loss plot
+    epochs_range = range(1, len(train_losses) + 1)
     plt.figure(figsize=(8,6))
     plt.plot(epochs_range, train_losses, label='Train Loss', marker='o')
     plt.plot(epochs_range, val_losses, label='Validation Loss', marker='o')
@@ -131,8 +142,8 @@ if SAVE_RESULTS:
     plt.legend()
     plt.savefig(os.path.join(results_dir, "train_val_loss.png"), dpi=300, bbox_inches='tight')
     plt.close()
-
-    # Plot training & validation accuracy
+    
+    # Save training & validation accuracy plot
     plt.figure(figsize=(8,6))
     plt.plot(epochs_range, train_accuracies, label='Train Accuracy', marker='o')
     plt.plot(epochs_range, val_accuracies, label='Validation Accuracy', marker='o')
@@ -142,7 +153,7 @@ if SAVE_RESULTS:
     plt.legend()
     plt.savefig(os.path.join(results_dir, "train_val_accuracy.png"), dpi=300, bbox_inches='tight')
     plt.close()
-
+    
     print(f"\n✅ Results saved in {results_dir}\n")
 
 print("🎉 Process completed.")
