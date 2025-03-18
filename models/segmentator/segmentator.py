@@ -915,12 +915,10 @@ class UNetOptimizedDO(nn.Module):
                     plt.savefig(save_path, bbox_inches='tight')
                     print(f"Imagen guardada en: {save_path}")
 
-                # Mostrar la imagen en pantalla si no se guarda
-                else:
-                    plt.show()
+                
+                plt.show()
 
-                # Cerrar la figura para liberar memoria
-                plt.close(fig)
+                
 
 
 
