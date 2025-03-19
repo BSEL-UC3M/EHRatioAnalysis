@@ -89,7 +89,10 @@ class Segmentator(nn.Module):
         """
         return self.model(x)
     
-    def visualize_segmentation(self, data_loader, device='cpu'):
+    def visualize_segmentation(self, data_loader, device='cpu', results_dir=None, save_results=False):
+        """
+        Visualizes segmentation results from a given data loader.
+        """
         self.eval()  # Set the model to evaluation mode
         with torch.no_grad():  # Disable gradient calculations for inference
             for i, (image, label) in enumerate(data_loader):
@@ -104,29 +107,46 @@ class Segmentator(nn.Module):
                 prediction = self(image)
 
                 # Convert tensors to numpy arrays for visualization
-                image_np = image[0].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
-                label_np = label[0].squeeze().cpu().numpy()  # Remove channel dimension
-                pred_np = prediction[0].squeeze().cpu().numpy()  # Remove channel dimension
+                image_np = image[5].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+                label_np = label[5].squeeze().cpu().numpy()  # Remove channel dimension
+                pred_np = prediction[5].squeeze().cpu().numpy()  # Remove channel dimension
+                pred_np = (pred_np - np.min(pred_np)) / (np.max(pred_np) - np.min(pred_np) + 1e-8)
+                th = 0.5  # O ajusta según la distribución de los valores
+                binary_pred_mask = (pred_np > th).astype(np.uint8)
 
-                # Plot Original Image, Ground Truth Label, and Predicted Mask
-                fig, ax = plt.subplots(1, 3, figsize=(15, 5))
 
-                # Original Image
+                # # Create RGBA masks for overlay (initialize with zeros)
+                overlay_label = np.zeros((label_np.shape[0], label_np.shape[1], 4))  # (H, W, 4)
+                #overlay_pred = np.zeros((pred_np.shape[0], pred_np.shape[1], 4))  # (H, W, 4)
+
+
+                # Mask the regions where label and prediction are non-zero (white)
+                overlay_label[label_np > 0] = [0, 0, 1, 0.5]  # Blue with 50% transparency
+ 
+
+                fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+
+    #             # Original Image
                 ax[0].imshow(image_np)
-                ax[0].set_title("Original Image")
+                ax[0].imshow(overlay_label)
+                ax[0].set_title("Original Image + Ground Truth Label")
                 ax[0].axis("off")
 
-                # Ground Truth Label
-                ax[1].imshow(label_np, cmap='gray')
-                ax[1].set_title("Ground Truth Label")
+    #             # Ground Truth Label
+                ax[1].imshow(image_np)
+                ax[1].imshow(pred_np, cmap='Reds')
+                ax[1].imshow(overlay_label)
+                ax[1].set_title("Ground Truth Label + Predicted Label")
                 ax[1].axis("off")
 
-                # Predicted Segmentation Mask
-                ax[2].imshow(pred_np, cmap='gray')
-                ax[2].set_title("Predicted Segmentation")
-                ax[2].axis("off")
+                # Guardar la imagen si `SAVE_RESULTS` está activado
+                if save_results and results_dir is not None:
+                    os.makedirs(results_dir, exist_ok=True)
+                    save_path = os.path.join(results_dir, "segmentation_result.png")
+                    plt.savefig(save_path, bbox_inches='tight')
+                    print(f"Imagen guardada en: {save_path}")
 
-                plt.tight_layout()
+                
                 plt.show()
 
 

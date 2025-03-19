@@ -26,8 +26,8 @@ LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-USE_MRC = True  # Toggle to use the MRC dataset 
-USE_PEI = False  # Toggle to use the PEI dataset
+USE_MRC = False  # Toggle to use the MRC dataset 
+USE_PEI = True  # Toggle to use the PEI dataset
 
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
@@ -42,7 +42,7 @@ else:
     #LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
     MRC_IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\MRC_images"
     MRC_LABELS_FOLDER = "D:\Desktop\CROPPED_DATASET\labels\MRC_labels"
-    PEI_IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\PEI_images_preprocessed"
+    PEI_IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\PEI_images"
     PEI_LABELS_FOLDER = "D:\Desktop\CROPPED_DATASET\labels\PEI_labels"
 
 if USE_MRC:
@@ -54,7 +54,7 @@ elif USE_PEI:
 # ================================================================================
 
 # Initialize the segmentation model
-segmentator = UNetOptimizedDO()
+segmentator = Segmentator()
 
 # Check if GPU is available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,7 +72,7 @@ if LOSS_FUNCTION == "bce_dice":
 elif LOSS_FUNCTION == "focal":
     criterion = losses.FocalLoss(alpha=0.25, gamma=2, reduction='mean')  
 elif LOSS_FUNCTION == "FLProbs": 
-    criterion = losses.FocalLossForProbabilities(gamma=2.5, alpha=0.5)
+    criterion = losses.FocalLossForProbabilities(gamma=3.5, alpha=0.25)
 elif LOSS_FUNCTION == "custom_combined":
     criterion = lambda pred, target: (
         0.2 * losses.FocalLossForProbabilities(gamma=3.0, alpha=0.75)(pred, target) +
@@ -89,7 +89,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/MRC/20250319 MRC Weights BCE_dice"
+    results_folder = "./results/results_segmentator/PEI/20250319 PEI no prep Weights BCE_dice"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
