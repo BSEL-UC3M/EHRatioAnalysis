@@ -16,7 +16,7 @@ from trainers.object_detector.yolo_trainer import train_yolo
 SAVE_RESULTS = True  # Toggle this flag to enable/disable result saving
 EPOCHS = 50  # Number of training epochs
 BATCH_SIZE = 8  # Training batch size
-DATASET_YAML = "/Users/claudiacastrillonalvarez/Desktop/toydataset/object_detection/"  # Path to dataset.yaml
+DATASET_YAML = "./toydataset/object_detection/YOLO/dataset.yaml"  # Path to dataset.yaml
 
 # ==============================================================================
 # MAIN EXECUTION
