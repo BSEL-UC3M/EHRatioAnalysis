@@ -19,14 +19,14 @@ from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOpti
 # ==============================================================================
 
 # Configuration Parameters
-SAVE_RESULTS = False  # Toggle to save results
-SAVE_WEIGHTS = False
-NUM_EPOCHS = 30  # Number of training epochs
+SAVE_RESULTS = True  # Toggle to save results
+SAVE_WEIGHTS = True
+NUM_EPOCHS = 40  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-USE_MRC = True   # Toggle to use the MRC dataset
+USE_MRC = True  # Toggle to use the MRC dataset 
 USE_PEI = False  # Toggle to use the PEI dataset
 
 # Verificar si estamos en Kaggle o en local
@@ -60,19 +60,19 @@ segmentator = UNetOptimizedDO()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 segmentator = segmentator.to(device)
 
-LOSS_FUNCTION = "custom_combined"  # Opciones: "bce_dice", "focal"
+LOSS_FUNCTION = "bce_dice"  # Opciones: "bce_dice", "focal"
 
 if LOSS_FUNCTION == "bce_dice":
     criterion = losses.BCE_and_Dice_loss(
         bce_kwargs={},  
         dice_class=losses.SimpleDiceLoss,  
         weight_ce=1,  
-        weight_dice=1  
+        weight_dice=2  
     )
 elif LOSS_FUNCTION == "focal":
     criterion = losses.FocalLoss(alpha=0.25, gamma=2, reduction='mean')  
 elif LOSS_FUNCTION == "FLProbs": 
-    criterion = losses.FocalLossForProbabilities(gamma=3.0, alpha=0.75)
+    criterion = losses.FocalLossForProbabilities(gamma=2.5, alpha=0.5)
 elif LOSS_FUNCTION == "custom_combined":
     criterion = lambda pred, target: (
         0.2 * losses.FocalLossForProbabilities(gamma=3.0, alpha=0.75)(pred, target) +
@@ -89,7 +89,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/PEI/20250310 PEI Weights"
+    results_folder = "./results/results_segmentator/MRC/20250319 MRC Weights BCE_dice"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
