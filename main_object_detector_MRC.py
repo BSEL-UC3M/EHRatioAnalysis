@@ -5,12 +5,16 @@
 # Creation Date: 24/02/2025
 # Last Update: 25/02/2025
 # ===============================================================================
-
 import os
 import datetime
-from dataloader.dataloader_MRC_object_detector_MRC import MRCObjectDetectionDataLoader
-from models.object_detector.yolo_MRC import YOLOv5
+import torch
+import cv2
+import pandas as pd
+import numpy as np
 from pathlib import Path
+from ultralytics import YOLO
+from models.object_detector.yolo_MRC import YOLOv5, save_cropped_ears
+from dataloader.dataloader_MRC_object_detector_MRC import MRCObjectDetectionDataLoader
 
 # ===============================================================================
 # CONFIGURATION
@@ -65,9 +69,14 @@ if __name__ == "__main__":  # ✅ Prevent multiprocessing issues on Windows
     print("Initializing YOLO model...")
     yolo_model = YOLOv5(model_name="yolov5s", pretrained=True)
 
-    # Perform object detection and evaluation
-    print("Starting YOLO detection and evaluation...")
-    yolo_model.detect_and_save(MRC_IMAGES_DIR, MRC_CSV_FILE, MRC_RESULTS_DIR, save_results=SAVE_RESULTS)
-
+    # Perform object detection and save cropped ear images
+    print("Starting YOLO detection and saving cropped ear images...")
+    for patient_folder in Path(MRC_IMAGES_DIR).glob("PACIENTE* MRC TIFF"):
+        patient_id = patient_folder.stem.replace(" ", "_")
+        patient_output_dir = MRC_RESULTS_DIR / patient_id
+        patient_output_dir.mkdir(parents=True, exist_ok=True)
+        
+        yolo_model.detect_and_save(patient_folder, MRC_CSV_FILE, patient_output_dir, save_results=SAVE_RESULTS)
+    
     print("Detection process completed!")
     print(f"Results saved in: {MRC_RESULTS_DIR}")
