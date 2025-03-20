@@ -13,7 +13,7 @@ class YOLOv5:
     Wrapper class for loading and using YOLOv5.
     """
 
-    def __init__(self, model_name="yolov5s", pretrained=True, device=None):
+    def __init__(self, model_name="yolov5su", pretrained=True, device=None):
         """
         Initializes the YOLOv5 model.
 

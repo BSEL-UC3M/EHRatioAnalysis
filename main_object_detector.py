@@ -9,7 +9,7 @@
 import os
 from dataloader.dataloader_MRC_object_detector import ObjectDetectionDataLoader
 from trainers.object_detector.yolo_trainer import train_yolo
-
+ 
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
@@ -61,7 +61,7 @@ if __name__ == "__main__":  # ✅ Prevent multiprocessing issues on Windows
         dataset_yaml=DATASET_YAML,
         epochs=EPOCHS,
         batch_size=BATCH_SIZE,
-        model_name="yolov5s",
+        model_name="yolov5su",
         save_results=SAVE_RESULTS,
         verbose=False  # Reduce printed logs if needed
     )
