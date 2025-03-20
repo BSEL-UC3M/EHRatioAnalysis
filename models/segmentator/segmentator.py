@@ -89,6 +89,13 @@ class Segmentator(nn.Module):
         """
         return self.model(x)
     
+    import torch
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import os
+
+
+
     def visualize_segmentation(self, data_loader, device='cpu', results_dir=None, save_results=False):
         """
         Visualizes segmentation results from a given data loader.
@@ -111,43 +118,127 @@ class Segmentator(nn.Module):
                 label_np = label[5].squeeze().cpu().numpy()  # Remove channel dimension
                 pred_np = prediction[5].squeeze().cpu().numpy()  # Remove channel dimension
                 pred_np = (pred_np - np.min(pred_np)) / (np.max(pred_np) - np.min(pred_np) + 1e-8)
-                th = 0.5  # O ajusta según la distribución de los valores
+                
+                # Umbral para segmentación binaria
+                th = 0.5
                 binary_pred_mask = (pred_np > th).astype(np.uint8)
 
-
-                # # Create RGBA masks for overlay (initialize with zeros)
+                # Crear máscara de superposición RGBA
                 overlay_label = np.zeros((label_np.shape[0], label_np.shape[1], 4))  # (H, W, 4)
-                #overlay_pred = np.zeros((pred_np.shape[0], pred_np.shape[1], 4))  # (H, W, 4)
+                overlay_label[label_np > 0] = [0, 0, 1, 0.5]  # Azul con 50% de transparencia
+                
+                # Configurar la figura con tres gráficos
+                fig, ax = plt.subplots(1, 3, figsize=(15, 5))
 
-
-                # Mask the regions where label and prediction are non-zero (white)
-                overlay_label[label_np > 0] = [0, 0, 1, 0.5]  # Blue with 50% transparency
- 
-
-                fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-
-    #             # Original Image
+                # Imagen original con etiqueta
                 ax[0].imshow(image_np)
                 ax[0].imshow(overlay_label)
-                ax[0].set_title("Original Image + Ground Truth Label")
+                ax[0].set_title("Imagen Original + Ground Truth")
                 ax[0].axis("off")
 
-    #             # Ground Truth Label
+                # Imagen original con predicción sobrepuesta
                 ax[1].imshow(image_np)
-                ax[1].imshow(pred_np, cmap='Reds')
+                ax[1].imshow(pred_np, cmap='Reds') #alpha=0.5)
                 ax[1].imshow(overlay_label)
-                ax[1].set_title("Ground Truth Label + Predicted Label")
+                ax[1].set_title("Ground Truth + Predicción")
                 ax[1].axis("off")
+                
+                # Solo el mapa de predicción con colormap de verdes a rojos (filtrando fondo)
+                masked_pred = np.ma.masked_where(pred_np <= 0, pred_np)  # Ocultar valores <= 0
+                cmap = plt.cm.RdYlGn
+                norm = plt.Normalize(vmin=0.2, vmax=0.8)  # Ajustar escala de colores
+                im = ax[2].imshow(masked_pred, cmap=cmap, norm=norm)
+                ax[2].set_title("Mapa de Probabilidades de Predicción")
+                ax[2].axis("off")
+                
+                # Agregar barra de colores
+                cbar = fig.colorbar(im, ax=ax[2], fraction=0.046, pad=0.04)
+                cbar.set_label("Confianza de Predicción")
 
-                # Guardar la imagen si `SAVE_RESULTS` está activado
+                # Guardar la imagen si `save_results` está activado
                 if save_results and results_dir is not None:
                     os.makedirs(results_dir, exist_ok=True)
                     save_path = os.path.join(results_dir, "segmentation_result.png")
                     plt.savefig(save_path, bbox_inches='tight')
                     print(f"Imagen guardada en: {save_path}")
 
-                
                 plt.show()
+    import torch
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import os
+
+
+    def new_visualize_segmentation(self, data_loader, device='cpu', results_dir=None, save_results=False):
+        """
+        Visualizes segmentation results from a given data loader.
+        """
+        self.eval()  # Set the model to evaluation mode
+        with torch.no_grad():  # Disable gradient calculations for inference
+            for i, (image, label) in enumerate(data_loader):
+                if i == 1:  # Visualize only one example
+                    break
+
+                # Move data to the same device as the model (GPU/CPU)
+                image = image.to(device)
+                label = label.to(device)
+
+                # Forward pass: Get prediction from the model
+                prediction = self(image)
+
+                # Convert tensors to numpy arrays for visualization
+                image_np = image[5].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+                label_np = label[5].squeeze().cpu().numpy()  # Remove channel dimension
+                pred_np = prediction[5].squeeze().cpu().numpy()  # Remove channel dimension
+                
+                # Normalizar predicciones
+                pred_np = (pred_np - np.min(pred_np)) / (np.max(pred_np) - np.min(pred_np) + 1e-8)
+                
+                # Umbral para segmentación binaria (después de normalizar)
+                th = 0.5
+                binary_pred_mask = (pred_np > th).astype(np.uint8)
+
+                # Crear máscara de superposición RGBA
+                overlay_label = np.zeros((label_np.shape[0], label_np.shape[1], 4))  # (H, W, 4)
+                overlay_label[label_np > 0] = [0, 0, 1, 0.5]  # Azul con 50% de transparencia
+                
+                # Configurar la figura con tres gráficos
+                fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+
+                # Imagen original con etiqueta
+                ax[0].imshow(image_np)
+                ax[0].imshow(overlay_label)
+                ax[0].set_title("Imagen Original + Ground Truth")
+                ax[0].axis("off")
+
+                # Imagen original con predicción sobrepuesta
+                #ax[1].imshow(image_np)
+                ax[1].imshow(pred_np, cmap='Reds', alpha=0.5)
+                #ax[1].imshow(overlay_label)
+                ax[1].set_title("Ground Truth + Predicción")
+                ax[1].axis("off")
+                
+                # Solo el mapa de predicción con colormap de verdes a rojos (filtrando fondo)
+                masked_pred = np.ma.masked_where(pred_np <= 0.3, pred_np)  # Ocultar valores <= 0.3 después de normalizar
+                cmap = plt.cm.RdYlGn
+                norm = plt.Normalize(vmin=0.3, vmax=1)  # Ajustar escala de colores
+                im = ax[2].imshow(masked_pred, cmap=cmap, norm=norm)
+                ax[2].set_title("Mapa de Probabilidades de Predicción")
+                ax[2].axis("off")
+                
+                # Agregar barra de colores
+                cbar = fig.colorbar(im, ax=ax[2], fraction=0.046, pad=0.04)
+                cbar.set_label("Confianza de Predicción")
+
+                # Guardar la imagen si `save_results` está activado
+                if save_results and results_dir is not None:
+                    os.makedirs(results_dir, exist_ok=True)
+                    save_path = os.path.join(results_dir, "segmentation_result.png")
+                    plt.savefig(save_path, bbox_inches='tight')
+                    print(f"Imagen guardada en: {save_path}")
+
+                plt.show()
+
 
 
 # Example usage:

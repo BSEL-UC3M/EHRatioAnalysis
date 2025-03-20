@@ -19,15 +19,15 @@ from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOpti
 # ==============================================================================
 
 # Configuration Parameters
-SAVE_RESULTS = True  # Toggle to save results
-SAVE_WEIGHTS = True
-NUM_EPOCHS = 40  # Number of training epochs
+SAVE_RESULTS = False  # Toggle to save results
+SAVE_WEIGHTS = False
+NUM_EPOCHS = 10  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-USE_MRC = False  # Toggle to use the MRC dataset 
-USE_PEI = True  # Toggle to use the PEI dataset
+USE_MRC = True  # Toggle to use the MRC dataset 
+USE_PEI = False  # Toggle to use the PEI dataset
 
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
@@ -285,4 +285,4 @@ if SAVE_WEIGHTS:
     print(f"Model weights saved at {weights_save_path}")
 
 # ==============================================================================
-trained_model.visualize_segmentation(test_loader, device=device, results_dir=results_dir, save_results=SAVE_RESULTS)
+trained_model.new_visualize_segmentation(test_loader, device=device, results_dir=results_dir, save_results=SAVE_RESULTS)
