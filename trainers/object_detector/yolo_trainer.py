@@ -12,10 +12,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
-from models.object_detector import YOLOv5
+from models.object_detector.object_detector import YOLOv5
+
 
 # Define results directory
-RESULTS_DIR = "./results/object_detector/"
+RESULTS_DIR = "./results/object_detector/MRC_toydataset"
 
 def train_yolo(dataset_yaml, epochs=50, batch_size=8, model_name="yolov5s", save_results=True, verbose=True):
     """
@@ -29,7 +30,7 @@ def train_yolo(dataset_yaml, epochs=50, batch_size=8, model_name="yolov5s", save
     - save_results: If False, no logs or results will be saved.
     - verbose: Controls training verbosity.
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     model = YOLOv5(model_name=model_name, pretrained=True, device=device)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 

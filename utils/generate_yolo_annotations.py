@@ -22,8 +22,9 @@ import shutil
 import random
 
 # Define dataset directories
-base_dataset_folder = "./toydataset/object_detection/"
-yolo_dataset_folder = os.path.join(base_dataset_folder, "YOLO")  # Static YOLO dataset folder
+base_dataset_folder = "/Users/claudiacastrillonalvarez/Desktop/IMAGES_YOLO_toydataset/MRC_YOLO_toydataset/MRC"
+yolo_annotations_folder="/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis"
+yolo_dataset_folder = os.path.join(yolo_annotations_folder, "YOLO_toydataset_annotations")  # Static YOLO dataset folder
 
 # Define split ratios
 TRAIN_RATIO = 0.7
@@ -43,7 +44,7 @@ csv_files = [f for f in os.listdir(base_dataset_folder) if f.endswith('.csv')]
 if not csv_files:
     print("❌ No CSV files found in the dataset folder!")
     exit()
-
+# csv_path="/Users/claudiacastrillonalvarez/Desktop/IMAGES_YOLO_toydataset/MRC_YOLO_toydataset/MRC_coordinates_toydataset.csv"
 csv_path = os.path.join(base_dataset_folder, csv_files[0])  # Assuming only one CSV file
 print(f"🔹 Processing CSV file: {csv_path}")
 
@@ -52,10 +53,13 @@ df = pd.read_csv(csv_path, skiprows=1, names=["filename", "x_left", "y_left", "x
 
 # Extract all patient IDs
 def extract_patient_number(filename):
+    if isinstance(filename, float) or pd.isna(filename):  # Handle NaN and non-string cases
+        return None
+    filename = str(filename)  # Ensure it is a string
     match = re.search(r"MRC_(\d+)_", filename)  # Looks for "MRC_<patient_num>_"
     return match.group(1) if match else None
 
-patients = sorted(set(df["filename"].apply(extract_patient_number).dropna()))
+patients = sorted(set(df["filename"].astype(str).apply(extract_patient_number).dropna()))
 
 # ✅ Randomly shuffle patients ONCE and store split
 random.shuffle(patients)
@@ -106,14 +110,83 @@ for _, row in df.iterrows():
         print(f"❌ Warning: Image {source_image_path} not found, skipping...")
 
     # Save YOLO annotation
-    annotations_folder = os.path.join(base_dataset_folder, patient_folder, "yolo_annotations")
-    source_annotation_path = os.path.join(annotations_folder, image_filename.replace(".tif", ".txt"))
-    dest_annotation_path = os.path.join(yolo_dataset_folder, split_folder, "yolo_annotations", image_filename.replace(".tif", ".txt"))
+    #annotations_folder = os.path.join(base_dataset_folder, patient_folder, "yolo_annotations")
+    #source_annotation_path = os.path.join(annotations_folder, image_filename.replace(".tif", ".txt"))
+    #dest_annotation_path = os.path.join(yolo_dataset_folder, split_folder, "yolo_annotations", image_filename.replace(".tif", ".txt"))
 
-    if os.path.exists(source_annotation_path):
-        shutil.copy(source_annotation_path, dest_annotation_path)
-    else:
-        print(f"❌ Warning: Annotation {source_annotation_path} not found, skipping...")
+    #if os.path.exists(source_annotation_path):
+    #    shutil.copy(source_annotation_path, dest_annotation_path)
+    #else:
+    #    print(f"❌ Warning: Annotation {source_annotation_path} not found, skipping...")
+    # Generate YOLO annotations from CSV data
+    # Create a patient-specific folder inside annotations
+    annotation_output_folder = os.path.join(yolo_dataset_folder, split_folder)
+    os.makedirs(annotation_output_folder, exist_ok=True)
+
+    # Save annotation file inside the patient-specific folder
+    annotation_path = os.path.join(annotation_output_folder, image_filename.replace(".tif", ".txt"))
+
+
+    # Get bounding box coordinates
+    x_left, y_left, x_right, y_right = row["x_left"], row["y_left"], row["x_right"], row["y_right"]
+
+    # Ensure bounding boxes are valid
+    if pd.isna(x_left) or pd.isna(y_left) or pd.isna(x_right) or pd.isna(y_right):
+        print(f"⚠️ Skipping {image_filename} due to missing bounding box data.")
+        continue
+
+    # Convert bounding box to YOLO format
+    image = cv2.imread(source_image_path)  # Load image to get dimensions
+    if image is None:
+        print(f"❌ Warning: Could not load {source_image_path}, skipping annotation generation.")
+        continue
+    img_height, img_width = image.shape[:2]
+
+
+    with open(annotation_path, "w") as f:
+        # Define fixed bounding box size (96x96) in the same scale as the image
+        bbox_size = 96
+
+        # Ensure bounding box centers remain relative to the original image
+        x_center_left = x_left
+        y_center_left = y_left
+
+        x_center_right = x_right
+        y_center_right = y_right
+
+        # Ensure bounding boxes fit within the image by adjusting their position
+        x_min_left = max(0, x_center_left - bbox_size // 2)
+        y_min_left = max(0, y_center_left - bbox_size // 2)
+        x_max_left = min(img_width, x_min_left + bbox_size)
+        y_max_left = min(img_height, y_min_left + bbox_size)
+
+        x_min_right = max(0, x_center_right - bbox_size // 2)
+        y_min_right = max(0, y_center_right - bbox_size // 2)
+        x_max_right = min(img_width, x_min_right + bbox_size)
+        y_max_right = min(img_height, y_min_right + bbox_size)
+
+        # Recalculate final center points based on adjusted min/max values
+        x_center_left = (x_min_left + x_max_left) / 2
+        y_center_left = (y_min_left + y_max_left) / 2
+        x_center_right = (x_min_right + x_max_right) / 2
+        y_center_right = (y_min_right + y_max_right) / 2
+
+        # Compute width and height (should always be 96x96 unless cropped at image edges)
+        width_left = x_max_left - x_min_left
+        height_left = y_max_left - y_min_left
+        width_right = x_max_right - x_min_right
+        height_right = y_max_right - y_min_right
+
+        # Write left ear annotation (Class 0)
+        f.write(f"0 {x_center_left} {y_center_left} {width_left} {height_left}\n")
+
+        # Write right ear annotation (Class 1)
+        f.write(f"1 {x_center_right} {y_center_right} {width_right} {height_right}\n")
+
+    print(f"✅ Annotation saved: {annotation_path}")
+
+
+
 
 # ✅ Generate `dataset.yaml`
 dataset_yaml_path = os.path.join(yolo_dataset_folder, "dataset.yaml")

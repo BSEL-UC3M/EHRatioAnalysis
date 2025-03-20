@@ -22,7 +22,7 @@ class YOLOv5:
         - pretrained: (bool) Whether to load pretrained weights.
         - device: (str) 'cuda' or 'cpu' (automatically detected if None).
         """
-        self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device if device else ("mps" if torch.backends.mps.is_available() else "cpu")
         self.model = YOLO(f"{model_name}.pt") if pretrained else YOLO()
         self.model.to(self.device)
 
