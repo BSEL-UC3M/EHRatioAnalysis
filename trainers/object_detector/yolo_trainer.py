@@ -18,7 +18,7 @@ from models.object_detector.object_detector import YOLOv5
 # Define results directory
 RESULTS_DIR = "./results/object_detector/MRC_toydataset"
 
-def train_yolo(dataset_yaml, epochs=50, batch_size=8, model_name="yolov5s", save_results=True, verbose=True):
+def train_yolo(dataset_yaml, epochs=50, batch_size=8, model_name="yolov5su", save_results=True, verbose=True):
     """
     Train the YOLO model.
 
@@ -57,7 +57,7 @@ def train_yolo(dataset_yaml, epochs=50, batch_size=8, model_name="yolov5s", save
 
 
 
-def evaluate_yolo(dataset_path, model_path, model_name="yolov5s", verbose=False):
+def evaluate_yolo(dataset_path, model_path, model_name="yolov5su", verbose=False):
     """
     Evaluates the trained YOLO model on the test set.
 
@@ -66,7 +66,7 @@ def evaluate_yolo(dataset_path, model_path, model_name="yolov5s", verbose=False)
     - model_path: (str) Path to trained YOLO model file.
     - model_name: (str) YOLO model variant.
     """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "mps" if torch.backends.mps.is_available() else "cpu"
 
     print(f"📊 Evaluating {model_name} on {device}...")
 

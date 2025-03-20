@@ -142,7 +142,6 @@ for _, row in df.iterrows():
         continue
     img_height, img_width = image.shape[:2]
 
-
     with open(annotation_path, "w") as f:
         # Define fixed bounding box size (96x96) in the same scale as the image
         bbox_size = 96
@@ -177,14 +176,24 @@ for _, row in df.iterrows():
         width_right = x_max_right - x_min_right
         height_right = y_max_right - y_min_right
 
+        # Normalize the coordinates (YOLO format expects values between 0 and 1)
+        x_center_left /= img_width
+        y_center_left /= img_height
+        width_left /= img_width
+        height_left /= img_height
+
+        x_center_right /= img_width
+        y_center_right /= img_height
+        width_right /= img_width
+        height_right /= img_height
+
         # Write left ear annotation (Class 0)
-        f.write(f"0 {x_center_left} {y_center_left} {width_left} {height_left}\n")
+        f.write(f"0 {x_center_left:.6f} {y_center_left:.6f} {width_left:.6f} {height_left:.6f}\n")
 
         # Write right ear annotation (Class 1)
-        f.write(f"1 {x_center_right} {y_center_right} {width_right} {height_right}\n")
+        f.write(f"1 {x_center_right:.6f} {y_center_right:.6f} {width_right:.6f} {height_right:.6f}\n")
 
     print(f"✅ Annotation saved: {annotation_path}")
-
 
 
 
