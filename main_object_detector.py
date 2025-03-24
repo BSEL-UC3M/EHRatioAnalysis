@@ -16,7 +16,7 @@ from trainers.object_detector.yolo_trainer import train_yolo
 SAVE_RESULTS = True  # Toggle this flag to enable/disable result saving
 EPOCHS = 50  # Number of training epochs
 BATCH_SIZE = 8  # Training batch size
-DATASET_YAML = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_toydataset_annotations/dataset.yaml"  # Path to dataset.yaml
+DATASET_YAML = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations/dataset.yaml"  # Path to dataset.yaml
 
 # ==============================================================================
 # MAIN EXECUTION
@@ -63,7 +63,15 @@ if __name__ == "__main__":  # ✅ Prevent multiprocessing issues on Windows
         batch_size=BATCH_SIZE,
         model_name="yolov5su",
         save_results=SAVE_RESULTS,
-        verbose=False  # Reduce printed logs if needed
+        verbose=False,
+        conf=0.35,           # basado en tu F1-confidence curve 
+        patience=20,         # early stopping
+        mosaic=0.0,
+        mixup=0.0,
+        copy_paste=0.0,
+        fliplr=0.0,
+        augment=False       # no hacer data augmentation
     )
+
 
     print("Training and evaluation completed!")

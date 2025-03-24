@@ -22,9 +22,9 @@ import shutil
 import random
 
 # Define dataset directories
-base_dataset_folder = "/Users/claudiacastrillonalvarez/Desktop/IMAGES_YOLO_toydataset/MRC_YOLO_toydataset/MRC"
+base_dataset_folder = "/Users/claudiacastrillonalvarez/Desktop/IMAGES_YOLO/MRC_YOLO/MRC"
 yolo_annotations_folder="/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis"
-yolo_dataset_folder = os.path.join(yolo_annotations_folder, "YOLO_toydataset_annotations")  # Static YOLO dataset folder
+yolo_dataset_folder = os.path.join(yolo_annotations_folder, "YOLO_annotations")  # Static YOLO dataset folder
 
 # Define split ratios
 TRAIN_RATIO = 0.7

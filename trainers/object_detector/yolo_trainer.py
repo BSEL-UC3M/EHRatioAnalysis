@@ -16,37 +16,49 @@ from models.object_detector.object_detector import YOLOv5
 
 
 # Define results directory
-RESULTS_DIR = "./results/object_detector/MRC_toydataset"
+RESULTS_DIR = "./results/object_detector/MRC/all_patients"
 
-def train_yolo(dataset_yaml, epochs=50, batch_size=8, model_name="yolov5su", save_results=True, verbose=True):
-    """
-    Train the YOLO model.
-
-    Parameters:
-    - dataset_yaml: Path to the dataset YAML file.
-    - epochs: Number of training epochs.
-    - batch_size: Training batch size.
-    - model_name: Name of the YOLO model (e.g., "yolov5s").
-    - save_results: If False, no logs or results will be saved.
-    - verbose: Controls training verbosity.
-    """
+def train_yolo(
+    dataset_yaml,
+    epochs=50,
+    batch_size=8,
+    model_name="yolov5su",
+    save_results=True,
+    verbose=True,
+    img_size=640,
+    conf=0.35,
+    patience=10,
+    # this is done in case data augmentation is desired
+    fliplr=0.0,
+    mosaic=0.0,
+    mixup=0.0,
+    copy_paste=0.0,
+    augment=False
+):
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     model = YOLOv5(model_name=model_name, pretrained=True, device=device)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
-    # If save_results is False, we set a temporary run directory that will be discarded
     if save_results:
-        project = "./results/object_detector"
+        project = "./results/object_detector/MRC"
         name = f"{model_name}-{timestamp}"
     else:
-        project = "/tmp/yolo_no_save"  # Temporary directory for testing
+        project = "/tmp/yolo_no_save"
         name = "temp_train"
-    
-    # Run YOLO training
+
+    # Entrenamiento YOLO con parámetros avanzados
     model.model.train(
         data=dataset_yaml,
         epochs=epochs,
         batch=batch_size,
+        imgsz=img_size,
+        conf=conf,
+        patience=patience,
+        fliplr=fliplr,
+        mosaic=mosaic,
+        mixup=mixup,
+        copy_paste=copy_paste,
+        augment=augment,
         project=project,
         name=name,
         exist_ok=True,
@@ -54,6 +66,7 @@ def train_yolo(dataset_yaml, epochs=50, batch_size=8, model_name="yolov5su", sav
     )
 
     print("✅ Training complete!")
+
 
 
 
