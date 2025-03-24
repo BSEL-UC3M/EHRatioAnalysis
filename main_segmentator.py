@@ -19,8 +19,8 @@ from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOpti
 # ==============================================================================
 
 # Configuration Parameters
-SAVE_RESULTS = False  # Toggle to save results
-SAVE_WEIGHTS = False
+SAVE_RESULTS = True  # Toggle to save results
+SAVE_WEIGHTS = True
 NUM_EPOCHS = 20  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
@@ -38,12 +38,18 @@ if os.path.exists('/kaggle/input'):
     PEI_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/PEI_labels'
 else:
     # Si estamos en local, usar la ruta local
-    #IMAGES_FOLDER = 'toydataset/segmentation/MRC/images/'
-    #LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
-    MRC_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\MRC_normalized_images"
-    MRC_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\MRC_labels"
-    PEI_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\normalized_images_PEI_inv"
-    PEI_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\PEI_labels"
+
+    # MRC_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\MRC_normalized_images"
+    # MRC_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\MRC_labels"
+    # PEI_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\normalized_images_PEI_inv"
+    # PEI_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\PEI_labels"
+    
+    MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\MRC_normalized_images'
+    MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\MRC_labels'
+    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_PEI_inv'
+    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\PEI_labels'
+
+    
 
 
 if USE_MRC:
