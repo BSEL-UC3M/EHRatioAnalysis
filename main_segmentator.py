@@ -21,7 +21,7 @@ from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOpti
 # Configuration Parameters
 SAVE_RESULTS = False  # Toggle to save results
 SAVE_WEIGHTS = False
-NUM_EPOCHS = 10  # Number of training epochs
+NUM_EPOCHS = 20  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
@@ -32,18 +32,19 @@ USE_PEI = False  # Toggle to use the PEI dataset
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
     # Si estamos en Kaggle, usar la ruta de Kaggle
-    MRC_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/MRC_images'
-    MRC_LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/MRC_labels'
-    PEI_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/images/PEI_images_preprocessed'
-    PEI_LABELS_FOLDER = '/kaggle/input/cropped-dataset/CROPPED_DATASET/labels/PEI_labels'
+    MRC_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/images/normalized_images_MRC'
+    MRC_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/MRC_labels'
+    PEI_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/images/PEI_images_preprocessed'
+    PEI_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/PEI_labels'
 else:
     # Si estamos en local, usar la ruta local
     #IMAGES_FOLDER = 'toydataset/segmentation/MRC/images/'
     #LABELS_FOLDER = "toydataset/segmentation/MRC/labels"
-    MRC_IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\MRC_images"
-    MRC_LABELS_FOLDER = "D:\Desktop\CROPPED_DATASET\labels\MRC_labels"
-    PEI_IMAGES_FOLDER = "D:\Desktop\CROPPED_DATASET\images\PEI_images"
-    PEI_LABELS_FOLDER = "D:\Desktop\CROPPED_DATASET\labels\PEI_labels"
+    MRC_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\MRC_normalized_images"
+    MRC_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\MRC_labels"
+    PEI_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\normalized_images_PEI_inv"
+    PEI_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\PEI_labels"
+
 
 if USE_MRC:
     IMAGES_FOLDER = MRC_IMAGES_FOLDER
@@ -54,7 +55,7 @@ elif USE_PEI:
 # ================================================================================
 
 # Initialize the segmentation model
-segmentator = Segmentator()
+segmentator = UNetOptimizedDO()
 
 # Check if GPU is available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -89,7 +90,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/PEI/20250319 PEI no prep Weights BCE_dice"
+    results_folder = "./results/results_segmentator/MRC/20250324 MRC normalized"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
