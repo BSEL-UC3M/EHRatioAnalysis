@@ -21,7 +21,7 @@ from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOpti
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 20  # Number of training epochs
+NUM_EPOCHS = 30  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
@@ -39,15 +39,15 @@ if os.path.exists('/kaggle/input'):
 else:
     # Si estamos en local, usar la ruta local
 
-    # MRC_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\MRC_normalized_images"
-    # MRC_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\MRC_labels"
-    # PEI_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\normalized_images_PEI_inv"
-    # PEI_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\PEI_labels"
+    MRC_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\MRC_normalized_images"
+    MRC_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\MRC_labels"
+    PEI_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\normalized_images_PEI_inv"
+    PEI_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\PEI_labels"
     
-    MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\MRC_normalized_images'
-    MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\MRC_labels'
-    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_PEI_inv'
-    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\PEI_labels'
+    # MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\MRC_normalized_images'
+    # MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\MRC_labels'
+    # PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_PEI_inv'
+    # PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\PEI_labels'
 
     
 
