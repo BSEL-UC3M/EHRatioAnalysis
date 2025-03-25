@@ -197,7 +197,7 @@ class ClassificationDataLoader:
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-        return train_loader, val_loader, test_loader
+        return train_loader, val_loader, test_loader, train_patients, val_patients, test_patients
 
 class InferenceDataset(Dataset):
     def __init__(self, image_folder, transform=None):

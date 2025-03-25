@@ -26,17 +26,18 @@ SAVE_WEIGHTS = input("Save model weights? (yes/no): ").strip().lower() == "yes"
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
-IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/data/MRC_data/MRC_images/" 
-NUM_EPOCHS = 20  # Define number of epochs
+IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF" 
+NUM_EPOCHS = 50  # Define number of epochs
 
 # Select computing device (use Apple Silicon GPU if available)
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+# device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # ==============================================================================
 # ✅ Step 1: Load Dataset
 annotations = ClassificationDataLoader.load_annotations(IMAGES_FOLDER)
 
-train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_split(
+train_loader, val_loader, test_loader, train_patients, val_patients, test_patients = ClassificationDataLoader.train_val_test_split(
     images_folder=IMAGES_FOLDER,
     annotations=annotations,
     splits=DATA_SPLITS,
@@ -54,26 +55,26 @@ num_classes = len(set(
 
 # ==============================================================================
 # ✅ Step 2: User selects the model type
-MODEL_TYPE = input("Select model type ('cnn' or 'resnet50'): ").strip().lower()
+MODEL_TYPE = input("Select model type 'custom' to train a model from scratch or 'pretrained' to use the ResNet50): ").strip().lower()
 
-while MODEL_TYPE not in ["cnn", "resnet50"]:
-    MODEL_TYPE = input("Invalid choice. Please select 'cnn' or 'resnet50': ").strip().lower()
+while MODEL_TYPE not in ["custom", "pretrained"]:
+    MODEL_TYPE = input("Invalid choice. Please select 'custom' or 'pretrained': ").strip().lower()
 
 print(f"\nTraining {MODEL_TYPE.upper()} model...\n")
 
 # ==============================================================================
 # ✅ Step 3: Model Definition & Training
-if MODEL_TYPE == "cnn":
+if MODEL_TYPE == "custom":
     # Initialize CNN model
     model = FiveLayerCNN(num_classes).to(device)
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
 
-elif MODEL_TYPE == "resnet50":
+elif MODEL_TYPE == "pretrained":
     # Initialize ResNet50 model
     model, criterion, optimizer, scheduler = fine_tune_resnet(
-        num_classes, device, learning_rate=LEARNING_RATE, model_type="resnet50"
+        num_classes, device, learning_rate=LEARNING_RATE, model_type=MODEL_TYPE
     )
 
 # Train the model explicitly
@@ -112,14 +113,21 @@ conf_matrix_before = confusion_matrix(y_true, y_pred)
 if SAVE_RESULTS:
     # Save performance metrics
     with open(os.path.join(results_dir, "results.txt"), "w") as f:
+        f.write("\n--- Network Details ---\n")
+        f.write(f"Network: {MODEL_TYPE}\n")
         f.write(f"Learning Rate: {LEARNING_RATE}\n")
         f.write(f"Number of Epochs: {NUM_EPOCHS}\n")
         f.write(f"Optimizer: Adam\n")
+        f.write("\n--- Patient Splits ---\n")
+        f.write(f"Train Patients ({len(train_patients)}):\n{', '.join(train_patients)}\n")
+        f.write(f"Validation Patients ({len(val_patients)}):\n{', '.join(val_patients)}\n")
+        f.write(f"Test Patients ({len(test_patients)}):\n{', '.join(test_patients)}\n")
+        f.write("\n--- Results ---\n")
         f.write(f"Best Epoch: {best_epoch + 1}\n")
         f.write(f"Accuracy: {accuracy:.2f}%\n")
         f.write(f"Average Loss: {avg_loss:.4f}\n")
-        f.write(f"Confusion Matrix Before Post-Processing:\n{conf_matrix_before}\n")
-    
+        f.write(f"Confusion Matrix:\n{conf_matrix_before}\n")
+
     # Save confusion matrix plot
     plt.figure(figsize=(6,5))
     sns.heatmap(conf_matrix_before, annot=True, fmt='d', cmap='Blues',
