@@ -14,7 +14,7 @@ from trainers.object_detector.yolo_trainer import train_yolo
 # CONFIGURATION
 # ==============================================================================
 SAVE_RESULTS = True  # Toggle this flag to enable/disable result saving
-EPOCHS = 50  # Number of training epochs
+EPOCHS = 1  # Number of training epochs
 BATCH_SIZE = 8  # Training batch size
 DATASET_YAML = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations/dataset.yaml"  # Path to dataset.yaml
 
@@ -34,7 +34,8 @@ if __name__ == "__main__":  # ✅ Prevent multiprocessing issues on Windows
         dataset_yaml=DATASET_YAML,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        transform=None
+        transform=None,
+        debug=True
     )
 
     # Check if data was successfully loaded
@@ -51,8 +52,9 @@ if __name__ == "__main__":  # ✅ Prevent multiprocessing issues on Windows
     print(f"   - Total batches: {total_batches} (Batch size: {BATCH_SIZE})")
 
     # Show one batch for verification
-    for images, annotations in train_loader:
+    for images, annotations, paths in train_loader:
         print(f"Sample batch shape: {images.shape}")  # (batch_size, 3, H, W)
+        print(f"First image file names: {paths[:3]}")
         break  # Stop after one batch
 
     # Train and evaluate YOLO
@@ -70,8 +72,12 @@ if __name__ == "__main__":  # ✅ Prevent multiprocessing issues on Windows
         mixup=0.0,
         copy_paste=0.0,
         fliplr=0.0,
-        augment=False       # no hacer data augmentation
+        augment=False,       # no hacer data augmentation
+        # se añade para los custom plots
+        train_loader=train_loader, 
+        val_loader=val_loader
     )
 
 
     print("Training and evaluation completed!")
+

@@ -12,13 +12,15 @@ import cv2
 import yaml
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
+from tifffile import imread
+print("✅ tifffile.imread importado correctamente")
 
 class YoloObjectDetectorDataset(Dataset):
     """
     PyTorch Dataset for loading MRC TIFF images and YOLO-compatible bounding box annotations.
     """
 
-    def __init__(self, image_files, dataset_yaml, transform=None):
+    def __init__(self, image_files, dataset_yaml, transform=None, debug=False):
         """
         Parameters:
         - image_files: List of image filenames.
@@ -27,6 +29,7 @@ class YoloObjectDetectorDataset(Dataset):
         """
         self.image_files = image_files
         self.transform = transform
+        self.debug=debug
 
         # Load dataset.yaml to get the correct paths
         yaml_path = Path(dataset_yaml)
@@ -58,15 +61,37 @@ class YoloObjectDetectorDataset(Dataset):
         if image_path is None:
             raise FileNotFoundError(f"❌ Image file {filename} not found in dataset.")
 
-        # Load image
-        image = cv2.imread(str(image_path))
-        if image is None:
-            raise FileNotFoundError(f"❌ Image file {image_path} could not be loaded.")
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
-        image = image.astype('float32') / 255.0  # Normalize
+        # ✅ Load image using tifffile
+        image = imread(str(image_path))
 
-        # Find the annotation file
-        annotation_path = image_path.with_suffix('.txt')  # Replace .tif with .txt
+        # Convert grayscale to RGB if needed
+        if image.ndim == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        elif image.ndim == 3 and image.shape[0] in [1, 3]:
+            image = image.transpose(1, 2, 0)  # Convert (C,H,W) to (H,W,C) if needed
+
+        # Normalize using dynamic range
+        image = image.astype('float32')
+        max_val = image.max() if image.max() != 0 else 1.0
+        image /= max_val
+
+        # 🟨 DEBUG: Show image info
+        if self.debug:
+            print(f"🧠 {filename} | shape: {image.shape}, dtype: {image.dtype}, min: {image.min():.4f}, max: {image.max():.4f}")
+            if (image == 1.0).all():
+                print(f"⚠️ Image is fully white (all 1.0 after normalization)")
+            elif (image == 0.0).all():
+                print(f"⚠️ Image is fully black (all 0.0)")
+
+            try:
+                vis = (image * 255).astype("uint8")
+                cv2.imshow("Debug TIFF Image", cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
+                cv2.waitKey(1)
+            except Exception as e:
+                print(f"⚠️ Could not display image: {e}")
+
+        # Load annotations
+        annotation_path = image_path.with_suffix('.txt')
         yolo_annotations = []
 
         if annotation_path.exists():
@@ -80,10 +105,54 @@ class YoloObjectDetectorDataset(Dataset):
         if self.transform:
             image = self.transform(image)
 
-        image = torch.from_numpy(image).permute(2, 0, 1).float()  # Convert to (C, H, W)
+        image_tensor = torch.from_numpy(image).permute(2, 0, 1).float()
+        if self.debug:
+            print(f"📊 Tensor: shape={image_tensor.shape}, mean={image_tensor.mean():.4f}, std={image_tensor.std():.4f}")
+
         yolo_annotations = torch.tensor(yolo_annotations, dtype=torch.float32) if yolo_annotations else torch.zeros((0, 5))
 
-        return image, yolo_annotations
+        return image_tensor, yolo_annotations, str(image_path.name) # return also the file name for the custom plots 
+
+    # def __getitem__(self, idx):
+    #     filename = self.image_files[idx].strip()
+
+    #     # Determine if the image is in train, val, or test
+    #     possible_paths = [
+    #         self.train_path / filename,
+    #         self.val_path / filename,
+    #         self.test_path / filename,
+    #     ]
+    #     image_path = next((p for p in possible_paths if p.exists()), None)
+
+    #     if image_path is None:
+    #         raise FileNotFoundError(f"❌ Image file {filename} not found in dataset.")
+
+    #     # Load image
+    #     image = cv2.imread(str(image_path))
+    #     if image is None:
+    #         raise FileNotFoundError(f"❌ Image file {image_path} could not be loaded.")
+    #     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
+    #     image = image.astype('float32') / 255.0  # Normalize
+
+    #     # Find the annotation file
+    #     annotation_path = image_path.with_suffix('.txt')  # Replace .tif with .txt
+    #     yolo_annotations = []
+
+    #     if annotation_path.exists():
+    #         with open(annotation_path, 'r') as f:
+    #             for line in f.readlines():
+    #                 class_id, x_center, y_center, width, height = map(float, line.strip().split())
+    #                 yolo_annotations.append([class_id, x_center, y_center, width, height])
+    #     else:
+    #         print(f"❌ Warning: Annotation file {annotation_path} not found.")
+
+    #     if self.transform:
+    #         image = self.transform(image)
+
+    #     image = torch.from_numpy(image).permute(2, 0, 1).float()  # Convert to (C, H, W)
+    #     yolo_annotations = torch.tensor(yolo_annotations, dtype=torch.float32) if yolo_annotations else torch.zeros((0, 5))
+
+    #     return image, yolo_annotations
 
 
 class ObjectDetectionDataLoader:
@@ -92,7 +161,7 @@ class ObjectDetectionDataLoader:
     """
 
     @staticmethod
-    def load_from_existing_split(dataset_yaml, batch_size=8, shuffle=True, transform=None):
+    def load_from_existing_split(dataset_yaml, batch_size=8, shuffle=True, transform=None, debug=False):
         """
         Loads pre-split YOLO train, val, and test datasets using dataset.yaml.
 
@@ -126,9 +195,9 @@ class ObjectDetectionDataLoader:
         val_files = get_image_files(val_path)
         test_files = get_image_files(test_path)
 
-        train_dataset = YoloObjectDetectorDataset(train_files, dataset_yaml, transform=transform)
-        val_dataset = YoloObjectDetectorDataset(val_files, dataset_yaml, transform=transform)
-        test_dataset = YoloObjectDetectorDataset(test_files, dataset_yaml, transform=transform)
+        train_dataset = YoloObjectDetectorDataset(train_files, dataset_yaml, transform=transform, debug=debug)
+        val_dataset = YoloObjectDetectorDataset(val_files, dataset_yaml, transform=transform, debug=debug)
+        test_dataset = YoloObjectDetectorDataset(test_files, dataset_yaml, transform=transform, debug=debug)
 
         return DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle), \
                DataLoader(val_dataset, batch_size=batch_size, shuffle=False), \

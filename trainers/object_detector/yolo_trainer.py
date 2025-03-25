@@ -33,7 +33,10 @@ def train_yolo(
     mosaic=0.0,
     mixup=0.0,
     copy_paste=0.0,
-    augment=False
+    augment=False, 
+    # added for the custom plots implementation 
+    train_loader=None, 
+    val_loader=None
 ):
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     model = YOLOv5(model_name=model_name, pretrained=True, device=device)
@@ -66,6 +69,45 @@ def train_yolo(
     )
 
     print("✅ Training complete!")
+    ##### ESTO ES PARA LAS CUSTOM PLOTS ####
+    ##### ESTO ES PARA LAS CUSTOM PLOTS ####
+    from utils.custom_plots import plot_batch_mosaic, format_batch_labels
+
+    if save_results:
+        custom_plot_dir = os.path.join(project, name, "custom_plots")
+        os.makedirs(custom_plot_dir, exist_ok=True)
+
+        class_names = ["left ear", "right ear"]
+
+        # Mosaicos de entrenamiento
+        if train_loader:
+            for i, (images, labels, paths) in enumerate(train_loader):
+                if i >= 3:
+                    break
+                paths = list(paths)  # convertimos a lista de strings
+                save_path = os.path.join(custom_plot_dir, f"train_batch{i}.jpg")
+
+                batch_targets = format_batch_labels(labels)
+                plot_batch_mosaic(images, batch_targets, paths=paths, save_path=save_path, names=class_names)
+
+        # Mosaicos de validación
+        if val_loader:
+            val_images, val_labels, val_paths = next(iter(val_loader))
+            val_paths = list(val_paths)
+
+            batch_val_targets = format_batch_labels(val_labels)
+
+            plot_batch_mosaic(val_images, batch_val_targets, paths=val_paths,
+                            save_path=os.path.join(custom_plot_dir, "val_batch0_labels.jpg"),
+                            names=class_names)
+
+            # Simular predicciones (de momento igual que labels)
+            pred_labels = batch_val_targets.clone()
+            plot_batch_mosaic(val_images, pred_labels, paths=val_paths,
+                            save_path=os.path.join(custom_plot_dir, "val_batch0_pred.jpg"),
+                            names=class_names)
+
+
 
 
 
@@ -103,3 +145,4 @@ def evaluate_yolo(dataset_path, model_path, model_name="yolov5su", verbose=False
         f.write(f"Recall: {results.box.recall:.4f}\n")
 
     print(f"✅ Evaluation completed! Results saved in {results_dir}")
+
