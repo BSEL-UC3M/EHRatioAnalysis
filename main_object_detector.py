@@ -14,7 +14,7 @@ from trainers.object_detector.yolo_trainer import train_yolo
 # CONFIGURATION
 # ==============================================================================
 SAVE_RESULTS = True  # Toggle this flag to enable/disable result saving
-EPOCHS = 1  # Number of training epochs
+EPOCHS = 50  # Number of training epochs
 BATCH_SIZE = 8  # Training batch size
 DATASET_YAML = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations/dataset.yaml"  # Path to dataset.yaml
 
