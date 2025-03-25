@@ -21,21 +21,6 @@ This folder contains results from two different classification models:
 
 ---
 
-## **Results Folder Structure**
-Each model's results are saved in a timestamped folder:
-
-📂 `results_classificator/`  
- ├── 📁 `resnet50_20250213-131704/`  
- │   ├── `results.txt` (Training info: epochs, layers, LR, accuracy, confusion matrix)  
- │   ├── `confusion_matrix.png` (Seaborn-generated matrix)  
- │   ├── `train_val_loss.png` (Training/validation loss graph)  
- │   ├── `train_val_accuracy.png` (Training/validation accuracy graph)  
- ├── 📁 `cnn_20250213-122648/`  
- │   ├── (same structure)  
- │
- ├── `README.md` (This file)
-
----
 
 ## **Performance Overview**
 | Model     | Optimizer | Regularization | Dropout | BatchNorm | Accuracy |
@@ -51,3 +36,78 @@ Each model's results are saved in a timestamped folder:
 - Test **ResNet34** as an intermediate solution.
 
 ---
+# **Classification Results - PEI Image Classifiers**
+
+This folder contains results from two different classification models applied to **PEI medical images**:
+
+---
+
+## 🔍 Model Summaries
+
+### 1. **ResNet50-based Classifier**
+- Initially tested **ResNet18**, later upgraded to **ResNet50** for better accuracy.
+- Implemented **L2 regularization** to prevent overfitting.
+- Used **SGD optimizer** with momentum for improved training stability.
+- Included **Dropout layers** (0.5) in the fully connected head to improve generalization.
+
+### 2. **5-Layer CNN Classifier**
+- Started with a **2-layer CNN**, later expanded to a **5-layer CNN** for deeper feature extraction.
+- Used **Adam optimizer** (better suited for CNNs).
+- Added **Dropout (0.3)** and **Batch Normalization** to enhance generalization and training performance.
+
+---
+
+## ⚙️ Model Selection via `main_classificator.py`
+
+The script supports runtime selection of model architecture via CLI:
+
+```bash
+python main_classificator.py --model resnet50
+# or
+python main_classificator.py --model cnn
+`
+## 📊 Performance Overview on PEI Dataset
+
+| Model        | Optimizer | Regularization | Dropout | BatchNorm | Accuracy | Avg. Loss |
+|--------------|-----------|----------------|---------|-----------|----------|-----------|
+| ResNet50     | SGD       | L2 (1e-4)       | 0.5     | No        | **94.36%** | 0.2546    |
+| 5-Layer CNN  | Adam      | L2 (5e-4)       | 0.3     | Yes       | **97.74%** | 0.0649    |
+
+---
+
+## 📂 Results Folder Structure
+
+All experiment outputs are organized by **image type** and **model** inside timestamped folders:
+
+```plaintext
+results_classificator_MRC/
+├── resnet50_<timestamp>/
+│   ├── results.txt
+│   ├── confusion_matrix.png
+│   ├── train_val_loss.png
+│   ├── train_val_accuracy.png
+│
+├── cnn_<timestamp>/
+│   ├── results.txt
+│   ├── confusion_matrix.png
+│   ├── train_val_loss.png
+│   ├── train_val_accuracy.png
+
+results_classificator_PEI/
+├── resnet50_<timestamp>/
+│   ├── results.txt
+│   ├── confusion_matrix.png
+│   ├── train_val_loss.png
+│   ├── train_val_accuracy.png
+│
+├── cnn_<timestamp>/
+│   ├── results.txt
+│   ├── confusion_matrix.png
+│   ├── train_val_loss.png
+│   ├── train_val_accuracy.png
+
+
+
+
+
+
