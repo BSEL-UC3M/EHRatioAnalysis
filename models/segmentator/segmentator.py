@@ -1068,14 +1068,14 @@ class UNetOptimizedDO(nn.Module):
                 # Imagen original con etiqueta
                 ax[0].imshow(image_np)
                 ax[0].imshow(overlay_label)
-                ax[0].set_title("Imagen Original + Ground Truth")
+                ax[0].set_title("Original Image + Ground Truth")
                 ax[0].axis("off")
 
                 # Imagen original con predicción sobrepuesta
                 ax[1].imshow(image_np)
                 ax[1].imshow(pred_np, cmap='Reds', alpha=0.75)
                 #ax[1].imshow(overlay_label)
-                ax[1].set_title("Ground Truth + Predicción")
+                ax[1].set_title("Prediction")
                 ax[1].axis("off")
                 
                 # Solo el mapa de predicción con colormap de verdes a rojos (filtrando fondo)
@@ -1083,7 +1083,7 @@ class UNetOptimizedDO(nn.Module):
                 cmap = plt.cm.RdYlGn
                 norm = plt.Normalize(vmin=0.1, vmax=1)  # Ajustar escala de colores
                 im = ax[2].imshow(masked_pred, cmap=cmap, norm=norm)
-                ax[2].set_title("Mapa de Probabilidades de Predicción")
+                ax[2].set_title("Probability Map of the Prediction")
                 ax[2].axis("off")
                 
                 # Agregar barra de colores
