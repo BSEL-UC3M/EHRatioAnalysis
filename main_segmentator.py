@@ -67,7 +67,7 @@ segmentator = UNetOptimizedDO()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 segmentator = segmentator.to(device)
 
-LOSS_FUNCTION = "FLProbs"  # Opciones: "bce_dice", "focal"
+LOSS_FUNCTION = "bce_dice"  # Opciones: "bce_dice", "focal"
 
 if LOSS_FUNCTION == "bce_dice":
     criterion = losses.BCE_and_Dice_loss(
