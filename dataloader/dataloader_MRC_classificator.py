@@ -194,4 +194,26 @@ class ClassificationDataLoader:
 
         return train_loader, val_loader, test_loader
 
+class InferenceDataset(Dataset):
+    def __init__(self, image_folder, transform=None):
+        self.image_folder = image_folder
+        self.image_paths = [
+            os.path.join(image_folder, fname)
+            for fname in sorted(os.listdir(image_folder))
+            if fname.endswith((".png", ".jpg", ".tif", ".tiff"))
+        ]
+        self.transform = transform or transforms.ToTensor()
 
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        image = Image.open(self.image_paths[idx]).convert("L")  # Grayscale
+        return {
+            "image": self.transform(image),
+            "filename": os.path.basename(self.image_paths[idx])
+        }
+
+def load_inference_dataloader(image_folder, batch_size=16):
+    dataset = InferenceDataset(image_folder)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=False)
