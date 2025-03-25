@@ -40,8 +40,8 @@ Each model's results are saved in a timestamped folder:
 ## **Performance Overview**
 | Model     | Optimizer | Regularization | Dropout | BatchNorm | Accuracy |
 |-----------|----------|---------------|---------|-----------|---------|
-| ResNet50  | SGD      | L2 (1e-4)     | 0.5     | No        | XX% |
-| 5-Layer CNN | Adam    | L2 (5e-4)     | 0.3     | Yes       | XX% |
+| ResNet50  | SGD      | L2 (1e-4)     | 0.5     | No        | 89.38% |
+| 5-Layer CNN | Adam    | L2 (5e-4)     | 0.3     | Yes       | 93.33% |
 
 ---
 
