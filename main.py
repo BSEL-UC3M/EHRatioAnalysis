@@ -16,13 +16,8 @@ from models.classificator.five_layer_cnn import FiveLayerCNN
 from utils.classification_postprocess import smooth_classification_predictions, plot_comparison, save_comparison_csv
 
 
-from sklearn.metrics import confusion_matrix
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-
 CLASSIFICATION_MODEL = "D:/Models/EHydropsAnalysis/2025/cnn_best_weights.pt"
-MRC_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF/"
+MRC_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF/PACIENTE 88 MRC TIFF/"
 PEI_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI TIFF/"
 BATCH_SIZE = 16
 CLASSIFICATION_OUTPUT = "D:/Results/EHydrops/"
@@ -35,7 +30,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 ############################### CLASSIFICATION ###############################
 #----------------------------- Inference -----------------------------
-print("Calculating where in the volume there is volumetric space to avoid too much calculation on next steps")
+print("🚀 Running inference on classification of slices")
 model = FiveLayerCNN(num_classes=2).to(DEVICE)
 model.load_state_dict(torch.load(CLASSIFICATION_MODEL, map_location=DEVICE))
 model.eval()
@@ -44,7 +39,6 @@ model.eval()
 inference_loader = load_inference_dataloader(MRC_IMAGES_FOLDER, batch_size=BATCH_SIZE)
 
 # Run inference
-print("🚀 Running inference...")
 results = []
 with torch.no_grad():
     for batch in inference_loader:

@@ -12,15 +12,17 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import os
+import pandas as pd
 
 def extract_patient_and_index(filename):
     """
-    Extract patient ID and slice number from filename.
-    Expected format: something like 'patientX_sliceYYY.ext'
+    Extract patient ID and slice index from filenames like 'MRC_88_75734449.tif'.
     """
-    match = re.match(r"(patient\d+).*?(\d+)", filename)
+    match = re.match(r"([A-Za-z]+_\d+)_(\d+)", filename)
     if match:
-        return match.group(1), int(match.group(2))
+        patient_id = match.group(1)  # e.g., 'MRC_88'
+        slice_idx = int(match.group(2))  # e.g., 75734449
+        return patient_id, slice_idx
     else:
         raise ValueError(f"Unexpected filename format: {filename}")
 

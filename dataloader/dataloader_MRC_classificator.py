@@ -8,10 +8,15 @@
 import os
 import pandas as pd
 import random
-from torch.utils.data import Dataset, DataLoader
-from sklearn.model_selection import train_test_split
 import torch
 import cv2
+from PIL import Image
+import numpy as np
+
+from torch.utils.data import Dataset, DataLoader
+from sklearn.model_selection import train_test_split
+from torchvision import transforms
+
 
 
 class ClassificationDataset(Dataset):
@@ -102,7 +107,7 @@ class ClassificationDataLoader:
         return all_patient_data
 
     @staticmethod
-    def train_val_test_split(images_folder, annotations, splits=(0.7, 0.15, 0.15), batch_size=8, shuffle=True, transform=None):
+    def train_val_test_split(images_folder, annotations, splits=(0.7, 0.15, 0.15), batch_size=8, shuffle=True, transform=None, seed= 42):
     
         """
         Splits the data into training, validation, and testing sets by patient ID.
@@ -124,10 +129,10 @@ class ClassificationDataLoader:
         assert sum(splits) == 1.0, "Splits must sum to 1.0."
 
         # Set seed for reproducibility
-        # random.seed(seed)
-        # np.random.seed(seed)
-        # torch.manual_seed(seed)
-        # torch.cuda.manual_seed_all(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
         # Get the list of patient folders
         patient_folders = list(annotations.keys())
@@ -200,20 +205,33 @@ class InferenceDataset(Dataset):
         self.image_paths = [
             os.path.join(image_folder, fname)
             for fname in sorted(os.listdir(image_folder))
-            if fname.endswith((".png", ".jpg", ".tif", ".tiff"))
+            if fname.lower().endswith((".png", ".jpg", ".jpeg", ".tif", ".tiff"))
         ]
-        self.transform = transform or transforms.ToTensor()
+        self.transform = transform  # Optional transforms like resizing
 
     def __len__(self):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-        image = Image.open(self.image_paths[idx]).convert("L")  # Grayscale
+        image_path = self.image_paths[idx]
+        filename = os.path.basename(image_path)
+
+        # Read image with OpenCV and convert to RGB
+        image = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # Normalize to [0, 1]
+        image = image.astype('float32') / 255.0
+        # Apply any optional transforms
+        if self.transform:
+            image = self.transform(image)
+        # Convert to tensor and rearrange axes to (C, H, W)
+        image = torch.from_numpy(image).permute(2, 0, 1).float()
+
         return {
-            "image": self.transform(image),
-            "filename": os.path.basename(self.image_paths[idx])
+            "image": image,
+            "filename": filename
         }
 
-def load_inference_dataloader(image_folder, batch_size=16):
-    dataset = InferenceDataset(image_folder)
+def load_inference_dataloader(image_folder, batch_size=16, transform=None):
+    dataset = InferenceDataset(image_folder, transform=transform)
     return DataLoader(dataset, batch_size=batch_size, shuffle=False)
