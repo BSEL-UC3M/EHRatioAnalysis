@@ -69,7 +69,7 @@ def train_yolo(
     )
 
     print("✅ Training complete!")
-    ##### ESTO ES PARA LAS CUSTOM PLOTS ####
+    
     ##### ESTO ES PARA LAS CUSTOM PLOTS ####
     from utils.custom_plots import plot_batch_mosaic, format_batch_labels
 
@@ -106,6 +106,55 @@ def train_yolo(
             plot_batch_mosaic(val_images, pred_labels, paths=val_paths,
                             save_path=os.path.join(custom_plot_dir, "val_batch0_pred.jpg"),
                             names=class_names)
+    
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+    if save_results:
+        results_txt = os.path.join(project, name, "results.csv")
+        if os.path.exists(results_txt):
+            df = pd.read_csv(results_txt)
+            df.columns = df.columns.str.strip()  # quitar espacios
+
+            print(f"🧾 Columnas en results.csv: {df.columns.tolist()}")  # debug
+
+            # Plot losses
+            fig_loss, ax_loss = plt.subplots()
+            if "train/cls_loss" in df.columns:
+                ax_loss.plot(df["train/cls_loss"], label="cls_loss")
+            if "train/dfl_loss" in df.columns:
+                ax_loss.plot(df["train/dfl_loss"], label="dfl_loss")
+            ax_loss.set_title("Loss per Epoch")
+            ax_loss.set_xlabel("Epoch")
+            ax_loss.set_ylabel("Loss")
+            ax_loss.legend()
+            fig_loss.tight_layout()
+            fig_loss.savefig(os.path.join(custom_plot_dir, "loss_vs_epoch.png"))
+            plt.close(fig_loss)
+
+            # Plot mAP and recall
+            fig_map, ax_map = plt.subplots()
+            if "metrics/mAP50(B)" in df.columns:
+                ax_map.plot(df["metrics/mAP50(B)"], label="mAP@0.5")
+            if "metrics/mAP50-95(B)" in df.columns:
+                ax_map.plot(df["metrics/mAP50-95(B)"], label="mAP@0.5:0.95")
+            if "metrics/recall(B)" in df.columns:
+                ax_map.plot(df["metrics/recall(B)"], label="Recall")
+            if "metrics/precision(B)" in df.columns:
+                ax_map.plot(df["metrics/precision(B)"], label="Precision")
+            ax_map.set_title("Detection Metrics per Epoch")
+            ax_map.set_xlabel("Epoch")
+            ax_map.set_ylabel("Score")
+            ax_map.legend()
+            fig_map.tight_layout()
+            fig_map.savefig(os.path.join(custom_plot_dir, "map_vs_epoch.png"))
+            plt.close(fig_map)
+
+            print("📊 Saved loss_vs_epoch.png and map_vs_epoch.png in custom_plots/")
+        else:
+            print("⚠️ No results.csv found to plot metrics.")
+
+
 
 
 
