@@ -21,9 +21,9 @@ from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOpti
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 100  # Number of training epochs
+NUM_EPOCHS = 30  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
-BATCH_SIZE = 64  # Batch size for training
+BATCH_SIZE = 3  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
 USE_MRC = False  # Toggle to use the MRC dataset 
@@ -98,7 +98,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/PEI/20250326 PEI 32 batch"
+    results_folder = "./results/results_segmentator/PEI/20250326 PEI 128 batch"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
@@ -130,8 +130,8 @@ data_iter = iter(train_loader)
 images, labels = next(data_iter)
 
 # Seleccionar la primera imagen y su correspondiente label
-image = images[5]  # Primera imagen
-label = labels[5]  # Primer label
+image = images[1]  # Primera imagen
+label = labels[1]  # Primer label
 
 # Transponer la imagen de [3, 96, 96] a [96, 96, 3] para visualización
 image = image.permute(1, 2, 0)
