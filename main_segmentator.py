@@ -23,7 +23,7 @@ SAVE_RESULTS = True  # Toggle to save results
 SAVE_WEIGHTS = True
 NUM_EPOCHS = 100  # Number of training epochs
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
-BATCH_SIZE = 16  # Batch size for training
+BATCH_SIZE = 64  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
 USE_MRC = False  # Toggle to use the MRC dataset 
@@ -65,6 +65,8 @@ segmentator = UNetOptimizedDO()
 
 # Check if GPU is available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Imprime el dispositivo que se está utilizando
+print(f"El dispositivo en uso es: {device}")
 segmentator = segmentator.to(device)
 
 LOSS_FUNCTION = "bce_dice"  # Opciones: "bce_dice", "focal"
@@ -96,7 +98,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/PEI/20250325 PEI augmented FLProbs"
+    results_folder = "./results/results_segmentator/PEI/20250326 PEI 32 batch"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
