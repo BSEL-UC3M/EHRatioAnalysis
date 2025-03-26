@@ -180,4 +180,4 @@ cython_debug/
 !results/results_segmentator/
 !results/
 !results/*.pth
-
+*.pt
