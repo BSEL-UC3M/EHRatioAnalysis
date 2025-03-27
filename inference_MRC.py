@@ -102,7 +102,7 @@ if __name__ == "__main__":
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
     # Load dataset
-    IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/MRC_data/MRC_images/"
+    IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/data/MRC_data/MRC_images"
     annotations = ClassificationDataLoader.load_annotations(IMAGES_FOLDER)
     _, _, test_loader = ClassificationDataLoader.train_val_test_split(
         images_folder=IMAGES_FOLDER,
