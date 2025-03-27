@@ -1,6 +1,6 @@
 # ==============================================================================
 # File: dataloader_object_detector.py
-# Description: DataLoader for MRC TIFF images and YOLO object detection annotations.
+# Description: DataLoader for MRC/PEI TIFF images and YOLO object detection annotations.
 # Author: @cfusterbarcelo
 # Creation Date: 05/01/2025
 # Last Update: 25/02/2025
@@ -17,7 +17,7 @@ print("✅ tifffile.imread importado correctamente")
 
 class YoloObjectDetectorDataset(Dataset):
     """
-    PyTorch Dataset for loading MRC TIFF images and YOLO-compatible bounding box annotations.
+    PyTorch Dataset for loading MRC/PEI TIFF images and YOLO-compatible bounding box annotations.
     """
 
     def __init__(self, image_files, dataset_yaml, transform=None, debug=False):
@@ -62,7 +62,7 @@ class YoloObjectDetectorDataset(Dataset):
             raise FileNotFoundError(f"❌ Image file {filename} not found in dataset.")
 
         # ✅ Load image using tifffile
-        image = imread(str(image_path))
+        image = tifffile.imread(image_path)
 
         # Convert grayscale to RGB if needed
         if image.ndim == 2:
@@ -70,10 +70,17 @@ class YoloObjectDetectorDataset(Dataset):
         elif image.ndim == 3 and image.shape[0] in [1, 3]:
             image = image.transpose(1, 2, 0)  # Convert (C,H,W) to (H,W,C) if needed
 
-        # Normalize using dynamic range
+        # # Detect and convert PEI images from 32-bit to 16-bit if needed
+        # if "PEI" in filename and image.dtype == "float32":
+        #     image = (image * 65535).clip(0, 65535).astype("uint16")
+        #     if self.debug:
+        #         print(f"🔄 {filename} convertido de float32 a uint16 (PEI)")
+
+        # Normalize image to [0,1] using dynamic range
         image = image.astype('float32')
         max_val = image.max() if image.max() != 0 else 1.0
         image /= max_val
+
 
         # 🟨 DEBUG: Show image info
         if self.debug:
@@ -104,8 +111,11 @@ class YoloObjectDetectorDataset(Dataset):
 
         if self.transform:
             image = self.transform(image)
+        if isinstance(image, torch.Tensor):
+            image_tensor = image
+        else:
+            image_tensor = torch.from_numpy(image).permute(2, 0, 1).float()
 
-        image_tensor = torch.from_numpy(image).permute(2, 0, 1).float()
         if self.debug:
             print(f"📊 Tensor: shape={image_tensor.shape}, mean={image_tensor.mean():.4f}, std={image_tensor.std():.4f}")
 
