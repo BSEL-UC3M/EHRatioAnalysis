@@ -147,6 +147,10 @@ class DataLoaderByPatient:
         val_patients = patients[num_train:num_train + num_val]
         test_patients = patients[num_train + num_val:]
 
+        print("Pacientes en Train:", train_patients)
+        print("Pacientes en Validation:", val_patients)
+        print("Pacientes en Test:", test_patients)
+
         # Assert that there are no patients in more than one split
         assert len(set(train_patients) & set(val_patients)) == 0, "WARNING: Patients in both train and val sets detected"
         assert len(set(train_patients) & set(test_patients)) == 0, "WARNING: Patients in both train and test sets detected"

@@ -209,33 +209,96 @@ def evaluate_model(model, dataloader, device, criterion, results_dir=None):
             
             plt.savefig(os.path.join(results_dir, f'prediction_{idx + 1}.png'), dpi=300)
             plt.close(fig)
+        # Sort predictions based on Dice score
+        sorted_predictions = sorted(predictions, key=lambda x: x[3], reverse=True)  # Sort by Dice score (descending)
 
-        # Identify best and worst predictions based on Dice score
-        best_prediction = max(predictions, key=lambda x: x[3])
-        worst_prediction = min(predictions, key=lambda x: x[3])
+        best_predictions = sorted_predictions[:10]  # Top 10 best
+        worst_predictions = sorted_predictions[-10:]  # Bottom 10 worst
 
-        # Save best prediction
-        input_img, output_img, true_img, dice, iou = best_prediction
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-        axes[0].imshow(input_img[0].permute(1, 2, 0))
-        axes[0].set_title("Best Input Image")
-        axes[1].imshow(output_img[0][0], cmap='gray')
-        axes[1].set_title(f"Best Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
-        axes[2].imshow(true_img[0][0], cmap='gray')
-        axes[2].set_title("Best Ground Truth")
-        plt.savefig(os.path.join(results_dir, 'best_prediction.png'), dpi=300)
-        plt.close(fig)
+        for idx, (input_img, output_img, true_img, dice, iou) in enumerate(best_predictions):
+            fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+            image_np = input_img[0].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+            label_np = true_img[0][0].squeeze().cpu().numpy()  # Remove channel dimension
+            pred_np = output_img[0][0].squeeze().cpu().numpy()  # Remove channel dimension
+            pred_np = (pred_np - np.min(pred_np)) / (np.max(pred_np) - np.min(pred_np) + 1e-8)
+                
+                # Umbral para segmentación binaria (después de normalizar)
+            th = 0.5
+            binary_pred_mask = (pred_np > th).astype(np.uint8)
 
-        # Save worst prediction
-        input_img, output_img, true_img, dice, iou = worst_prediction
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-        axes[0].imshow(input_img[0].permute(1, 2, 0))
-        axes[0].set_title("Worst Input Image")
-        axes[1].imshow(output_img[0][0], cmap='gray')
-        axes[1].set_title(f"Worst Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
-        axes[2].imshow(true_img[0][0], cmap='gray')
-        axes[2].set_title("Worst Ground Truth")
-        plt.savefig(os.path.join(results_dir, 'worst_prediction.png'), dpi=300)
-        plt.close(fig)
+            # Crear máscara de superposición RGBA
+            overlay_label = np.zeros((label_np.shape[0], label_np.shape[1], 4))  # (H, W, 4)
+            overlay_label[label_np > 0] = [0, 0, 1, 0.5]  # Azul con 50% de transparencia
+            
+            axes[0].imshow(image_np)
+            axes[0].imshow(overlay_label)
+            axes[0].set_title("Original Image + Ground Truth")
+            axes[0].axis("off")
+
+            # Imagen original con predicción sobrepuesta
+            axes[1].imshow(image_np)
+            axes[1].imshow(pred_np, cmap='Reds', alpha=0.7)
+            #ax[1].imshow(overlay_label)
+            axes[1].set_title(f"Best Prediction {idx+1} (Dice: {dice:.4f}, IoU: {iou:.4f})")
+            axes[1].axis("off")
+            
+
+            masked_pred = np.ma.masked_where(pred_np <= 0.1, pred_np)  # Ocultar valores <= 0.3 después de normalizar
+            cmap = plt.cm.RdYlGn
+            norm = plt.Normalize(vmin=0.1, vmax=1)  # Ajustar escala de colores
+            im = axes[2].imshow(masked_pred, cmap=cmap, norm=norm)
+            axes[2].set_title("Probability Map of the Prediction")
+            axes[2].axis("off")
+                
+            # Agregar barra de colores
+            cbar = fig.colorbar(im, ax=axes[2], fraction=0.046, pad=0.04)
+            cbar.set_label("Confianza de Predicción")
+            
+            plt.savefig(os.path.join(results_dir, f'best_prediction_{idx+1}.png'), dpi=300)
+            #plt.close(fig)
+            plt.show()
+
+        for idx, (input_img, output_img, true_img, dice, iou) in enumerate(worst_predictions):
+            fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+            image_np = input_img[0].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+            label_np = true_img[0][0].squeeze().cpu().numpy()  # Remove channel dimension
+            pred_np = output_img[0][0].squeeze().cpu().numpy()  # Remove channel dimension
+            pred_np = (pred_np - np.min(pred_np)) / (np.max(pred_np) - np.min(pred_np) + 1e-8)
+                
+                # Umbral para segmentación binaria (después de normalizar)
+            th = 0.5
+            binary_pred_mask = (pred_np > th).astype(np.uint8)
+
+            # Crear máscara de superposición RGBA
+            overlay_label = np.zeros((label_np.shape[0], label_np.shape[1], 4))  # (H, W, 4)
+            overlay_label[label_np > 0] = [0, 0, 1, 0.5]  # Azul con 50% de transparencia
+            
+            axes[0].imshow(image_np)
+            axes[0].imshow(overlay_label)
+            axes[0].set_title("Original Image + Ground Truth")
+            axes[0].axis("off")
+
+            # Imagen original con predicción sobrepuesta
+            axes[1].imshow(image_np)
+            axes[1].imshow(pred_np, cmap='Reds', alpha=0.7)
+            #ax[1].imshow(overlay_label)
+            axes[1].set_title(f"Worst Prediction {idx+1} (Dice: {dice:.4f}, IoU: {iou:.4f})")
+            axes[1].axis("off")
+            
+
+            masked_pred = np.ma.masked_where(pred_np <= 0.1, pred_np)  # Ocultar valores <= 0.3 después de normalizar
+            cmap = plt.cm.RdYlGn
+            norm = plt.Normalize(vmin=0.1, vmax=1)  # Ajustar escala de colores
+            im = axes[2].imshow(masked_pred, cmap=cmap, norm=norm)
+            axes[2].set_title("Probability Map of the Prediction")
+            axes[2].axis("off")
+                
+            # Agregar barra de colores
+            cbar = fig.colorbar(im, ax=axes[2], fraction=0.046, pad=0.04)
+            cbar.set_label("Confianza de Predicción")
+            
+            plt.savefig(os.path.join(results_dir, f'worst_prediction_{idx+1}.png'), dpi=300)
+            #plt.close(fig)
+            plt.show()
 
     return avg_loss, mean_dice, mean_iou
