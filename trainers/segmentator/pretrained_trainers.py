@@ -161,6 +161,7 @@ def evaluate_model(model, dataloader, device, criterion, results_dir=None):
     dice_scores = []
     iou_scores = []
     predictions = []
+    print(f"Number of images: /{len(dataloader)}")
 
     with torch.no_grad():  # Disable gradient calculation for evaluation
         for i, data in enumerate(dataloader):
@@ -173,14 +174,26 @@ def evaluate_model(model, dataloader, device, criterion, results_dir=None):
             total_loss += loss.item()
 
             # Calculate Dice and IoU scores
-            dice = dice_score(outputs, labels)
-            iou = iou_score(outputs, labels)
-            dice_scores.append(dice)
-            iou_scores.append(iou)
-            predictions.append((inputs.cpu(), outputs.cpu(), labels.cpu(), dice, iou))
+            # Iterar sobre cada imagen dentro del batch
+            for j in range(inputs.shape[0]):
+                dice = dice_score(outputs[j].unsqueeze(0), labels[j].unsqueeze(0))  # Métrica para una imagen
+                iou = iou_score(outputs[j].unsqueeze(0), labels[j].unsqueeze(0))
+
+                predictions.append((inputs[j].cpu(), outputs[j].cpu(), labels[j].cpu(), dice, iou))
+                dice_scores.append(dice)
+                iou_scores.append(iou)
+
+            # dice = dice_score(outputs, labels)
+            # iou = iou_score(outputs, labels)
+
+            # dice_scores.append(dice)
+            # iou_scores.append(iou)
+            # predictions.append((inputs.cpu(), outputs.cpu(), labels.cpu(), dice, iou))
+
+    print(f"Total predictions collected: {len(predictions)}")
 
     # Calculate average loss, Dice, and IoU
-    avg_loss = total_loss / len(dataloader)
+    avg_loss = total_loss / len(dataloader.dataset)
     mean_dice = np.mean(dice_scores)
     mean_iou = np.mean(iou_scores)
     
@@ -200,11 +213,11 @@ def evaluate_model(model, dataloader, device, criterion, results_dir=None):
 
         for idx, (input_img, output_img, true_img, dice, iou) in enumerate(random_predictions):
             fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-            axes[0].imshow(input_img[0].permute(1, 2, 0))
+            axes[0].imshow(input_img.permute(1, 2, 0))
             axes[0].set_title("Input Image")
-            axes[1].imshow(output_img[0][0], cmap='gray')
+            axes[1].imshow(output_img[0], cmap='gray')
             axes[1].set_title(f"Prediction (Dice: {dice:.4f}, IoU: {iou:.4f})")
-            axes[2].imshow(true_img[0][0], cmap='gray')
+            axes[2].imshow(true_img[0], cmap='gray')
             axes[2].set_title("Ground Truth")
             
             plt.savefig(os.path.join(results_dir, f'prediction_{idx + 1}.png'), dpi=300)
@@ -217,9 +230,9 @@ def evaluate_model(model, dataloader, device, criterion, results_dir=None):
 
         for idx, (input_img, output_img, true_img, dice, iou) in enumerate(best_predictions):
             fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-            image_np = input_img[0].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
-            label_np = true_img[0][0].squeeze().cpu().numpy()  # Remove channel dimension
-            pred_np = output_img[0][0].squeeze().cpu().numpy()  # Remove channel dimension
+            image_np = input_img.permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+            label_np = true_img[0].squeeze().cpu().numpy()  # Remove channel dimension
+            pred_np = output_img[0].squeeze().cpu().numpy()  # Remove channel dimension
             pred_np = (pred_np - np.min(pred_np)) / (np.max(pred_np) - np.min(pred_np) + 1e-8)
                 
                 # Umbral para segmentación binaria (después de normalizar)
@@ -260,9 +273,9 @@ def evaluate_model(model, dataloader, device, criterion, results_dir=None):
 
         for idx, (input_img, output_img, true_img, dice, iou) in enumerate(worst_predictions):
             fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-            image_np = input_img[0].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
-            label_np = true_img[0][0].squeeze().cpu().numpy()  # Remove channel dimension
-            pred_np = output_img[0][0].squeeze().cpu().numpy()  # Remove channel dimension
+            image_np = input_img.permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+            label_np = true_img[0].squeeze().cpu().numpy()  # Remove channel dimension
+            pred_np = output_img[0].squeeze().cpu().numpy()  # Remove channel dimension
             pred_np = (pred_np - np.min(pred_np)) / (np.max(pred_np) - np.min(pred_np) + 1e-8)
                 
                 # Umbral para segmentación binaria (después de normalizar)

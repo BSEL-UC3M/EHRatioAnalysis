@@ -19,9 +19,9 @@ from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOpti
 # ==============================================================================
 
 # Configuration Parameters
-SAVE_RESULTS = False  # Toggle to save results
-SAVE_WEIGHTS = False
-NUM_EPOCHS = 1  # Number of training epochs
+SAVE_RESULTS = True  # Toggle to save results
+SAVE_WEIGHTS = True
+NUM_EPOCHS = 25  # Number of training epochs
 
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
@@ -100,7 +100,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/MRC/20250327 MRC flipped 100 ep batch 6"
+    results_folder = "./results/results_segmentator/MRC/20250327 MRC best model plots"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
@@ -119,7 +119,12 @@ train_loader, val_loader, test_loader= data_loader.train_val_test_split_bypatien
     shuffle=True,
     transform=None
 )
-
+print(f"Train loader: {len(train_loader)} batches")
+print(f"Validation loader: {len(val_loader)} batches")  
+print(f"Test loader: {len(test_loader)} batches")
+print(f"Train loader: {len(train_loader.dataset)} images")
+print(f"Validation loader: {len(val_loader.dataset)} images")   
+print(f"Test loader: {len(test_loader.dataset)} images")
 
 # ==================
 
