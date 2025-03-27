@@ -1,0 +1,3 @@
+Average Loss: 0.8315
+Mean Dice Score: 0.7054
+Mean IoU: 0.5534

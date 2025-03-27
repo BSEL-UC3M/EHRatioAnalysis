@@ -959,9 +959,9 @@ class UNetOptimizedDO(nn.Module):
                 prediction = self(image)
 
                 # Convert tensors to numpy arrays for visualization
-                image_np = image[5].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
-                label_np = label[5].squeeze().cpu().numpy()  # Remove channel dimension
-                pred_np = prediction[5].squeeze().cpu().numpy()  # Remove channel dimension
+                image_np = image[1].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+                label_np = label[1].squeeze().cpu().numpy()  # Remove channel dimension
+                pred_np = prediction[1].squeeze().cpu().numpy()  # Remove channel dimension
                 pred_np = (pred_np - np.min(pred_np)) / (np.max(pred_np) - np.min(pred_np) + 1e-8)
                 th = 0.5  # O ajusta según la distribución de los valores
                 binary_pred_mask = (pred_np > th).astype(np.uint8)
@@ -1047,9 +1047,9 @@ class UNetOptimizedDO(nn.Module):
                 prediction = self(image)
 
                 # Convert tensors to numpy arrays for visualization
-                image_np = image[5].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
-                label_np = label[5].squeeze().cpu().numpy()  # Remove channel dimension
-                pred_np = prediction[5].squeeze().cpu().numpy()  # Remove channel dimension
+                image_np = image[1].permute(1, 2, 0).cpu().numpy()  # (C, H, W) -> (H, W, C)
+                label_np = label[1].squeeze().cpu().numpy()  # Remove channel dimension
+                pred_np = prediction[1].squeeze().cpu().numpy()  # Remove channel dimension
                 
                 # Normalizar predicciones
                 pred_np = (pred_np - np.min(pred_np)) / (np.max(pred_np) - np.min(pred_np) + 1e-8)
