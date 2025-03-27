@@ -16,7 +16,7 @@ from models.object_detector.object_detector import YOLOv5
 
 
 # Define results directory
-RESULTS_DIR = "./results/object_detector/MRC/all_patients"
+RESULTS_DIR = "./results/object_detector/PEI/toydataset"
 
 def train_yolo(
     dataset_yaml,
@@ -43,7 +43,7 @@ def train_yolo(
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
     if save_results:
-        project = "./results/object_detector/MRC"
+        project = "./results/object_detector/PEI"
         name = f"{model_name}-{timestamp}"
     else:
         project = "/tmp/yolo_no_save"
