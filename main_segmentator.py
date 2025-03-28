@@ -21,14 +21,14 @@ from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOpti
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 60  # Number of training epochs
+NUM_EPOCHS = 20  # Number of training epochs
 
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 6  # Batch size for training
 DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-USE_MRC = False  # Toggle to use the MRC dataset 
-USE_PEI = True  # Toggle to use the PEI dataset
+USE_MRC = True  # Toggle to use the MRC dataset 
+USE_PEI = False  # Toggle to use the PEI dataset
 
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
@@ -45,10 +45,10 @@ else:
     # PEI_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\PEI_images_Z"
     # PEI_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\PEI_labels_Z"
     
-    MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_MRC_images_clean'
-    MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\flipped_labels_MRC_clean'
-    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\PEI_images_clean' #PEI_images_Z #normalized_images_PEI
-    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\PEI_labels_clean'
+    MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_MRC'
+    MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_MRC'
+    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_clean_images_PEI' #PEI_images_Z #normalized_images_PEI
+    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\flipped_clean_labels_PEI'
 
     
 
@@ -100,7 +100,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/PEI/20250328 PEI clean"
+    results_folder = "./results/results_segmentator/MRC/20250328 MRC inference"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
@@ -282,7 +282,23 @@ for images, labels in train_loader:
 
 # Train the model
 print("Starting training...")
-trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, NUM_EPOCHS, val_dataloader=val_loader)
+#trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, NUM_EPOCHS, val_dataloader=val_loader)
+
+# ===============
+# # Evaluate inference MRC
+# print("Evaluating model with inference MRC")
+# model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
+# segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
+# segmentator.eval() 
+# trained_model = segmentator  # Asignar el modelo entrenado a trained_model
+
+# ===============
+# Evaluate inference MRC
+print("Evaluating model with inference PEI")
+model_path = 'C:\\Users\\TFM1\\Desktop\\PEI_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
+segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
+segmentator.eval() 
+trained_model = segmentator  # Asignar el modelo entrenado a trained_model
 
 # Evaluate the model
 print("Evaluating model...")
