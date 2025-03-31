@@ -100,7 +100,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/MRC/20250328 MRC inference"
+    results_folder = "./results/results_segmentator/MRC/20250331 MRC inference all images"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
@@ -285,20 +285,20 @@ print("Starting training...")
 #trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, NUM_EPOCHS, val_dataloader=val_loader)
 
 # ===============
-# # Evaluate inference MRC
-# print("Evaluating model with inference MRC")
-# model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
-# segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
-# segmentator.eval() 
-# trained_model = segmentator  # Asignar el modelo entrenado a trained_model
-
-# ===============
 # Evaluate inference MRC
-print("Evaluating model with inference PEI")
-model_path = 'C:\\Users\\TFM1\\Desktop\\PEI_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
+print("Evaluating model with inference MRC")
+model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
 segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
 segmentator.eval() 
 trained_model = segmentator  # Asignar el modelo entrenado a trained_model
+
+# ===============
+# # Evaluate inference MRC
+# print("Evaluating model with inference PEI")
+# model_path = 'C:\\Users\\TFM1\\Desktop\\PEI_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
+# segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
+# segmentator.eval() 
+# trained_model = segmentator  # Asignar el modelo entrenado a trained_model
 
 # Evaluate the model
 print("Evaluating model...")
