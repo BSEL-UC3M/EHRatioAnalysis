@@ -39,16 +39,23 @@ class FiveLayerCNN(nn.Module):
         
         # Calcular el tamaño de entrada para la capa totalmente conectada
         self.fc_input_size = 512 * 10 * 10  # Ajustado dinámicamente a la salida real
-        print(f'Computed fc_input_size: {self.fc_input_size}')  # Debug print
         
+        # FROM OLD WEIGHTS, BETTER RESULTS?
+        # self.fc_layers = nn.Sequential(
+        #     nn.Dropout(dropout_prob),  # Regularization to prevent overfitting
+        #     nn.Linear(self.fc_input_size, 1024),
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout_prob),
+        #     nn.Linear(1024, num_classes)
+        # )
+
+        # NEW FROM INFERENCE
         self.fc_layers = nn.Sequential(
-            nn.Dropout(0.2),  # Regularization to prevent overfitting
-            nn.Linear(self.fc_input_size, 1024),
-            nn.ReLU(),
             nn.Dropout(dropout_prob),
-            nn.Linear(1024, num_classes)
+            nn.Linear(self.fc_input_size, num_classes)
         )
-    
+
+
     def _compute_fc_input_size(self):
         with torch.no_grad():
             x = torch.randn(1, 3, 224, 224)  # Simular una imagen de entrada

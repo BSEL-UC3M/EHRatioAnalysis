@@ -16,8 +16,8 @@ from models.classificator.five_layer_cnn import FiveLayerCNN
 from utils.classification_postprocess import smooth_classification_predictions, plot_comparison, save_comparison_csv
 
 
-CLASSIFICATION_MODEL = "D:/Models/EHydropsAnalysis/2025/cnn_best_weights.pt"
-MRC_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF/PACIENTE 88 MRC TIFF/"
+CLASSIFICATION_MODEL = "D:/GitHub/EHRatioAnalysis/results/results_classificator/results_classificator_MRC/cnn_20250326-095831/cnn_best_weights.pt"
+MRC_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
 PEI_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI TIFF/"
 BATCH_SIZE = 16
 CLASSIFICATION_OUTPUT = "D:/Results/EHydrops/"
