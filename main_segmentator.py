@@ -11,7 +11,7 @@ import torch.optim as optim
 import numpy as np
 from datetime import datetime
 from losses import losses
-from dataloader.dataloader_MRC import DataLoaderByPatient
+from dataloader.dataloader_MRC import DataLoaderByPatient, DataLoaderByPatientSpecific
 from trainers.segmentator.pretrained_trainers import train_model, evaluate_model
 from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetOptimizedSE, UNetOptimizedDO
 
@@ -21,11 +21,11 @@ from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOpti
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 20  # Number of training epochs
+NUM_EPOCHS = 25  # Number of training epochs
 
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
-BATCH_SIZE = 6  # Batch size for training
-DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
+BATCH_SIZE = 3  # Batch size for training
+#DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
 USE_MRC = True  # Toggle to use the MRC dataset 
 USE_PEI = False  # Toggle to use the PEI dataset
@@ -100,25 +100,56 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/MRC/20250331 MRC inference all images"
+    results_folder = "./results/results_segmentator/MRC/20250401 MRC TRAINING nuevo split"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
 else:
     results_dir = None
+# ================================================================================
+# Sepecific patient Dataloader for MRC dataset
+
+train_patients = [
+    "PAC59", "PAC11", "PAC43", "PAC2", "PAC73", "PAC67", "PAC16", "PAC27", "PAC41", "PAC33", "PAC46", "PAC48", 
+    "PAC68", "PAC20", "PAC60", "PAC56", "PAC63", "PAC71", "PAC52", "PAC57", "PAC50", "PAC86", "PAC80", "PAC64", 
+    "PAC34", "PAC9", "PAC38", "PAC72", "PAC31", "PAC44", "PAC62", "PAC42", "PAC40", "PAC89", "PAC47", "PAC78", 
+    "PAC13", "PAC37", "PAC24", "PAC19", "PAC66", "PAC69", "PAC53", "PAC8", "PAC35", "PAC74", "PAC3", "PAC17", 
+    "PAC39", "PAC51", "PAC23", "PAC79", "PAC25", "PAC6", "PAC7", "PAC61", "PAC49", "PAC83", "PAC10", "PAC84", 
+    "PAC22", "PAC75"
+]
+
+val_patients = [
+    "PAC45", "PAC21", "PAC1", "PAC87", "PAC58", "PAC85", "PAC54", "PAC90", "PAC26"
+]
+
+test_patients = [
+    "PAC77", "PAC65", "PAC30", "PAC28", "PAC81", "PAC88", "PAC5", "PAC55", "PAC76", "PAC12", "PAC70", "PAC14", 
+    "PAC18", "PAC29", "PAC32", "PAC36", "PAC4", "PAC15", "PAC82"
+]
+
+
+train_loader, val_loader, test_loader = DataLoaderByPatientSpecific.train_val_test_split_bypatient(
+    images_folder=IMAGES_FOLDER, 
+    labels_folder=LABELS_FOLDER, 
+    train_patients=train_patients, 
+    val_patients=val_patients, 
+    test_patients=test_patients,
+    batch_size=BATCH_SIZE, 
+    shuffle=True, transform=None
+)
 
 # ================================================================================
 
-# Initialize the data loader with your custom DataLoader class
-data_loader = DataLoaderByPatient()
-train_loader, val_loader, test_loader= data_loader.train_val_test_split_bypatient(
-    images_folder=IMAGES_FOLDER,
-    labels_folder=LABELS_FOLDER,
-    splits=DATA_SPLITS,
-    batch_size=BATCH_SIZE,
-    shuffle=True,
-    transform=None
-)
+# # Initialize the data loader with your custom DataLoader class
+# data_loader = DataLoaderByPatient()
+# train_loader, val_loader, test_loader= data_loader.train_val_test_split_bypatient(
+#     images_folder=IMAGES_FOLDER,
+#     labels_folder=LABELS_FOLDER,
+#     splits=DATA_SPLITS,
+#     batch_size=BATCH_SIZE,
+#     shuffle=True,
+#     transform=None
+# )
 print(f"Train loader: {len(train_loader)} batches")
 print(f"Validation loader: {len(val_loader)} batches")  
 print(f"Test loader: {len(test_loader)} batches")
@@ -282,15 +313,15 @@ for images, labels in train_loader:
 
 # Train the model
 print("Starting training...")
-#trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, NUM_EPOCHS, val_dataloader=val_loader)
+trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, NUM_EPOCHS, val_dataloader=val_loader)
 
 # ===============
-# Evaluate inference MRC
-print("Evaluating model with inference MRC")
-model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
-segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
-segmentator.eval() 
-trained_model = segmentator  # Asignar el modelo entrenado a trained_model
+# # Evaluate inference MRC
+# print("Evaluating model with inference MRC")
+# model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
+# segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
+# segmentator.eval() 
+# trained_model = segmentator  # Asignar el modelo entrenado a trained_model
 
 # ===============
 # # Evaluate inference MRC

@@ -195,11 +195,15 @@ def evaluate_model(model, dataloader, device, criterion, results_dir=None):
     # Calculate average loss, Dice, and IoU
     avg_loss = total_loss / len(dataloader.dataset)
     mean_dice = np.mean(dice_scores)
+    std_dice = np.std(dice_scores)
     mean_iou = np.mean(iou_scores)
+    std_iou = np.std(iou_scores)
     
     print(f'Average loss on the evaluation set: {avg_loss:.4f}')
     print(f'Mean Dice Score: {mean_dice:.4f}')
+    print(f'Standard Deviation of Dice Score: {std_dice:.4f}')
     print(f'Mean IoU: {mean_iou:.4f}')
+    print(f'Standard Deviation of IoU: {std_iou:.4f}')
 
     if results_dir is not None:
         # Save numerical results
@@ -316,7 +320,7 @@ def evaluate_model(model, dataloader, device, criterion, results_dir=None):
             #plt.close(fig)
             plt.show()
         # Mostrar todas las predicciones en lugar de solo las mejores y peores
-        
+
         for idx, (input_img, output_img, true_img, dice, iou) in enumerate(sorted_predictions):
             fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 

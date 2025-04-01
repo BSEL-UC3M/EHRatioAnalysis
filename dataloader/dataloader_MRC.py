@@ -204,3 +204,116 @@ class DataLoaderByPatient:
 #     image = image.permute(0, 2, 3, 1).numpy()
 #     label = label.permute(0, 2, 3, 1).numpy()
 #     plt.imshow(image[0])
+
+
+import os
+import random
+import torch
+from torch.utils.data import DataLoader
+import numpy as np
+
+class DataLoaderByPatientSpecific:
+    @staticmethod
+    def get_patient_id_new(filename):
+        """
+        Extracts the patient ID from a given filename (after 'PAC').
+        """
+        return filename.split("_")[0] # Extracts the patient ID after 'PAC'
+
+    @staticmethod
+    def train_val_test_split_bypatient(images_folder, labels_folder, train_patients, val_patients, test_patients, batch_size=8, shuffle=True, transform=None):
+        """
+        Splits the data into training, validation, and testing sets by predefined patient IDs
+        and returns PyTorch DataLoaders.
+        
+        Parameters:
+        - images_folder: str
+            Path to the folder containing image files.
+        - labels_folder: str
+            Path to the folder containing label files.
+        - train_patients: list
+            List of patient IDs for the training set.
+        - val_patients: list
+            List of patient IDs for the validation set.
+        - test_patients: list
+            List of patient IDs for the test set.
+        - batch_size: int, optional
+            How many samples per batch to load.
+        - shuffle: bool, optional
+            Whether to shuffle the data after splitting.
+        - transform: callable, optional
+            A function/transform to apply to the data.
+        
+        Returns:
+        - train_loader: DataLoader
+            DataLoader for the training set.
+        - val_loader: DataLoader
+            DataLoader for the validation set.
+        - test_loader: DataLoader
+            DataLoader for the testing set.
+        """
+        # Get the list of all image and label files in the folders
+        image_files = os.listdir(images_folder)
+        label_files = os.listdir(labels_folder)
+
+        # Sort both lists to ensure they are in the same order
+        image_files.sort()
+        label_files.sort()
+
+        # Group image and label files by patient ID
+        image_groups = {}
+        for image_file in image_files:
+            patient_id = DataLoaderByPatientSpecific.get_patient_id_new(image_file)
+            if patient_id not in image_groups:
+                image_groups[patient_id] = []
+            image_groups[patient_id].append(image_file)
+        label_groups = {}
+        for label_file in label_files:
+            patient_id = DataLoaderByPatientSpecific.get_patient_id_new(label_file)
+            if patient_id not in label_groups:
+                label_groups[patient_id] = []
+            label_groups[patient_id].append(label_file)
+
+        # Debugging patient grouping
+        print(f"Image Groups: {image_groups}")
+        print(f"Label Groups: {label_groups}")
+
+
+        # Ensure patients in the train, val, and test sets match the ones in the lists
+        train_image_files = []
+        train_label_files = []
+        for patient in train_patients:
+            if patient in image_groups:
+                train_image_files.extend(image_groups[patient])
+                train_label_files.extend(label_groups[patient])
+
+        val_image_files = []
+        val_label_files = []
+        for patient in val_patients:
+            if patient in image_groups:
+                val_image_files.extend(image_groups[patient])
+                val_label_files.extend(label_groups[patient])
+
+        test_image_files = []
+        test_label_files = []
+        for patient in test_patients:
+            if patient in image_groups:
+                test_image_files.extend(image_groups[patient])
+                test_label_files.extend(label_groups[patient])
+
+
+
+        # Create PyTorch datasets
+        train_dataset = PatientDataset(train_image_files, train_label_files, images_folder, labels_folder, transform)
+        val_dataset = PatientDataset(val_image_files, val_label_files, images_folder, labels_folder, transform)
+        test_dataset = PatientDataset(test_image_files, test_label_files, images_folder, labels_folder, transform)
+
+        # Create PyTorch DataLoaders
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+        return train_loader, val_loader, test_loader
+
+
+__all__ = ['DataLoaderByPatient', 'DataLoaderByPatientSpecific', 'PatientDataset']
