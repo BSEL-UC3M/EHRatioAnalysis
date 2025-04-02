@@ -8,11 +8,14 @@
 # ==============================================================================
 
 import re
+import torch
 from collections import defaultdict
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import os
 import pandas as pd
+import numpy as np
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 def extract_patient_and_index(filename):
     """
@@ -108,3 +111,51 @@ def save_comparison_csv(before, after, save_path="comparison.csv"):
     df = pd.DataFrame(data, columns=["filename", "before", "after"])
     df.to_csv(save_path, index=False)
     print(f"✅ CSV comparison saved at: {save_path}")
+
+
+def threshold_sweep(model, test_loader, device, thresholds=np.arange(0.1, 0.55, 0.05)):
+    """
+    Evaluates model performance across different thresholds for class 1.
+
+    Returns:
+        metrics_list: List of dictionaries with threshold, accuracy, precision, recall, f1
+    """
+    model.eval()
+    criterion = torch.nn.CrossEntropyLoss()
+    metrics_list = []
+
+    with torch.no_grad():
+        for threshold in thresholds:
+            y_true, y_pred = [], []
+            total_correct = 0
+            total_loss = 0
+
+            for inputs, labels in test_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                total_loss += loss.item()
+
+                probs = torch.softmax(outputs, dim=1)
+                preds = (probs[:, 1] > threshold).long()
+
+                y_true.extend(labels.cpu().numpy())
+                y_pred.extend(preds.cpu().numpy())
+
+                total_correct += (preds == labels).sum().item()
+
+            avg_loss = total_loss / len(test_loader)
+            accuracy = 100 * total_correct / len(y_true)
+            precision = precision_score(y_true, y_pred, zero_division=0)
+            recall = recall_score(y_true, y_pred, zero_division=0)
+            f1 = f1_score(y_true, y_pred, zero_division=0)
+
+            metrics_list.append({
+                "threshold": threshold,
+                "accuracy": accuracy,
+                "precision": precision * 100,
+                "recall": recall * 100,
+                "f1": f1* 100
+            })
+
+    return metrics_list

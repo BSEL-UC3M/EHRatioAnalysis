@@ -100,7 +100,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     return model, train_losses, val_losses, train_accuracies, val_accuracies
 
 
-def evaluate_model(model, test_loader, device):
+def evaluate_model(model, test_loader, device, threshold=0.5):
     """
     Evaluate a classification model and return predictions, average loss, and accuracy.
     """
@@ -117,15 +117,23 @@ def evaluate_model(model, test_loader, device):
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             total_loss += loss.item()
-            _, predicted = torch.max(outputs, 1)
-            total_correct += (predicted == labels).sum().item()
+
+            probs = torch.softmax(outputs, dim=1)
+            biased_preds = (probs[:, 1] > threshold).long()  # ⚠️ Biased prediction in favour of class 1
+            
+            # _, predicted = torch.max(outputs, 1)
+            # total_correct += (predicted == labels).sum().item()
+            # total_samples += labels.size(0)
             total_samples += labels.size(0)
+            total_correct += (biased_preds == labels).sum().item()
 
             y_true.extend(labels.cpu().numpy())
-            y_pred.extend(predicted.cpu().numpy())
+            # y_pred.extend(predicted.cpu().numpy())
+            y_pred.extend(biased_preds.cpu().numpy())
 
     avg_loss = total_loss / len(test_loader)
     accuracy = 100 * total_correct / total_samples
-    print(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {accuracy:.2f}%")
+    print(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {accuracy:.2f}% (Threshold={threshold})")
+
 
     return y_true, y_pred, avg_loss, accuracy

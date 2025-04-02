@@ -13,11 +13,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
+from torchvision import transforms
+
 from dataloader.dataloader_MRC_classificator import ClassificationDataLoader
 from models.classificator.five_layer_cnn import FiveLayerCNN
 from models.classificator.resnet50 import fine_tune_resnet
 from trainers.classificator.trainer import train_model, evaluate_model
-from torchvision import transforms
+from utils.classification_postprocess import threshold_sweep
+from utils.custom_plots import plot_threshold_tradeoffs, plot_class1_probability_histogram
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
@@ -31,6 +34,7 @@ DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
 IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF" 
 NUM_EPOCHS = 50  # Define number of epochs
 DA = False
+THRESHOLD = 0.2
 
 # Select computing device (use Apple Silicon GPU if available)
 # device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -59,7 +63,9 @@ print(f"\nTraining {MODEL_TYPE.upper()} model...\n")
 if MODEL_TYPE == "custom":
     # Initialize CNN model
     model = FiveLayerCNN(num_classes).to(device)
-    criterion = torch.nn.CrossEntropyLoss()
+    # Penalize errors on class 1 more heavily to bias on class 1 classification
+    weights = torch.tensor([1.0, 2.0]).to(device)
+    criterion = torch.nn.CrossEntropyLoss(weight=weights)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
     if DA:
@@ -117,11 +123,12 @@ if SAVE_WEIGHTS:
 # ==============================================================================
 # ✅ Step 6: Evaluate Model on Test Set
 print(f"\n📊 Evaluating {MODEL_TYPE.upper()} model on the test set...\n")
-y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device)
+y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device, threshold=THRESHOLD)
 print(f"✅ {MODEL_TYPE.upper()} Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
 
 # Compute confusion matrix BEFORE post-processing
 conf_matrix_before = confusion_matrix(y_true, y_pred)
+plot_class1_probability_histogram(trained_model, test_loader, device, threshold = THRESHOLD, results_dir=results_dir)
 
 # ==============================================================================
 # ✅ Step 7: Save Results (confusion matrix, train and validation losses/accuracies, .txt file)
@@ -177,6 +184,9 @@ if SAVE_RESULTS:
     plt.savefig(os.path.join(results_dir, "train_val_accuracy.png"), dpi=300, bbox_inches='tight')
     plt.close()
     
+    # Evaluating biases towards class 1 PLOTS AND METRICS
+    metrics = threshold_sweep(trained_model, test_loader, device, )
+    plot_threshold_tradeoffs(metrics, threshold = THRESHOLD, results_dir=results_dir)
+
     print(f"\n✅ Results saved in {results_dir}\n")
 
-print("🎉 Process completed.")

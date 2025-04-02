@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import cv2
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
 def rescale_image_for_visualization(img):
     """
@@ -70,3 +72,81 @@ def format_batch_labels(batch_labels):
         formatted_boxes = torch.cat((img_idx, boxes), dim=1)  # (N, 6)
         formatted.append(formatted_boxes)
     return torch.cat(formatted, dim=0) if formatted else torch.zeros((0, 6))
+
+def plot_threshold_tradeoffs(metrics_list, results_dir=None, filename="threshold_tradeoffs.png"):
+    """
+    Plots Accuracy, Precision, Recall, F1 vs Threshold and saves to results_dir.
+    
+    Parameters:
+        metrics_list: List of dicts with threshold evaluation metrics
+        results_dir: Folder to save the plot into (optional)
+        filename: Name of the file to save
+    """
+    df = pd.DataFrame(metrics_list)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(df["threshold"], df["accuracy"], label="Accuracy", marker='o')
+    plt.plot(df["threshold"], df["precision"], label="Precision", marker='o')
+    plt.plot(df["threshold"], df["recall"], label="Recall", marker='o')
+    plt.plot(df["threshold"], df["f1"], label="F1 Score", marker='o')
+
+    plt.xlabel("Threshold for Class 1")
+    plt.ylabel("Metric (%)")
+    plt.title("Threshold Sweep - Classification Trade-offs")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+
+    if results_dir:
+        save_path = os.path.join(results_dir, filename)
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"✅ Saved threshold trade-off plot to {save_path}")
+
+    plt.close()
+
+def plot_class1_probability_histogram(model, test_loader, device, threshold, results_dir=None, filename="class1_prob_histogram.png"):
+    """
+    Plots histogram of predicted probabilities for class 1, separated by true label.
+    
+    Parameters:
+    - model: Trained classification model.
+    - test_loader: DataLoader for test set.
+    - device: 'cuda' or 'cpu'.
+    - results_dir: Path to save the plot (if None, just shows it).
+    - filename: Name of the output image file (only if results_dir is set).
+    """
+    model.eval()
+    class1_probs = []
+    true_labels = []
+
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            inputs = inputs.to(device)
+            outputs = model(inputs)
+            probs = torch.softmax(outputs, dim=1)
+            class1_probs.extend(probs[:, 1].cpu().numpy())
+            true_labels.extend(labels.cpu().numpy())
+
+    class1_probs = np.array(class1_probs)
+    true_labels = np.array(true_labels)
+
+    # Split by true class
+    class0_probs = class1_probs[true_labels == 0]
+    class1_probs_true = class1_probs[true_labels == 1]
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.hist(class0_probs, bins=40, alpha=0.6, label="True Class 0", color='steelblue')
+    plt.hist(class1_probs_true, bins=40, alpha=0.6, label="True Class 1", color='darkorange')
+    plt.axvline(threshold, color='red', linestyle='--', label=f"Threshold = {threshold:.2f}")
+    plt.xlabel("Predicted Probability for Class 1")
+    plt.ylabel("Number of Samples")
+    plt.title("Softmax Probabilities for Class 1")
+    plt.legend()
+    plt.grid(True)
+
+    if results_dir:
+        save_path = os.path.join(results_dir, filename)
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"✅ Saved class probability histogram to {save_path}")
+        plt.close()
