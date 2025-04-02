@@ -14,17 +14,17 @@ class FiveLayerCNN(nn.Module):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout(0.3),  # Increased dropout
+            nn.Dropout(dropout_prob),  # Increased dropout
             nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout(0.3),  # Increased dropout
+            nn.Dropout(dropout_prob),  # Increased dropout
             nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),  # Fixed channel mismatch
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout(0.3),  # Added dropout in conv layers
+            nn.Dropout(dropout_prob),  # Added dropout in conv layers
             nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),  # Fixed channel mismatch
             nn.BatchNorm2d(256),
             nn.ReLU(),
@@ -41,19 +41,19 @@ class FiveLayerCNN(nn.Module):
         self.fc_input_size = 512 * 10 * 10  # Ajustado dinámicamente a la salida real
         
         # FROM OLD WEIGHTS, BETTER RESULTS?
-        # self.fc_layers = nn.Sequential(
-        #     nn.Dropout(dropout_prob),  # Regularization to prevent overfitting
-        #     nn.Linear(self.fc_input_size, 1024),
-        #     nn.ReLU(),
-        #     nn.Dropout(dropout_prob),
-        #     nn.Linear(1024, num_classes)
-        # )
+        self.fc_layers = nn.Sequential(
+            nn.Dropout(dropout_prob),  # Regularization to prevent overfitting
+            nn.Linear(self.fc_input_size, 1024),
+            nn.ReLU(),
+            nn.Dropout(dropout_prob),
+            nn.Linear(1024, num_classes)
+        )
 
         # NEW FROM INFERENCE
-        self.fc_layers = nn.Sequential(
-            nn.Dropout(dropout_prob),
-            nn.Linear(self.fc_input_size, num_classes)
-        )
+        # self.fc_layers = nn.Sequential(
+        #     nn.Dropout(dropout_prob),
+        #     nn.Linear(self.fc_input_size, num_classes)
+        # )
 
 
     def _compute_fc_input_size(self):

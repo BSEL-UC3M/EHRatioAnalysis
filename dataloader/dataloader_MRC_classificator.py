@@ -71,7 +71,8 @@ class ClassificationDataset(Dataset):
             image = self.transform(image)
 
         # Convert to tensors
-        image = torch.from_numpy(image).permute(2, 0, 1).float()  # Convert to (C, H, W)
+        if not isinstance(image, torch.Tensor):
+            image = torch.from_numpy(image).permute(2, 0, 1).float()  # Convert to (C, H, W)
         label = torch.tensor(label, dtype=torch.long)  # Convert label to tensor
 
         return image, label
@@ -100,8 +101,6 @@ class ClassificationDataLoader:
         with pd.ExcelFile(labels_file) as xls:
             # Get all sheet names dynamically
             sheet_names = xls.sheet_names
-            print(f"Sheet names found in the file: {sheet_names}")
-
             # Read and store all sheets while inside the `with` block
             all_patient_data = {sheet: pd.read_excel(xls, sheet_name=sheet) for sheet in sheet_names}
         return all_patient_data
@@ -225,7 +224,8 @@ class InferenceDataset(Dataset):
         if self.transform:
             image = self.transform(image)
         # Convert to tensor and rearrange axes to (C, H, W)
-        image = torch.from_numpy(image).permute(2, 0, 1).float()
+        if not isinstance(image, torch.Tensor):
+            image = torch.from_numpy(image).permute(2, 0, 1).float()
 
         return {
             "image": image,

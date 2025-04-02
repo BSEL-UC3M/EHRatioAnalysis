@@ -14,8 +14,10 @@ import seaborn as sns
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 from dataloader.dataloader_MRC_classificator import ClassificationDataLoader
-from models.classificator.five_layer_cnn import train_model, evaluate_model, FiveLayerCNN
-from models.classificator.resnet50 import fine_tune_resnet, train_model, evaluate_model
+from models.classificator.five_layer_cnn import FiveLayerCNN
+from models.classificator.resnet50 import fine_tune_resnet
+from trainers.classificator.trainer import train_model, evaluate_model
+from torchvision import transforms
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
@@ -28,23 +30,15 @@ BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
 IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF" 
 NUM_EPOCHS = 50  # Define number of epochs
+DA = False
 
 # Select computing device (use Apple Silicon GPU if available)
 # device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # ==============================================================================
-# ✅ Step 1: Load Dataset
+# Load Dataset
 annotations = ClassificationDataLoader.load_annotations(IMAGES_FOLDER)
-
-train_loader, val_loader, test_loader, train_patients, val_patients, test_patients = ClassificationDataLoader.train_val_test_split(
-    images_folder=IMAGES_FOLDER,
-    annotations=annotations,
-    splits=DATA_SPLITS,
-    batch_size=BATCH_SIZE,
-    shuffle=True,
-    transform=None
-)
 
 # Determine the number of classes dynamically
 num_classes = len(set(
@@ -53,8 +47,7 @@ num_classes = len(set(
     for annotation in patient_data['Annotation']
 ))
 
-# ==============================================================================
-# ✅ Step 2: User selects the model type
+# User selects the model type
 MODEL_TYPE = input("Select model type 'custom' to train a model from scratch or 'pretrained' to use the ResNet50): ").strip().lower()
 
 while MODEL_TYPE not in ["custom", "pretrained"]:
@@ -62,25 +55,47 @@ while MODEL_TYPE not in ["custom", "pretrained"]:
 
 print(f"\nTraining {MODEL_TYPE.upper()} model...\n")
 
-# ==============================================================================
-# ✅ Step 3: Model Definition & Training
+#  Model Definition & Training
 if MODEL_TYPE == "custom":
     # Initialize CNN model
     model = FiveLayerCNN(num_classes).to(device)
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
+    if DA:
+        default_transforms = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(10),
+            transforms.ColorJitter(brightness=0.1, contrast=0.1),
+            transforms.ToTensor()
+        ])
+        val_transforms = transforms.Compose([transforms.ToPILImage(), transforms.ToTensor()])
+    else: 
+        default_transforms = None
 
 elif MODEL_TYPE == "pretrained":
     # Initialize ResNet50 model
     model, criterion, optimizer, scheduler = fine_tune_resnet(
         num_classes, device, learning_rate=LEARNING_RATE, model_type=MODEL_TYPE
     )
+    default_transforms = None
+
+
+train_loader, val_loader, test_loader, train_patients, val_patients, test_patients = ClassificationDataLoader.train_val_test_split(
+    images_folder=IMAGES_FOLDER,
+    annotations=annotations,
+    splits=DATA_SPLITS,
+    batch_size=BATCH_SIZE,
+    shuffle=True,
+    transform=default_transforms
+)
+
 
 # Train the model explicitly
 print(f"\n🚀 Training {MODEL_TYPE.upper()} model for {NUM_EPOCHS} epochs...\n")
 trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
-    model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS
+    model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS, model_type=MODEL_TYPE
 )
 # ==============================================================================
 # ✅ Step 4: Prepare Result Directory
