@@ -13,15 +13,18 @@ from datetime import datetime
 
 from dataloader.dataloader_MRC_classificator import load_inference_dataloader
 from models.classificator.five_layer_cnn import FiveLayerCNN
-from utils.classification_postprocess import smooth_classification_predictions, plot_comparison, save_comparison_csv
+from utils.classification_postprocess import smooth_classification_predictions, plot_comparison, plot_comparison_with_labels, save_comparison_csv
 
-
-CLASSIFICATION_MODEL = "D:/GitHub/EHRatioAnalysis/results/results_classificator/results_classificator_MRC/cnn_20250326-095831/cnn_best_weights.pt"
+HAS_LABELS = True
+LABELS_CSV = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF/MRC_TIFF_Annotations.xlsx"
+CLASSIFICATION_MODEL = "D:/GitHub/EHRatioAnalysis/results/results_classificator/results_classificator_MRC/cnn_20250402-130217/cnn_best_weights.pt"
 MRC_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
 PEI_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI TIFF/"
 BATCH_SIZE = 16
-CLASSIFICATION_OUTPUT = "D:/Results/EHydrops/"
+CLASSIFICATION_OUTPUT = "D:/GitHub/EHRatioAnalysis/results/results_classificator/results_classificator_MRC/cnn_20250402-130217/inference"
+THRESHOLD = 0.2 # Confidence threshold to bias towards class 1
 
+os.makedirs(CLASSIFICATION_OUTPUT, exist_ok=True)
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
 
@@ -45,7 +48,8 @@ with torch.no_grad():
         images = batch["image"].to(DEVICE)
         filenames = batch["filename"]
         outputs = model(images)
-        predictions = torch.argmax(outputs, dim=1).cpu().numpy()
+        probs = torch.softmax(outputs, dim=1)
+        predictions = (probs[:, 1] > THRESHOLD).long().cpu().numpy()
         
         for fname, pred in zip(filenames, predictions):
             results.append((fname, pred))
@@ -56,14 +60,16 @@ print("🧹 Running post-processing to clean classification results")
 # Apply smoothing and continuity enforcement
 cleaned_results = smooth_classification_predictions(results)
 
-
-# DEBUGGING: Preview first few before vs after
-print("\n🧾 Sample comparison:")
-for (fname1, pred1), (_, pred2) in zip(results[:10], cleaned_results[:10]):
-    print(f"{fname1}: {pred1} ➡️ {pred2}")
-
 # Save visual comparison plots per patient
-plot_comparison(results, cleaned_results, save_path=os.path.join(CLASSIFICATION_OUTPUT, "plots"))
+if HAS_LABELS:
+    plot_comparison_with_labels(
+        before=results,
+        after=cleaned_results,
+        label_csv=LABELS_CSV,
+        save_path=os.path.join(CLASSIFICATION_OUTPUT, "plots_with_labels")
+    )
+else:
+    plot_comparison(results, cleaned_results, save_path=os.path.join(CLASSIFICATION_OUTPUT, "plots"))
 
 # Save comparison CSV
 save_comparison_csv(results, cleaned_results, save_path=os.path.join(CLASSIFICATION_OUTPUT, "comparison.csv"))

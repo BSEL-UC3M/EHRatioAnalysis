@@ -186,7 +186,7 @@ if SAVE_RESULTS:
     
     # Evaluating biases towards class 1 PLOTS AND METRICS
     metrics = threshold_sweep(trained_model, test_loader, device, )
-    plot_threshold_tradeoffs(metrics, threshold = THRESHOLD, results_dir=results_dir)
+    plot_threshold_tradeoffs(metrics, results_dir=results_dir)
 
     print(f"\n✅ Results saved in {results_dir}\n")
 
