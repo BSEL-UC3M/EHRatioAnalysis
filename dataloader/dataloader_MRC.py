@@ -212,6 +212,68 @@ import torch
 from torch.utils.data import DataLoader
 import numpy as np
 
+import os
+import cv2
+import torch
+import numpy as np
+from torch.utils.data import Dataset
+
+class New_PatientDataset(Dataset):
+    def __init__(self, image_files, label_files, images_folder, labels_folder, transform=None):
+        """
+        Args:
+            image_files (list): List of image filenames.
+            label_files (list): List of label filenames.
+            images_folder (str): Path to the folder containing image files.
+            labels_folder (str): Path to the folder containing label files.
+            transform (callable, optional): Optional transform to be applied on a sample.
+        """
+        self.image_files = image_files
+        self.label_files = label_files
+        self.images_folder = images_folder
+        self.labels_folder = labels_folder
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, idx):
+        # Get the file paths for the image and label
+        image_path = os.path.join(self.images_folder, self.image_files[idx])
+        label_path = os.path.join(self.labels_folder, self.label_files[idx])
+
+        # Load the image and label using OpenCV
+        image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
+
+        label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+        label = np.expand_dims(label, axis=-1)  # Add channel dimension
+
+        # Apply any transformations if they exist
+        if self.transform:
+            image, label = self.transform(image, label)
+
+        # Normalize image to the range [0, 1]
+        image = np.array(image)
+        image_max = image.max()
+        image_min = image.min()
+        image = (image - image_min) / (image_max - image_min)
+        
+        # Clip label values to [0, 1]
+        label = np.clip(label, 0, 1)
+
+        # Convert the images and labels to PyTorch tensors
+        image = torch.from_numpy(image).permute(2, 0, 1).float()  # Change to (C, H, W)
+        label = torch.from_numpy(label).permute(2, 0, 1).float()  # Change to (C, H, W)
+
+        # Ensure image values are between 0 and 1
+        assert image.min() >= 0 and image.max() <= 1, "WARNING: Input values should be between 0 and 1"
+
+        # Return the image, label, and the image filename
+        image_name = self.image_files[idx]  # Return the image filename (or you can extract the patient_id if needed)
+        return image, label, image_name
+
+
 class DataLoaderByPatientSpecific:
     @staticmethod
     def get_patient_id_new(filename):
@@ -304,9 +366,9 @@ class DataLoaderByPatientSpecific:
 
 
         # Create PyTorch datasets
-        train_dataset = PatientDataset(train_image_files, train_label_files, images_folder, labels_folder, transform)
-        val_dataset = PatientDataset(val_image_files, val_label_files, images_folder, labels_folder, transform)
-        test_dataset = PatientDataset(test_image_files, test_label_files, images_folder, labels_folder, transform)
+        train_dataset = New_PatientDataset(train_image_files, train_label_files, images_folder, labels_folder, transform)
+        val_dataset = New_PatientDataset(val_image_files, val_label_files, images_folder, labels_folder, transform)
+        test_dataset = New_PatientDataset(test_image_files, test_label_files, images_folder, labels_folder, transform)
 
         # Create PyTorch DataLoaders
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)

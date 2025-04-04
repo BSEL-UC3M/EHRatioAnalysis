@@ -149,7 +149,7 @@ import os
 import time
 import seaborn as sns
 
-def save_binary_mask(mask, save_dir, idx):
+def save_binary_mask(mask, save_dir, idx, image_name):
     """
     Function to save the binary mask as a PNG image.
     
@@ -160,9 +160,9 @@ def save_binary_mask(mask, save_dir, idx):
     """
     # Convert mask to a numpy array and save as PNG
     mask = mask.squeeze().cpu().numpy()
-    plt.imsave(os.path.join(save_dir, f"predicted_mask_{idx}.png"), mask, cmap='gray')
+    plt.imsave(os.path.join(save_dir, f"{image_name}.png"), mask, cmap='gray')
 
-def pei_evaluate_model(model, dataloader, device, criterion, results_dir=None, threshold=0.20):
+def complete_evaluate_model(model, dataloader, device, criterion, results_dir=None, threshold=0.20):
     """
     Function to evaluate the U-Net model on a validation/test set.
     
@@ -188,11 +188,13 @@ def pei_evaluate_model(model, dataloader, device, criterion, results_dir=None, t
     if results_dir:
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         save_dir = os.path.join(results_dir, timestamp)
+        save_mask = os.path.join(save_dir, "binary_masks")
+        os.makedirs(save_mask, exist_ok=True)
         os.makedirs(save_dir, exist_ok=True)
 
     with torch.no_grad():  # Disable gradient calculation for evaluation
         for i, data in enumerate(dataloader):
-            inputs, labels = data
+            inputs, labels, names = data
             inputs, labels = inputs.to(device), labels.to(device)
             
             # Forward pass
@@ -207,14 +209,14 @@ def pei_evaluate_model(model, dataloader, device, criterion, results_dir=None, t
             for j in range(inputs.shape[0]):
                 mask = binary_masks[j].cpu().squeeze(0)  # Remove the channel dimension if present
                 mask_label = (labels[j] > threshold).float()  # Apply threshold to the labels as well
-                save_binary_mask(mask_label, save_dir, i * inputs.shape[0] + j)
+                save_binary_mask(mask_label, save_mask, i * inputs.shape[0] + j, names[j])
 
                 # Calculate Dice and IoU scores
                 dice = dice_score(mask, mask_label)
                 iou = iou_score(mask, mask_label)
 
                 # Store predictions and corresponding metrics
-                predictions.append((inputs[j].cpu(), mask.cpu(), mask_label.cpu(), dice, iou, outputs[j].cpu()))
+                predictions.append((inputs[j].cpu(), mask.cpu(), mask_label.cpu(), dice, iou, outputs[j].cpu(), names[j]))
 
                 dice_scores.append(dice)
                 iou_scores.append(iou)
@@ -247,7 +249,7 @@ def pei_evaluate_model(model, dataloader, device, criterion, results_dir=None, t
 
     # Visualize and save all predictions
     if results_dir:
-        for idx, (input_image, pred_mask, true_mask, dice, iou, raw_output) in enumerate(predictions):
+        for idx, (input_image, pred_mask, true_mask, dice, iou, raw_output,image_name) in enumerate(predictions):
             # Create the three subplots
             fig, axes = plt.subplots(1, 3, figsize=(15, 5))
             
@@ -278,10 +280,13 @@ def pei_evaluate_model(model, dataloader, device, criterion, results_dir=None, t
 
             # Save the visualization
             plt.tight_layout()
-            plt.savefig(os.path.join(save_dir, f"visualization_{idx}.png"))
+            plt.savefig(os.path.join(save_dir, f"{idx}_{image_name}.png"))
 
     return avg_loss, mean_dice, mean_iou    
 
+
+
+# ======= OLD VERSION FOR MRC? ============
 
 def mrc_evaluate_model(model, dataloader, device, criterion, results_dir=None):
     """
@@ -318,7 +323,7 @@ def mrc_evaluate_model(model, dataloader, device, criterion, results_dir=None):
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             total_loss += loss.item()
-            threshold = 0.1
+            threshold = 0.97
 
             # Apply threshold to get binary masks
             binary_masks = (outputs > threshold).float()
@@ -413,6 +418,20 @@ def mrc_evaluate_model(model, dataloader, device, criterion, results_dir=None):
             plt.show()
 
     return avg_loss, mean_dice, mean_iou
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # ======= OLD VERSIONS ============
 
