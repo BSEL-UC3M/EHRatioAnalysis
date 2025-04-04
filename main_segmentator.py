@@ -21,14 +21,14 @@ from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOpti
 # Configuration Parameters
 SAVE_RESULTS = True  # Toggle to save results
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 15  # Number of training epochs
+NUM_EPOCHS = 25  # Number of training epochs
 
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
-BATCH_SIZE = 3  # Batch size for training
+BATCH_SIZE = 6  # Batch size for training
 #DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-USE_MRC = True  # Toggle to use the MRC dataset 
-USE_PEI = False  # Toggle to use the PEI dataset
+USE_MRC = False  # Toggle to use the MRC dataset 
+USE_PEI = True  # Toggle to use the PEI dataset
 
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
@@ -47,8 +47,8 @@ else:
     
     MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_MRC'
     MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\flipped_labels_MRC'
-    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_clean_images_PEI' #PEI_images_Z #normalized_images_PEI
-    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\flipped_clean_labels_PEI'
+    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #PEI_images_Z #normalized_images_PEI
+    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\flipped_labels_PEI'
 
     
 
@@ -100,7 +100,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/MRC/20250401 MRC TRAINING nuevo split"
+    results_folder = "./results/results_segmentator/PEI/20250404 PEI TRAINING nuevo split"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
