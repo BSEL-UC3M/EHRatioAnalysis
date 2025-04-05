@@ -56,7 +56,7 @@ def train_model(model, dataloader, criterion, optimizer, device, results_dir=Non
         model.train()  # Ensure model is in training mode
         
         for i, data in enumerate(dataloader):
-            inputs, labels = data
+            inputs, labels, names = data
             inputs, labels = inputs.to(device), labels.to(device)
 
             optimizer.zero_grad()
@@ -85,7 +85,7 @@ def train_model(model, dataloader, criterion, optimizer, device, results_dir=Non
             val_loss = 0.0
             with torch.no_grad():  # No need to compute gradients during validation
                 for val_data in val_dataloader:
-                    val_inputs, val_labels = val_data
+                    val_inputs, val_labels, names = val_data
                     val_inputs, val_labels = val_inputs.to(device), val_labels.to(device)
 
                     val_outputs = model(val_inputs)
