@@ -34,7 +34,7 @@ SAVE_PREPROCESSING = False  # Toggle to save preprocessed images
 LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
-NUM_EPOCHS = 20  # Define number of epochs
+NUM_EPOCHS = 50  # Define number of epochs
 
 # CAT's paths
 # RAW_IMAGES_FOLDER = "D:/Data/EHRatioAnalysis/PEI TIFF"
@@ -72,16 +72,54 @@ else:
 # ==============================================================================
 # ✅ Step 2: Load Dataset
 
+# annotations = ClassificationDataLoader.load_annotations(ANNOTATIONS_FOLDER)
+
+# train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_split(
+#     images_folder=PROCESSED_IMAGES_FOLDER,
+#     annotations=annotations,
+#     splits=DATA_SPLITS,
+#     batch_size=BATCH_SIZE,
+#     shuffle=True,
+#     transform=None
+# )
+
+
+# ✅ Cargar anotaciones
 annotations = ClassificationDataLoader.load_annotations(ANNOTATIONS_FOLDER)
 
+# Paso 1: Obtener todos los nombres desde las anotaciones
+all_patients = list(annotations.keys())
+
+# Paso 2: Pacientes fijos para validación y test (MRC, no PEI)
+val_patients = [
+    "PACIENTE 45 PEI TIFF", "PACIENTE 21 PEI TIFF", "PACIENTE 1 PEI TIFF", "PACIENTE 87 PEI TIFF",
+    "PACIENTE 58 PEI TIFF", "PACIENTE 85 PEI TIFF", "PACIENTE 54 PEI TIFF", "PACIENTE 90 PEI TIFF",
+    "PACIENTE 26 PEI TIFF"
+]
+
+test_patients = [
+    "PACIENTE 77 PEI TIFF", "PACIENTE 65 PEI TIFF", "PACIENTE 30 PEI TIFF", "PACIENTE 28 PEI TIFF",
+    "PACIENTE 81 PEI TIFF", "PACIENTE 88 PEI TIFF", "PACIENTE 5 PEI TIFF", "PACIENTE 55 PEI TIFF",
+    "PACIENTE 76 PEI TIFF", "PACIENTE 12 PEI TIFF", "PACIENTE 70 PEI TIFF", "PACIENTE 14 PEI TIFF",
+    "PACIENTE 18 PEI TIFF", "PACIENTE 29 PEI TIFF", "PACIENTE 32 PEI TIFF", "PACIENTE 36 PEI TIFF",
+    "PACIENTE 4 PEI TIFF", "PACIENTE 15 PEI TIFF", "PACIENTE 82 PEI TIFF"
+]
+
+# Paso 3: El resto son pacientes de entrenamiento
+train_patients = [p for p in all_patients if p not in val_patients and p not in test_patients]
+
+# ✅ Cargar los dataloaders con nombres completos
 train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_split(
     images_folder=PROCESSED_IMAGES_FOLDER,
     annotations=annotations,
-    splits=DATA_SPLITS,
+    train_patients=train_patients,
+    val_patients=val_patients,
+    test_patients=test_patients,
     batch_size=BATCH_SIZE,
-    shuffle=True,
     transform=None
 )
+
+
 
 # Determine the number of classes dynamically
 num_classes = len(set(
@@ -116,6 +154,10 @@ elif MODEL_TYPE == "resnet50":
 print(f"\n🚀 Training {MODEL_TYPE.upper()} model for {NUM_EPOCHS} epochs...\n")
 trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
     model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS
+)
+# ✅ Evaluación final sobre el conjunto de test
+avg_loss, accuracy, conf_matrix = evaluate_model(
+    trained_model, test_loader, device
 )
 
 # ==============================================================================

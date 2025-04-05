@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as models
 import torch.nn.functional as F
+from sklearn.metrics import confusion_matrix
 
 class FiveLayerCNN(nn.Module):
     def __init__(self, num_classes, dropout_prob=0.5):
@@ -181,6 +182,6 @@ def evaluate_model(model, test_loader, device):
     avg_loss = total_loss / len(test_loader)
     accuracy = 100 * total_correct / total_samples
     print(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {accuracy:.2f}%")
-    
-    return y_true, y_pred, avg_loss, accuracy
+    conf_matrix = confusion_matrix(y_true, y_pred)
+    return avg_loss, accuracy, conf_matrix
 

@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as models
 import torch.nn.functional as F
+from sklearn.metrics import confusion_matrix
 
 def fine_tune_resnet(num_classes, device, learning_rate=0.0001, model_type='resnet50', weight_decay=1e-4):
     """
@@ -156,5 +157,5 @@ def evaluate_model(model, test_loader, device):
     avg_loss = total_loss / len(test_loader)
     accuracy = 100 * total_correct / total_samples
     print(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {accuracy:.2f}%")
-    
-    return y_true, y_pred, avg_loss, accuracy
+    conf_matrix=confusion_matrix(y_true, y_pred)
+    return avg_loss, accuracy, conf_matrix
