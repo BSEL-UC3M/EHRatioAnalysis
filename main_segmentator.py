@@ -27,8 +27,8 @@ LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 6  # Batch size for training
 #DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-USE_MRC = False  # Toggle to use the MRC dataset 
-USE_PEI = True  # Toggle to use the PEI dataset
+USE_MRC = True  # Toggle to use the MRC dataset 
+USE_PEI = False  # Toggle to use the PEI dataset
 
 # Verificar si estamos en Kaggle o en local
 if os.path.exists('/kaggle/input'):
@@ -100,7 +100,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/PEI/20250404 PEI GOOD PLOTS"
+    results_folder = "./results/results_segmentator/MRC/20250405 MRC GOOD MASKS"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
@@ -325,24 +325,24 @@ print("Starting training...")
 #trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, NUM_EPOCHS, val_dataloader=val_loader)
 
 # # ===============
-# # Evaluate inference MRC
-# print("Evaluating model with inference MRC")
-# model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
-# segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
-# segmentator.eval() 
-# trained_model = segmentator  # Asignar el modelo entrenado a trained_model
-
-# ===============
 # Evaluate inference MRC
-print("Evaluating model with inference PEI")
-model_path = 'C:\\Users\\TFM1\\Desktop\\peinew_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
+print("Evaluating model with inference MRC")
+model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
 segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
 segmentator.eval() 
 trained_model = segmentator  # Asignar el modelo entrenado a trained_model
 
+# ===============
+# # Evaluate inference MRC
+# print("Evaluating model with inference PEI")
+# model_path = 'C:\\Users\\TFM1\\Desktop\\peinew_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
+# segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
+# segmentator.eval() 
+# trained_model = segmentator  # Asignar el modelo entrenado a trained_model
+
 # Evaluate the model
 print("Evaluating model...")
-avg_loss, mean_dice, mean_iou = complete_evaluate_model(trained_model, test_loader, device, criterion, results_dir, threshold=0.8) #for PEI = 0.8 for mrc = 0.98
+avg_loss, mean_dice, mean_iou = complete_evaluate_model(trained_model, test_loader, device, criterion, results_dir, threshold=0.98) #for PEI = 0.8 for mrc = 0.98
 #avg_loss, mean_dice, mean_iou = mrc_evaluate_model(trained_model, test_loader, device, criterion, results_dir)
 
 # Save the trained model if results are being saved

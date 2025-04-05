@@ -209,7 +209,7 @@ def complete_evaluate_model(model, dataloader, device, criterion, results_dir=No
             for j in range(inputs.shape[0]):
                 mask = binary_masks[j].cpu().squeeze(0)  # Remove the channel dimension if present
                 mask_label = (labels[j] > threshold).float()  # Apply threshold to the labels as well
-                save_binary_mask(mask_label, save_mask, i * inputs.shape[0] + j, names[j])
+                save_binary_mask(mask, save_mask, i * inputs.shape[0] + j, names[j])
 
                 # Calculate Dice and IoU scores
                 dice = dice_score(mask, mask_label)
