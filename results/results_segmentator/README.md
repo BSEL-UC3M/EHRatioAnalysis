@@ -24,6 +24,6 @@ The following table summarizes the results:
 ## Model
 
 - The segmentation model used is **UNet**.
-[See the model details here](results/results_segmentator/MRC/BEST/20250405_MRC_NEW_TRAINING_MODIEFIED_LABELS/20250405-170559/README.md)
+[See the model details here](MRC/BEST/20250405_MRC_NEW_TRAINING_MODIEFIED_LABELS/20250405-170559/README.md)
 
 
