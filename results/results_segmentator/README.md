@@ -2,24 +2,25 @@
 
 ## Overview
 
-This repository contains segmentation results obtained using a UNet model applied to different datasets and preprocessing techniques. The main goal is to compare the performance of different approaches using Mean Dice Score and Mean Intersection over Union (IoU).
+This repository contains segmentation results obtained using a UNet model applied to different datasets and preprocessing techniques. The main goal is to compare the performance of various approaches using Mean Dice Score and Mean Intersection over Union (IoU).
 
 ## Results
 
 The following table summarizes the results:
 
-| Approach                  | Mean Dice Score | Mean IoU |
-|---------------------------|----------------|----------|
-| MRC                       | 0.8560         | 0.7546   |
-| PEI with preprocessing    | 0.7134         | 0.4761   |
-| PEI without preprocessing | 0.6612         | 0.5239   |
-| PEI inverted              | 0.6612         | 0.5239   |
 
-- **MRC**: One segmentation technique was applied.
-- **PEI**: Three different approaches were tested:
-  - Using raw images.
-  - Using preprocessed images.
-  - Using inverted raw images.
+| Approach                    |  Mean Dice Score  |      Mean IoU     |
+|-----------------------------|-------------------|-------------------|
+| MRC with data augmentation  | 0.905 (SD: 0.071) | 0.833 (SD: 0.104) |
+| PEI with data augmentation  | 0.742 (SD: 0.224) | 0.563 (SD: 0.267) |
+| MRC                         | 0.8560            | 0.7546            |
+| PEI                         | 0.6612            | 0.5239            |
+| PEI with preprocessing      | 0.7134            | 0.4761            |
+
+
+
+- **MRC**: Original images + data augmentation (horizontal flip)
+- **PEI**: Original images + data augmentation (horizontal flip)
 
 ## Model
 
