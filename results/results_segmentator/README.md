@@ -24,5 +24,6 @@ The following table summarizes the results:
 ## Model
 
 - The segmentation model used is **UNet**.
-- Variations of preprocessing were tested specifically for the **PEI dataset**.
+[See the model details here](results/results_segmentator/MRC/BEST/20250405_MRC_NEW_TRAINING_MODIEFIED_LABELS/README.md)
+
 
