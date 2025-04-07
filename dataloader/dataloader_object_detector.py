@@ -50,7 +50,7 @@ class YoloObjectDetectorDataset(Dataset):
     def __getitem__(self, idx):
         filename = self.image_files[idx].strip()
 
-        # Determine if the image is in train, val, or test
+        # Buscar imagen en las tres carpetas posibles
         possible_paths = [
             self.train_path / filename,
             self.val_path / filename,
@@ -61,43 +61,37 @@ class YoloObjectDetectorDataset(Dataset):
         if image_path is None:
             raise FileNotFoundError(f"❌ Image file {filename} not found in dataset.")
 
-        # ✅ Load image using tifffile
-        image = tifffile.imread(image_path)
+        # ✅ Leer imagen TIFF (cualquier tipo)
+        image = imread(image_path)
 
-        # Convert grayscale to RGB if needed
+        # 🔄 Convertir a float32 y normalizar a [0, 1]
+        image = image.astype("float32")
+        min_val = image.min()
+        max_val = image.max()
+        if max_val - min_val > 0:
+            image = (image - min_val) / (max_val - min_val)
+        else:
+            image = image * 0  # imagen constante
+
+        # 🎯 Escalar a [0, 255] y convertir a uint8
+        image = (image * 255).astype("uint8")
+
+        # Convertir a RGB si es necesario
         if image.ndim == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
         elif image.ndim == 3 and image.shape[0] in [1, 3]:
-            image = image.transpose(1, 2, 0)  # Convert (C,H,W) to (H,W,C) if needed
+            image = image.transpose(1, 2, 0)  # (C,H,W) → (H,W,C)
 
-        # # Detect and convert PEI images from 32-bit to 16-bit if needed
-        # if "PEI" in filename and image.dtype == "float32":
-        #     image = (image * 65535).clip(0, 65535).astype("uint16")
-        #     if self.debug:
-        #         print(f"🔄 {filename} convertido de float32 a uint16 (PEI)")
-
-        # Normalize image to [0,1] using dynamic range
-        image = image.astype('float32')
-        max_val = image.max() if image.max() != 0 else 1.0
-        image /= max_val
-
-
-        # 🟨 DEBUG: Show image info
+        # 🛠 DEBUG opcional
         if self.debug:
-            print(f"🧠 {filename} | shape: {image.shape}, dtype: {image.dtype}, min: {image.min():.4f}, max: {image.max():.4f}")
-            if (image == 1.0).all():
-                print(f"⚠️ Image is fully white (all 1.0 after normalization)")
-            elif (image == 0.0).all():
-                print(f"⚠️ Image is fully black (all 0.0)")
-
+            print(f"🧠 {filename} | shape: {image.shape}, dtype: {image.dtype}, min: {image.min()}, max: {image.max()}")
             try:
-                vis = (image * 255).astype("uint8")
-                cv2.imshow("Debug TIFF Image", cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
+                cv2.imshow("Debug TIFF Image", cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
                 cv2.waitKey(1)
             except Exception as e:
                 print(f"⚠️ Could not display image: {e}")
 
-        # Load annotations
+        # Cargar anotaciones YOLO
         annotation_path = image_path.with_suffix('.txt')
         yolo_annotations = []
 
@@ -109,8 +103,11 @@ class YoloObjectDetectorDataset(Dataset):
         else:
             print(f"❌ Warning: Annotation file {annotation_path} not found.")
 
+        # Aplicar transformaciones si hay
         if self.transform:
             image = self.transform(image)
+
+        # Convertir a tensor si no se hizo aún
         if isinstance(image, torch.Tensor):
             image_tensor = image
         else:
@@ -121,48 +118,8 @@ class YoloObjectDetectorDataset(Dataset):
 
         yolo_annotations = torch.tensor(yolo_annotations, dtype=torch.float32) if yolo_annotations else torch.zeros((0, 5))
 
-        return image_tensor, yolo_annotations, str(image_path.name) # return also the file name for the custom plots 
+        return image_tensor, yolo_annotations, str(image_path.name)
 
-    # def __getitem__(self, idx):
-    #     filename = self.image_files[idx].strip()
-
-    #     # Determine if the image is in train, val, or test
-    #     possible_paths = [
-    #         self.train_path / filename,
-    #         self.val_path / filename,
-    #         self.test_path / filename,
-    #     ]
-    #     image_path = next((p for p in possible_paths if p.exists()), None)
-
-    #     if image_path is None:
-    #         raise FileNotFoundError(f"❌ Image file {filename} not found in dataset.")
-
-    #     # Load image
-    #     image = cv2.imread(str(image_path))
-    #     if image is None:
-    #         raise FileNotFoundError(f"❌ Image file {image_path} could not be loaded.")
-    #     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
-    #     image = image.astype('float32') / 255.0  # Normalize
-
-    #     # Find the annotation file
-    #     annotation_path = image_path.with_suffix('.txt')  # Replace .tif with .txt
-    #     yolo_annotations = []
-
-    #     if annotation_path.exists():
-    #         with open(annotation_path, 'r') as f:
-    #             for line in f.readlines():
-    #                 class_id, x_center, y_center, width, height = map(float, line.strip().split())
-    #                 yolo_annotations.append([class_id, x_center, y_center, width, height])
-    #     else:
-    #         print(f"❌ Warning: Annotation file {annotation_path} not found.")
-
-    #     if self.transform:
-    #         image = self.transform(image)
-
-    #     image = torch.from_numpy(image).permute(2, 0, 1).float()  # Convert to (C, H, W)
-    #     yolo_annotations = torch.tensor(yolo_annotations, dtype=torch.float32) if yolo_annotations else torch.zeros((0, 5))
-
-    #     return image, yolo_annotations
 
 
 class ObjectDetectionDataLoader:
