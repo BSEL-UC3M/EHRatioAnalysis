@@ -16,7 +16,7 @@ from models.object_detector.object_detector import YOLOv5
 
 
 # Define results directory
-RESULTS_DIR = "./results/object_detector/PEI/toydataset"
+RESULTS_DIR = "./results/object_detector/MRC"
 
 def train_yolo(
     dataset_yaml,
@@ -36,14 +36,17 @@ def train_yolo(
     augment=False, 
     # added for the custom plots implementation 
     train_loader=None, 
-    val_loader=None
+    val_loader=None,
+    output_dir=None
 ):
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     model = YOLOv5(model_name=model_name, pretrained=True, device=device)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
     if save_results:
-        project = "./results/object_detector/PEI"
+        if output_dir is None:
+            raise ValueError("❌ 'output_dir' must be specified when 'save_results=True'")
+        project = output_dir
         name = f"{model_name}-{timestamp}"
     else:
         project = "/tmp/yolo_no_save"
