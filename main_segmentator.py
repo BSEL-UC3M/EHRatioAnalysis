@@ -335,7 +335,7 @@ if USE_MRC:
 elif USE_PEI:
     # Evaluate inference MRC
     print("Evaluating model with inference PEI")
-    model_path = 'C:\\Users\\TFM1\\Desktop\\peinew_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
+    model_path = 'C:\\Users\\TFM1\\Desktop\\pei_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
     segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
     segmentator.eval() 
     trained_model = segmentator  # Asignar el modelo entrenado a trained_model
