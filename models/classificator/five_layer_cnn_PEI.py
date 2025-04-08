@@ -48,14 +48,18 @@ class FiveLayerCNN(nn.Module):
 
         # **🔹 Manually set FC input size to match the output**
         self.fc_input_size = 512 * 12 * 10  # ✅ Fixed to 61440 based on your logs
-        print(f'✅ Manually set fc_input_size: {self.fc_input_size}')
 
+        # Commented for mismatch in inference
+        # self.fc_layers = nn.Sequential(
+        #     nn.Dropout(0.2),
+        #     nn.Linear(self.fc_input_size, 1024),  # Adjusted to 61440 input
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout_prob),
+        #     nn.Linear(1024, num_classes)
+        # )
         self.fc_layers = nn.Sequential(
             nn.Dropout(0.2),
-            nn.Linear(self.fc_input_size, 1024),  # Adjusted to 61440 input
-            nn.ReLU(),
-            nn.Dropout(dropout_prob),
-            nn.Linear(1024, num_classes)
+            nn.Linear(self.fc_input_size, num_classes)
         )
 
     def forward(self, x):
@@ -64,7 +68,6 @@ class FiveLayerCNN(nn.Module):
         """
         x = self.conv_layers(x)
         if not hasattr(self, '_printed_shape'):
-            print(f"⚠️ Shape before flattening in forward: {x.shape}")  # Debug print
             self._printed_shape = True
         x = torch.flatten(x, start_dim=1)
         x = self.fc_layers(x)

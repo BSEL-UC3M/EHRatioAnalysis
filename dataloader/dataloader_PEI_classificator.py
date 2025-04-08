@@ -12,11 +12,15 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 import torch
 import cv2
+from PIL import Image
+import numpy as np
+
 
 # Add utils folder to path to import preprocessing script
 import sys
 sys.path.append("/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/utils")
 from utils.preprocessing_all_images import preprocess_all_images
+from utils.pipeline_setup.utils import preprocess_pei_image
 
 class ClassificationDataset(Dataset):
     """
@@ -121,7 +125,6 @@ class ClassificationDataLoader:
         else:
             print("⚠️ Using existing preprocessed images.")
 
-        # ✅ Esta función va aquí dentro
         def get_image_files(patient_folders):
             image_files = []
             for folder_name in patient_folders:
@@ -153,62 +156,44 @@ class ClassificationDataLoader:
 
         return train_loader, val_loader, test_loader
 
-    # @staticmethod
-    # def train_val_test_split(images_folder, annotations, splits=(0.7, 0.15, 0.15), batch_size=8, shuffle=True, transform=None):
-    #     """
-    #     Splits the data into training, validation, and testing sets by patient ID.
-    #     """
-    #     assert sum(splits) == 1.0, "Splits must sum to 1.0."
+class InferenceDataset(Dataset):
+    def __init__(self, image_folder, transform=None):
+        self.image_folder = image_folder
+        self.image_paths = [
+            os.path.join(image_folder, fname)
+            for fname in sorted(os.listdir(image_folder))
+            if fname.lower().endswith((".png", ".jpg", ".jpeg", ".tif", ".tiff"))
+        ]
+        self.transform = transform
 
-    #     # Define processed images folder inside PEI_data
-    #     processed_images_folder = os.path.join(os.path.dirname(images_folder), "PEI_processed_data")
+    def __len__(self):
+        return len(self.image_paths)
 
-    #     # Check if preprocessing is needed
-    #     if not os.path.exists(processed_images_folder) or len(os.listdir(processed_images_folder)) == 0:
-    #         print("\n🔄 Preprocessing images...\n")
-    #         preprocess_all_images(images_folder, processed_images_folder)
-    #         print("✅ Preprocessing complete. Processed images saved in:", processed_images_folder)
-    #     else:
-    #         print("⚠️ Using existing preprocessed images.")
+    def __getitem__(self, idx):
+        image_path = self.image_paths[idx]
+        filename = os.path.basename(image_path)
 
-    #     # Get the list of patient folders
-    #     patient_folders = list(annotations.keys())
-    #     if shuffle:
-    #         random.shuffle(patient_folders)
+        pil_image = Image.open(image_path).convert("F")  # "F" = 32-bit float grayscale
+        image = np.array(pil_image, dtype=np.float32) / 255.0
 
-    #     num_patients = len(patient_folders)
-    #     num_train = int(splits[0] * num_patients)
-    #     num_val = int(splits[1] * num_patients)
+        # --- Expand grayscale image to (H, W, 1) ---
+        if image.ndim == 2:
+            image = np.stack([image] * 3, axis=-1)  # shape: (H, W, 3)
 
-    #     train_patients = patient_folders[:num_train]
-    #     val_patients = patient_folders[num_train:num_train + num_val]
-    #     test_patients = patient_folders[num_train + num_val:]
 
-    #     def get_image_files(patients):
-    #         image_files=[]
-    #         for patient in patients:
-    #             patient_folder = os.path.join(processed_images_folder, patient)
-    #             if not os.path.exists(patient_folder):
-    #                 print(f"WARNING: Folder {patient_folder} not found!")
-    #                 continue
-    #             patient_images = [
-    #                 os.path.join(patient, file)
-    #                 for file in os.listdir(patient_folder)
-    #                 if file.endswith('.tif') and "(1)" not in file and "(2)" not in file
-    #             ]
-    #             image_files.extend(patient_images)
-    #         return image_files
+        # --- Apply preprocessing ---
+        image = preprocess_pei_image(image)
 
-    #     train_files = get_image_files(train_patients)
-    #     val_files = get_image_files(val_patients)
-    #     test_files = get_image_files(test_patients)
+        # --- Convert to torch.Tensor with shape (C, H, W) ---
+        image = torch.from_numpy(image).permute(2, 0, 1).float()
 
-    #     train_dataset = ClassificationDataset(train_files, processed_images_folder, annotations, transform)
-    #     val_dataset = ClassificationDataset(val_files, processed_images_folder, annotations, transform)
-    #     test_dataset = ClassificationDataset(test_files, processed_images_folder, annotations, transform)
+        return {
+            "image": image,
+            "filename": filename
+        }
 
-    #     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    #     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    #     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    #     return train_loader, val_loader, test_loader
+def load_inference_dataloader(image_folder, batch_size=16, transform=None):
+    dataset = InferenceDataset(image_folder, transform=transform)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=False)
+

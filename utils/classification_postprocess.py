@@ -79,6 +79,7 @@ def smooth_classification_predictions(results, enforce_continuity=True):
 # ------------------------------------------------------------------------------
 
 def plot_comparison(before, after, save_path="./comparison_plots"):
+    os.makedirs(save_path, exist_ok=True)
     grouped_before = defaultdict(list)
     grouped_after = defaultdict(list)
 

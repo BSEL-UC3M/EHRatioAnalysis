@@ -60,13 +60,11 @@ class FiveLayerCNN(nn.Module):
         with torch.no_grad():
             x = torch.randn(1, 3, 224, 224)  # Simular una imagen de entrada
             x = self.conv_layers(x)
-            print(f"Shape before flattening: {x.shape} -> Expected flattened size: {x.view(1, -1).size(1)}")  # Debug print
             return x.view(1, -1).size(1)  # Obtener el tamaño correcto
     
     def forward(self, x):
         x = self.conv_layers(x)
         if not hasattr(self, '_printed_shape'):
-            print(f"Shape before flattening in forward: {x.shape}")
             self._printed_shape = True  # Debug print
         x = torch.flatten(x, start_dim=1)
         x = self.fc_layers(x)

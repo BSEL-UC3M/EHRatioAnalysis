@@ -1,78 +1,86 @@
 # ==============================================================================
 # File: main.py
-# Description: Full inference pipeline: classification > detection > segmentation
-#  > EH Ratio Calculation.
+# Description: Full inference pipeline: EarGate > Object Detection > Segmentation > EH Ratio.
 # Author: @cfusterbarcelo
 # Created: 25/03/2025
 # ==============================================================================
 
 import os
 import torch
-import numpy as np
+import warnings
 from datetime import datetime
+from utils.pipeline_setup.EarGate import run_eargate_inference
+from utils.pipeline_setup.utils import find_model_by_keywords, setup_pipeline_folders
 
-from dataloader.dataloader_MRC_classificator import load_inference_dataloader
-from models.classificator.five_layer_cnn import FiveLayerCNN
-from utils.classification_postprocess import smooth_classification_predictions, plot_comparison, plot_comparison_with_labels, save_comparison_csv
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
-HAS_LABELS = True
-LABELS_CSV = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF/MRC_TIFF_Annotations.xlsx"
-CLASSIFICATION_MODEL = "D:/GitHub/EHRatioAnalysis/results/results_classificator/results_classificator_MRC/cnn_20250402-130217/cnn_best_weights.pt"
-MRC_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
-PEI_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI TIFF/"
+# ------------------------------------------------------------------------------
+# 🧠 Configuration
+# ------------------------------------------------------------------------------
+
+HAS_LABELS = False
+# LABELS_CSV = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF/MRC_TIFF_Annotations.xlsx"
+
+MODELS_FOLDER = "D:/Models/EHydropsAnalysis/2025/"
+RAW_DATA_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
+RAW_DATA_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI-TEST-INFERENCE/"
+
+RESULTS_FOLDER = "./results/pipeline/"
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+folder_paths = setup_pipeline_folders(RESULTS_FOLDER, timestamp)
+
+MRC_CLASSIF_DIR = folder_paths["MRC_classification"]
+PEI_CLASSIF_DIR = folder_paths["PEI_classification"]
+
+# Other config
 BATCH_SIZE = 16
-CLASSIFICATION_OUTPUT = "D:/GitHub/EHRatioAnalysis/results/results_classificator/results_classificator_MRC/cnn_20250402-130217/inference"
-THRESHOLD = 0.2 # Confidence threshold to bias towards class 1
-
-os.makedirs(CLASSIFICATION_OUTPUT, exist_ok=True)
-timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-
-
-# ✅ Update device compatibility for Windows (no MPS support there)
+CLASS_THRESHOLD = 0.2
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-############################### CLASSIFICATION ###############################
-#----------------------------- Inference -----------------------------
-print("🚀 Running inference on classification of slices")
-model = FiveLayerCNN(num_classes=2).to(DEVICE)
-model.load_state_dict(torch.load(CLASSIFICATION_MODEL, map_location=DEVICE))
-model.eval()
+# Finding models
+MRC_CLASSIFICATION_MODEL = find_model_by_keywords(
+    root_folder=MODELS_FOLDER,
+    required_keywords=["classifier", "MRC"]
+)
+PEI_CLASSIFICATION_MODEL = find_model_by_keywords(
+    root_folder=MODELS_FOLDER,
+    required_keywords=["classifier", "PEI"]
+)
+# MRC_OBJECT_DETECTOR = find_model_by_keywords(MODELS_FOLDER, ["object_detector", "MRC"])
+# PEI_SEGMENTATOR = find_model_by_keywords(MODELS_FOLDER, ["segmentator", "PEI"])
 
-# Load test images
-inference_loader = load_inference_dataloader(MRC_IMAGES_FOLDER, batch_size=BATCH_SIZE)
+# ------------------------------------------------------------------------------
+# 👂 EarGate (Slice Classification + Postprocessing)
+# ------------------------------------------------------------------------------
 
-# Run inference
-results = []
-with torch.no_grad():
-    for batch in inference_loader:
-        images = batch["image"].to(DEVICE)
-        filenames = batch["filename"]
-        outputs = model(images)
-        probs = torch.softmax(outputs, dim=1)
-        predictions = (probs[:, 1] > THRESHOLD).long().cpu().numpy()
-        
-        for fname, pred in zip(filenames, predictions):
-            results.append((fname, pred))
+print("\n🌀 STEP 1: EarGate – Classifying slices into ear vs. non-ear\n")
 
-#----------------------------- PostProcess -----------------------------
-print("🧹 Running post-processing to clean classification results")
+results_mrc = run_eargate_inference(
+    image_folder=RAW_DATA_MRC,
+    model_path=MRC_CLASSIFICATION_MODEL,
+    device=DEVICE,
+    result_folder=os.path.join(RESULTS_FOLDER, "MRC_classification"),
+    label_csv=None,
+    dataset_type="MRC",
+    class_threshold=CLASS_THRESHOLD,
+    batch_size=BATCH_SIZE
+)
 
-# Apply smoothing and continuity enforcement
-cleaned_results = smooth_classification_predictions(results)
+results_pei = run_eargate_inference(
+    image_folder=RAW_DATA_PEI,
+    model_path=PEI_CLASSIFICATION_MODEL,
+    device=DEVICE,
+    result_folder=os.path.join(RESULTS_FOLDER, "PEI_classification"),
+    label_csv=None,
+    dataset_type="PEI",
+    class_threshold=CLASS_THRESHOLD,
+    batch_size=BATCH_SIZE
+)
 
-# Save visual comparison plots per patient
-if HAS_LABELS:
-    plot_comparison_with_labels(
-        before=results,
-        after=cleaned_results,
-        label_csv=LABELS_CSV,
-        save_path=os.path.join(CLASSIFICATION_OUTPUT, "plots_with_labels")
-    )
-else:
-    plot_comparison(results, cleaned_results, save_path=os.path.join(CLASSIFICATION_OUTPUT, "plots"))
+# At this point you have two lists:
+# - `mrc_cleaned`: [(filename, 0 or 1)] for MRC
+# - `pei_cleaned`: [(filename, 0 or 1)] for PEI
+# You can now move to object detection using only filenames where label == 1.
 
-# Save comparison CSV
-save_comparison_csv(results, cleaned_results, save_path=os.path.join(CLASSIFICATION_OUTPUT, "comparison.csv"))
-
-print(f"✅ Post-processed results saved to: {CLASSIFICATION_OUTPUT}")
-
+print("\n✅ EarGate complete! Ready to proceed to object detection...\n")
