@@ -26,12 +26,13 @@ MODELS_FOLDER = "D:/Models/EHydropsAnalysis/2025/"
 RAW_DATA_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
 RAW_DATA_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI-TEST-INFERENCE/"
 
-RESULTS_FOLDER = "./results/pipeline/"
+RESULTS_FOLDER = "./results/pipeline"
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
 folder_paths = setup_pipeline_folders(RESULTS_FOLDER, timestamp)
 
-MRC_CLASSIF_DIR = folder_paths["MRC_classification"]
-PEI_CLASSIF_DIR = folder_paths["PEI_classification"]
+MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]
+PEI_CLASSIF_DIR = folder_paths["classification"]["pei"]
+
 
 # Other config
 BATCH_SIZE = 16
@@ -60,7 +61,7 @@ results_mrc = run_eargate_inference(
     image_folder=RAW_DATA_MRC,
     model_path=MRC_CLASSIFICATION_MODEL,
     device=DEVICE,
-    result_folder=os.path.join(RESULTS_FOLDER, "MRC_classification"),
+    result_folder=MRC_CLASSIF_DIR["base"],
     label_csv=None,
     dataset_type="MRC",
     class_threshold=CLASS_THRESHOLD,
@@ -71,7 +72,7 @@ results_pei = run_eargate_inference(
     image_folder=RAW_DATA_PEI,
     model_path=PEI_CLASSIFICATION_MODEL,
     device=DEVICE,
-    result_folder=os.path.join(RESULTS_FOLDER, "PEI_classification"),
+    result_folder=PEI_CLASSIF_DIR["base"],
     label_csv=None,
     dataset_type="PEI",
     class_threshold=CLASS_THRESHOLD,

@@ -62,19 +62,25 @@ def run_eargate_inference(
     # Postprocessing
     cleaned = smooth_classification_predictions(raw_preds)
 
+    plots_path = os.path.join(result_folder, "plots")
+
+    plots_with_labels_path = os.path.join(result_folder, "plots_with_labels")
+    os.makedirs(plots_path, exist_ok=True)
+    os.makedirs(plots_with_labels_path, exist_ok=True)
+
     # Plotting
     if label_csv:
         plot_comparison_with_labels(
             before=raw_preds,
             after=cleaned,
             label_csv=label_csv,
-            save_path=os.path.join(result_folder, "plots_with_labels")
+            save_path=plots_with_labels_path
         )
     else:
         plot_comparison(
             before=raw_preds,
             after=cleaned,
-            save_path=os.path.join(result_folder, "plots")
+            save_path=plots_path
         )
 
     # Save CSV

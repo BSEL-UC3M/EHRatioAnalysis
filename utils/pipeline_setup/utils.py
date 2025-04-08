@@ -8,6 +8,7 @@
 import os
 import numpy as np
 from scipy.ndimage import gaussian_filter
+from collections import defaultdict
 
 def find_model_by_keywords(root_folder, required_keywords, extension=".pt"):
     """
@@ -19,27 +20,6 @@ def find_model_by_keywords(root_folder, required_keywords, extension=".pt"):
             if file.endswith(extension) and all(k.lower() in file.lower() for k in required_keywords):
                 return os.path.join(dirpath, file)
     return None
-
-def setup_pipeline_folders(base_folder, timestamp):
-    """
-    Create and return standardized folder paths for each step of the pipeline.
-    """
-    root = os.path.join(base_folder, timestamp)
-    os.makedirs(root, exist_ok=True)
-
-    paths = {
-        "root": root,
-        "MRC_classification": os.path.join(root, "MRC_classification"),
-        "PEI_classification": os.path.join(root, "PEI_classification"),
-        # Add others as needed later
-    }
-
-    # Create base folders and their subfolders
-    for path in paths.values():
-        os.makedirs(os.path.join(path, "plots"), exist_ok=True)
-        os.makedirs(os.path.join(path, "plots_with_labels"), exist_ok=True)
-
-    return paths
 
 def histogram_adjustment(image, lower_threshold_factor=2.4, upper_threshold_factor=2.2):
     mean_intensity = np.mean(image)
@@ -64,3 +44,38 @@ def preprocess_pei_image(img_array):
     img_adjusted = histogram_adjustment(img_adjusted)
     img_inverted = invert_image(img_adjusted)
     return img_inverted
+
+def setup_pipeline_folders(base_results_folder, timestamp):
+    """
+    Creates a clean folder structure for classification, detection, and segmentation,
+    separated by MRC and PEI under a timestamped run.
+
+    Returns a dict with paths to each key output directory.
+    """
+    tasks = ["classification", "detection", "segmentation"]
+    datasets = ["mrc", "pei"]
+    folder_paths = defaultdict(dict)
+
+    for task in tasks:
+        for ds in datasets:
+            base = os.path.join(base_results_folder, task, ds, timestamp)
+            os.makedirs(base, exist_ok=True)
+
+            # Extra subfolders for classification
+            if task == "classification":
+                plots_path = os.path.join(base, "plots")
+                labels_path = os.path.join(base, "plots_with_labels")
+                os.makedirs(plots_path, exist_ok=True)
+                os.makedirs(labels_path, exist_ok=True)
+
+                folder_paths[task][ds] = {
+                    "base": base,
+                    "plots": plots_path,
+                    "plots_with_labels": labels_path
+                }
+            else:
+                folder_paths[task][ds] = {
+                    "base": base
+                }
+
+    return folder_paths
