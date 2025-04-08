@@ -18,18 +18,18 @@ SAVE_RESULTS = True  # Toggle this flag to enable/disable result saving
 EPOCHS = 50 # Number of training epochs
 BATCH_SIZE = 8  # Training batch size
 # Convertir el dataset original a TIFF uint8 en carpeta temporal
-ORIGINAL_YAML = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations/dataset.yaml" # MRC
-# ORIGINAL_YAML = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations_PEI/dataset.yaml" # PEI
-TEMP_UINT8_DIR = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations_MRC_uint8"
-# TEMP_UINT8_DIR = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations_PEI_uint8" # PEI
+# ORIGINAL_YAML = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations/dataset.yaml" # MRC
+ORIGINAL_YAML = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations_PEI/dataset.yaml" # PEI
+# TEMP_UINT8_DIR = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations_MRC_uint8"
+TEMP_UINT8_DIR = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations_PEI_uint8" # PEI
 
 DATASET_YAML = convert_yolo_dataset_to_uint8(
     original_yaml_path=ORIGINAL_YAML,
     output_base_dir=TEMP_UINT8_DIR
 )
 
-OUTPUT_DIR="results/results_object_detector/MRC"
-# OUTPUT_DIR="results/results_object_detector/PEI" # PEI
+# OUTPUT_DIR="results/results_object_detector/MRC"
+OUTPUT_DIR="results/results_object_detector/PEI" # PEI
 # ==============================================================================
 # MAIN EXECUTION
 # ==============================================================================
