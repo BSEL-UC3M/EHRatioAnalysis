@@ -15,7 +15,7 @@ from utils.convert_dataset_to_uint8 import convert_yolo_dataset_to_uint8
 # CONFIGURATION
 # ==============================================================================
 SAVE_RESULTS = True  # Toggle this flag to enable/disable result saving
-EPOCHS = 3 # Number of training epochs
+EPOCHS = 50 # Number of training epochs
 BATCH_SIZE = 8  # Training batch size
 # Convertir el dataset original a TIFF uint8 en carpeta temporal
 ORIGINAL_YAML = "/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/YOLO_annotations/dataset.yaml" # MRC
