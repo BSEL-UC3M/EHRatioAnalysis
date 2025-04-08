@@ -16,7 +16,7 @@ from models.object_detector.object_detector import YOLOv5
 
 
 # Define results directory
-RESULTS_DIR = "./results/object_detector/MRC"
+RESULTS_DIR = "./results/object_detector/PEI"
 
 def train_yolo(
     dataset_yaml,
