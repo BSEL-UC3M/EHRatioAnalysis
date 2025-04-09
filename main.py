@@ -8,11 +8,14 @@
 import torch
 import warnings
 import time
+import pandas as pd
+import os
 
 from utils.pipeline_setup.EarGate import run_eargate_inference
 from utils.pipeline_setup.utils import find_model_by_keywords, setup_pipeline_folders
 from utils.pipeline_setup.AuriBox import run_auribox_inference
 from utils.pipeline_setup.EHMasker import run_ehmasker_inference
+from utils.pipeline_setup.RatioCalculator import compute_eh_ratios
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -152,6 +155,19 @@ pei_segmentation_masks = run_ehmasker_inference(
 
 print("\n✅ EHMasker complete! Segmentation results ready for EH Ratio computation...\n")
 
+# -------------------------------------------------------------------------
+# 📊 RatioCalculator (Volume computation and EH ratio)
+# -------------------------------------------------------------------------
+
+RATIO_OUTPUT_CSV = os.path.join(RESULTS_FOLDER, "eh_volume_ratios.csv")
+
+print("\n📊 STEP 4: RatioCalculator – Computing EH Ratios from segmented masks\n")
+
+compute_eh_ratios(
+    mrc_mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
+    pei_mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks"),
+    output_csv_path=RATIO_OUTPUT_CSV,
+)
 
 elapsed = time.time() - start_time
 print(f"\n⏱️ Total pipeline runtime: {elapsed:.2f} seconds")
