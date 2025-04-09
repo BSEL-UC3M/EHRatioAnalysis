@@ -43,6 +43,7 @@ PEI_SEGMENT_DIR = folder_paths["segmentation"]["pei"]["base"]
 BATCH_SIZE = 16
 CLASS_THRESHOLD = 0.2
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+CONFIDENCE = 0.6
 
 # Finding models
 MRC_CLASSIFICATION_MODEL = find_model_by_keywords(
@@ -135,7 +136,8 @@ mrc_segmentation_masks = run_ehmasker_inference(
     model_path=MRC_SEGMENT_MODEL,
     device=DEVICE,
     result_folder=MRC_SEGMENT_DIR,
-    dataset_type="MRC"
+    dataset_type="MRC",
+    confidence=CONFIDENCE
 )
 
 pei_segmentation_masks = run_ehmasker_inference(
@@ -144,7 +146,8 @@ pei_segmentation_masks = run_ehmasker_inference(
     model_path=PEI_SEGMENT_MODEL,
     device=DEVICE,
     result_folder=PEI_SEGMENT_DIR,
-    dataset_type="PEI"
+    dataset_type="PEI",
+    confidence=CONFIDENCE
 )
 
 print("\n✅ EHMasker complete! Segmentation results ready for EH Ratio computation...\n")

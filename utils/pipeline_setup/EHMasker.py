@@ -22,8 +22,9 @@ def run_ehmasker_inference(
     model_path,
     device,
     result_folder,
-    dataset_type="MRC"
-):
+    dataset_type="MRC",
+    confidence=0.6
+    ):
     """
     Run segmentation on dynamically cropped ear regions from detected bounding boxes.
     Saves binary masks and returns dict with {filename: [mask_left, mask_right]}
@@ -32,9 +33,11 @@ def run_ehmasker_inference(
     masks_folder = os.path.join(result_folder, "masks")
     overlays_folder = os.path.join(result_folder, "overlays")
     input_folder = os.path.join(result_folder, "input")
+    tiff_folder = os.path.join(result_folder, "tiff")
     os.makedirs(masks_folder, exist_ok=True)
     os.makedirs(overlays_folder, exist_ok=True)
     os.makedirs(input_folder, exist_ok=True)
+    os.makedirs(tiff_folder, exist_ok=True)
 
     # Load model
     model = UNetOptimizedDO().to(device)
@@ -71,10 +74,13 @@ def run_ehmasker_inference(
             input_vis = (image * 255).astype(np.uint8)
             Image.fromarray(input_vis).save(input_vis_path)
 
+            tiff_path = os.path.join(tiff_folder, f"{pid}_{idx}_crop{i}_input.tif")
+            tiff.imwrite(tiff_path, (image[:, :, 0] * 255).astype(np.uint8))
+            
             with torch.no_grad():
                 output = model(input_tensor)
                 mask = torch.sigmoid(output).squeeze().cpu().numpy()
-                binary_mask = (mask > 0.5).astype(np.uint8)
+                binary_mask = (mask > confidence).astype(np.uint8)
 
             outname = f"{pid}_{idx}_crop{i}_mask.png"
             mask_path = os.path.join(masks_folder, outname)
