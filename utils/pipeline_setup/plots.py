@@ -72,3 +72,30 @@ def plot_detection_heatmap(detections_dict, image_shape, save_path):
     plt.title("Detection Heatmap")
     plt.savefig(os.path.join(save_path, "detection_heatmap.png"))
     plt.close()
+
+def save_segmentation_overlay(image_np, mask_np, save_path, title=None):
+    """
+    Save a visualization of the segmentation mask overlaid on the original image.
+    Args:
+        image_np (H, W, 3): Input image in [0,1] or [0,255] range
+        mask_np (H, W): Binary mask (0 or 1)
+        save_path (str): Output path to save the figure
+        title (str): Optional title for the plot
+    """
+    if image_np.max() <= 1.0:
+        image_np = (image_np * 255).astype(np.uint8)
+
+    # Create red mask with alpha
+    overlay = np.zeros((*mask_np.shape, 4))
+    overlay[..., 0] = 1.0  # Red
+    overlay[..., 3] = 0.4 * mask_np  # Alpha only where mask is 1
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    ax.imshow(image_np)
+    ax.imshow(overlay)
+    ax.axis("off")
+    if title:
+        ax.set_title(title)
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()

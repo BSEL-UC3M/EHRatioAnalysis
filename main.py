@@ -5,17 +5,18 @@
 # Created: 25/03/2025
 # ==============================================================================
 
-import os
 import torch
 import warnings
-from datetime import datetime
+import time
 
 from utils.pipeline_setup.EarGate import run_eargate_inference
 from utils.pipeline_setup.utils import find_model_by_keywords, setup_pipeline_folders
 from utils.pipeline_setup.AuriBox import run_auribox_inference
+from utils.pipeline_setup.EHMasker import run_ehmasker_inference
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
+start_time = time.time()
 
 # ------------------------------------------------------------------------------
 # 🧠 Configuration
@@ -35,6 +36,8 @@ MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]
 PEI_CLASSIF_DIR = folder_paths["classification"]["pei"]
 MRC_DETECT_DIR = folder_paths["detection"]["mrc"]["base"]
 PEI_DETECT_DIR = folder_paths["detection"]["pei"]["base"]
+MRC_SEGMENT_DIR = folder_paths["segmentation"]["mrc"]["base"]
+PEI_SEGMENT_DIR = folder_paths["segmentation"]["pei"]["base"]
 
 # Other config
 BATCH_SIZE = 16
@@ -57,6 +60,14 @@ MRC_DETECT_MODEL= find_model_by_keywords(
 PEI_DETECT_MODEL= find_model_by_keywords(
     root_folder=MODELS_FOLDER, 
     required_keywords=["object_detector", "PEI"]
+)
+MRC_SEGMENT_MODEL = find_model_by_keywords(
+    root_folder=MODELS_FOLDER,
+    required_keywords=["segmentator", "MRC"]
+)
+PEI_SEGMENT_MODEL = find_model_by_keywords(
+    root_folder=MODELS_FOLDER,
+    required_keywords=["segmentator", "PEI"]
 )
 
 # PEI_SEGMENTATOR = find_model_by_keywords(MODELS_FOLDER, ["segmentator", "PEI"])
@@ -112,3 +123,32 @@ detections_pei = run_auribox_inference(
     dataset_type="PEI"
 )
 
+# -------------------------------------------------------------------------
+# 🧼 EHMasker (Segmentation of cropped regions)
+# -------------------------------------------------------------------------
+
+print("\n🫧 STEP 3: EHMasker – Segmenting cropped regions\n")
+
+mrc_segmentation_masks = run_ehmasker_inference(
+    image_folder=RAW_DATA_MRC,
+    detections=detections_mrc,
+    model_path=MRC_SEGMENT_MODEL,
+    device=DEVICE,
+    result_folder=MRC_SEGMENT_DIR,
+    dataset_type="MRC"
+)
+
+pei_segmentation_masks = run_ehmasker_inference(
+    image_folder=RAW_DATA_PEI,
+    detections=detections_pei,
+    model_path=PEI_SEGMENT_MODEL,
+    device=DEVICE,
+    result_folder=PEI_SEGMENT_DIR,
+    dataset_type="PEI"
+)
+
+print("\n✅ EHMasker complete! Segmentation results ready for EH Ratio computation...\n")
+
+
+elapsed = time.time() - start_time
+print(f"\n⏱️ Total pipeline runtime: {elapsed:.2f} seconds")
