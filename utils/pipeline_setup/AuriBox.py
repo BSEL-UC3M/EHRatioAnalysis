@@ -11,6 +11,7 @@ from PIL import Image
 from ultralytics import YOLO
 from tqdm import tqdm
 from utils.pipeline_setup.utils import convert_images_to_uint8
+from utils.pipeline_setup.plots import plot_confidence_distribution, plot_detection_heatmap
 
 
 def run_auribox_inference(
@@ -74,5 +75,8 @@ def run_auribox_inference(
         except Exception as e:
             print(f"⚠️ Skipped {filename} due to error: {e}")
 
-    print(f"✅ Saved detection results to: {vis_folder}")
+    plot_confidence_distribution(detections, save_path=result_folder)
+    plot_detection_heatmap(detections, image_shape=(384, 324), save_path=result_folder)
+
+    print(f"✅ Saved detection results and plots to: {vis_folder}")
     return detections

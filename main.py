@@ -29,8 +29,7 @@ RAW_DATA_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_2
 RAW_DATA_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI-TEST-INFERENCE/"
 
 RESULTS_FOLDER = "./results/pipeline"
-timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-folder_paths = setup_pipeline_folders(RESULTS_FOLDER, timestamp)
+folder_paths = setup_pipeline_folders(RESULTS_FOLDER)
 
 MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]
 PEI_CLASSIF_DIR = folder_paths["classification"]["pei"]

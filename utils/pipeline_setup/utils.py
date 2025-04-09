@@ -48,10 +48,10 @@ def preprocess_pei_image(img_array):
     img_inverted = invert_image(img_adjusted)
     return img_inverted
 
-def setup_pipeline_folders(base_results_folder, timestamp):
+def setup_pipeline_folders(base_results_folder):
     """
     Creates a clean folder structure for classification, detection, and segmentation,
-    separated by MRC and PEI under a timestamped run.
+    separated by MRC and PEI.
 
     Returns a dict with paths to each key output directory.
     """
@@ -61,7 +61,7 @@ def setup_pipeline_folders(base_results_folder, timestamp):
 
     for task in tasks:
         for ds in datasets:
-            base = os.path.join(base_results_folder, task, ds, timestamp)
+            base = os.path.join(base_results_folder, task, ds)
             os.makedirs(base, exist_ok=True)
 
             # Initialize with base path
