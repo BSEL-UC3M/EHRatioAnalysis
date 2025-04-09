@@ -7,6 +7,9 @@
 
 import os
 import numpy as np
+from pathlib import Path
+from tifffile import imread, imwrite
+from datetime import datetime
 from scipy.ndimage import gaussian_filter
 from collections import defaultdict
 
@@ -61,21 +64,55 @@ def setup_pipeline_folders(base_results_folder, timestamp):
             base = os.path.join(base_results_folder, task, ds, timestamp)
             os.makedirs(base, exist_ok=True)
 
-            # Extra subfolders for classification
+            # Initialize with base path
+            folder_paths[task][ds] = {"base": base}
+
+            # Extra folders for classification
             if task == "classification":
                 plots_path = os.path.join(base, "plots")
                 labels_path = os.path.join(base, "plots_with_labels")
                 os.makedirs(plots_path, exist_ok=True)
                 os.makedirs(labels_path, exist_ok=True)
-
-                folder_paths[task][ds] = {
-                    "base": base,
+                folder_paths[task][ds].update({
                     "plots": plots_path,
                     "plots_with_labels": labels_path
-                }
-            else:
-                folder_paths[task][ds] = {
-                    "base": base
-                }
+                })
+
+            # Extra folders for detection
+            if task == "detection":
+                crops_path = os.path.join(base, "crops")
+                vis_path = os.path.join(base, "visuals")
+                os.makedirs(crops_path, exist_ok=True)
+                os.makedirs(vis_path, exist_ok=True)
+                folder_paths[task][ds].update({
+                    "crops": crops_path,
+                    "visuals": vis_path
+                })
 
     return folder_paths
+
+def convert_images_to_uint8(image_paths, output_folder=None):
+    """
+    Convert TIFF images to uint8 and save them to a temporary folder.
+    Returns the path to the temp folder and a list of converted filenames.
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    base = Path(output_folder or f"./temp_uint8/PEI_{timestamp}")
+    base.mkdir(parents=True, exist_ok=True)
+
+    converted_files = []
+
+    for image_path in image_paths:
+        try:
+            image = imread(image_path).astype("float32")
+            min_val, max_val = image.min(), image.max()
+            image = (image - min_val) / (max_val - min_val + 1e-6)
+            image_uint8 = (image * 255).astype("uint8")
+
+            output_path = base / Path(image_path).name
+            imwrite(str(output_path), image_uint8)
+            converted_files.append(str(output_path))
+        except Exception as e:
+            print(f"❌ Error converting {image_path}: {e}")
+
+    return str(base), converted_files

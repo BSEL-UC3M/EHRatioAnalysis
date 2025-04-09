@@ -9,8 +9,10 @@ import os
 import torch
 import warnings
 from datetime import datetime
+
 from utils.pipeline_setup.EarGate import run_eargate_inference
 from utils.pipeline_setup.utils import find_model_by_keywords, setup_pipeline_folders
+from utils.pipeline_setup.AuriBox import run_auribox_inference
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -32,7 +34,8 @@ folder_paths = setup_pipeline_folders(RESULTS_FOLDER, timestamp)
 
 MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]
 PEI_CLASSIF_DIR = folder_paths["classification"]["pei"]
-
+MRC_DETECT_DIR = folder_paths["detection"]["mrc"]["base"]
+PEI_DETECT_DIR = folder_paths["detection"]["pei"]["base"]
 
 # Other config
 BATCH_SIZE = 16
@@ -48,7 +51,15 @@ PEI_CLASSIFICATION_MODEL = find_model_by_keywords(
     root_folder=MODELS_FOLDER,
     required_keywords=["classifier", "PEI"]
 )
-# MRC_OBJECT_DETECTOR = find_model_by_keywords(MODELS_FOLDER, ["object_detector", "MRC"])
+MRC_DETECT_MODEL= find_model_by_keywords(
+    root_folder=MODELS_FOLDER, 
+    required_keywords=["object_detector", "MRC"]
+)
+PEI_DETECT_MODEL= find_model_by_keywords(
+    root_folder=MODELS_FOLDER, 
+    required_keywords=["object_detector", "PEI"]
+)
+
 # PEI_SEGMENTATOR = find_model_by_keywords(MODELS_FOLDER, ["segmentator", "PEI"])
 
 # ------------------------------------------------------------------------------
@@ -57,7 +68,7 @@ PEI_CLASSIFICATION_MODEL = find_model_by_keywords(
 
 print("\n🌀 STEP 1: EarGate – Classifying slices into ear vs. non-ear\n")
 
-results_mrc = run_eargate_inference(
+results_mrc_filtered = run_eargate_inference(
     image_folder=RAW_DATA_MRC,
     model_path=MRC_CLASSIFICATION_MODEL,
     device=DEVICE,
@@ -68,7 +79,7 @@ results_mrc = run_eargate_inference(
     batch_size=BATCH_SIZE
 )
 
-results_pei = run_eargate_inference(
+results_pei_filtered = run_eargate_inference(
     image_folder=RAW_DATA_PEI,
     model_path=PEI_CLASSIFICATION_MODEL,
     device=DEVICE,
@@ -78,10 +89,27 @@ results_pei = run_eargate_inference(
     class_threshold=CLASS_THRESHOLD,
     batch_size=BATCH_SIZE
 )
-
-# At this point you have two lists:
-# - `mrc_cleaned`: [(filename, 0 or 1)] for MRC
-# - `pei_cleaned`: [(filename, 0 or 1)] for PEI
-# You can now move to object detection using only filenames where label == 1.
-
 print("\n✅ EarGate complete! Ready to proceed to object detection...\n")
+
+# -------------------------------------------------------------------------
+# 📦 AuriBox (Object Detection for regions of interest)
+# -------------------------------------------------------------------------
+
+detections_mrc = run_auribox_inference(
+    image_folder=RAW_DATA_MRC,
+    model_path=MRC_DETECT_MODEL,
+    device=DEVICE,
+    result_folder=MRC_DETECT_DIR,
+    selected_images=results_mrc_filtered,
+    dataset_type="MRC"
+)
+
+detections_pei = run_auribox_inference(
+    image_folder=RAW_DATA_PEI,
+    model_path=PEI_DETECT_MODEL,
+    device=DEVICE,
+    result_folder=PEI_DETECT_DIR,
+    selected_images=results_pei_filtered,
+    dataset_type="PEI"
+)
+
