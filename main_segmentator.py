@@ -47,10 +47,10 @@ else:
     
     MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_MRC'
     MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC'
-    # PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #PEI_images_Z #normalized_images_PEI
-    # PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI'
-    PEI_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/segmentator_data/flipped_images_PEI"
-    PEI_LABELS_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/segmentator_data/mod_flipped_labels_PEI"    
+    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #PEI_images_Z #normalized_images_PEI
+    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI'
+    #PEI_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/segmentator_data/flipped_images_PEI"
+    #PEI_LABELS_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/segmentator_data/mod_flipped_labels_PEI"    
 
 
 if USE_MRC:
@@ -101,7 +101,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/PEI/20250405 PEI inf MODIEFIED LABELS"
+    results_folder = "./results/results_segmentator/PEI/20250411"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
@@ -134,7 +134,7 @@ val_patients = [
 
 test_patients = [
     "PAC77", "PAC65", "PAC30", "PAC28", "PAC81", "PAC88", "PAC5", "PAC55", "PAC76", "PAC12", "PAC70", "PAC14", 
-    "PAC18", "PAC29", "PAC32", "PAC36", "PAC4", "PAC15", "PAC82", "PAC500"
+    "PAC18", "PAC29", "PAC32", "PAC36", "PAC4", "PAC15", "PAC82"
 ]
 
 
@@ -336,8 +336,8 @@ if USE_MRC:
 elif USE_PEI:
     # Evaluate inference MRC
     print("Evaluating model with inference PEI")
-    # model_path = 'C:\\Users\\TFM1\\Desktop\\pei_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
-    model_path = "D:/Models/EHydropsAnalysis/2025/segmentator_PEI_weights.pt"
+    model_path = 'C:\\Users\\TFM1\\Desktop\\pei_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
+    #model_path = "D:/Models/EHydropsAnalysis/2025/segmentator_PEI_weights.pt"
     segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
     segmentator.eval() 
     trained_model = segmentator  # Asignar el modelo entrenado a trained_model
