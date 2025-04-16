@@ -1,7 +1,7 @@
 # ==============================================================================
 # File: main_segmentator.py
 # Description: Main script for training and evaluating the segmentation model.
-# Author: @cfusterbarcelo
+# Author: @cfusterbarcelo 
 # Creation Date: 03/09/2024
 # ==============================================================================
 
@@ -11,9 +11,9 @@ import torch.optim as optim
 import numpy as np
 from datetime import datetime
 from losses import losses
-from dataloader.dataloader_MRC import DataLoaderByPatient, DataLoaderByPatientSpecific
-from trainers.segmentator.pretrained_trainers import train_model, evaluate_model, new_evaluate_model, complete_evaluate_model
-from models.segmentator.segmentator import Segmentator, UNet, UNet_new, UNetOptimized, UNetOptimizedSE, UNetOptimizedDO
+from dataloader.dataloader_MRC import DataLoaderByPatientSpecific
+from trainers.segmentator.pretrained_trainers import train_model, complete_evaluate_model
+from models.segmentator.segmentator import Segmentator, UNetOptimizedDO
 
 
 # ==============================================================================
@@ -27,52 +27,40 @@ LEARNING_RATE = 1e-4  # Learning rate for the optimizer
 BATCH_SIZE = 16  # Batch size for training
 #DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
 
-USE_MRC = False  # Toggle to use the MRC dataset 
-USE_PEI = True  # Toggle to use the PEI dataset
+USE_MRC = True  # Toggle to use the MRC dataset 
+USE_PEI = False  # Toggle to use the PEI dataset
 
-# Verificar si estamos en Kaggle o en local
+LOSS_FUNCTION = "bce_dice" 
+
+# =================================================================================
+
+# Verify wether using Kaggle or local environment
 if os.path.exists('/kaggle/input'):
-    # Si estamos en Kaggle, usar la ruta de Kaggle
-    MRC_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/images/normalized_images_MRC'
-    MRC_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/MRC_labels'
-    PEI_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/images/PEI_images_preprocessed'
-    PEI_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/PEI_labels'
+    MRC_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/images/flipped_images_MRC'
+    MRC_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/new_flipped_labels_MRC'
+    PEI_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/images/flipped_images_PEI'
+    PEI_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/mod_flipped_labels_PEI'
 else:
-    # Si estamos en local, usar la ruta local
-
-    # MRC_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\MRC_normalized_images"
-    # MRC_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\MRC_labels"
-    # PEI_IMAGES_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\images\PEI_images_Z"
-    # PEI_LABELS_FOLDER = r"D:\Desktop\NORMALIZED_CROPPED_DATASET\labels\PEI_labels_Z"
-    
     MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_MRC'
     MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC'
-    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #PEI_images_Z #normalized_images_PEI
+    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' 
     PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI'
-    #PEI_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/segmentator_data/flipped_images_PEI"
-    #PEI_LABELS_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/segmentator_data/mod_flipped_labels_PEI"    
-
-
+  
 if USE_MRC:
     IMAGES_FOLDER = MRC_IMAGES_FOLDER
     LABELS_FOLDER = MRC_LABELS_FOLDER
 elif USE_PEI:
     IMAGES_FOLDER = PEI_IMAGES_FOLDER
     LABELS_FOLDER = PEI_LABELS_FOLDER
+
 # ================================================================================
 
 # Initialize the segmentation model
 segmentator = UNetOptimizedDO()
 
 # Check if GPU is available, otherwise use CPU
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = "cpu"
-# Imprime el dispositivo que se está utilizando
-print(f"El dispositivo en uso es: {device}")
-print(torch.cuda.is_available()) # Imprime si CUDA está disponible
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 segmentator = segmentator.to(device)
-
-LOSS_FUNCTION = "bce_dice"  # Opciones: "bce_dice", "focal"
 
 if LOSS_FUNCTION == "bce_dice":
     criterion = losses.BCE_and_Dice_loss(
@@ -101,14 +89,14 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # Create results directory if needed
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/PEI/20250411"
+    results_folder = "./results/results_segmentator/MRC/20250416"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
 else:
     results_dir = None
 # ================================================================================
-# Sepecific patient Dataloader for MRC dataset
+# Sepecific patient Dataloader for each dataset
 
 train_patients = [
     "PAC59", "PAC11", "PAC43", "PAC2", "PAC73", "PAC67", "PAC16", "PAC27", "PAC41", "PAC33", "PAC46", "PAC48", 
@@ -147,25 +135,6 @@ train_loader, val_loader, test_loader = DataLoaderByPatientSpecific.train_val_te
     batch_size=BATCH_SIZE, 
     shuffle=True, transform=None
 )
-
-# ================================================================================
-
-# # Initialize the data loader with your custom DataLoader class
-# data_loader = DataLoaderByPatient()
-# train_loader, val_loader, test_loader= data_loader.train_val_test_split_bypatient(
-#     images_folder=IMAGES_FOLDER,
-#     labels_folder=LABELS_FOLDER,
-#     splits=DATA_SPLITS,
-#     batch_size=BATCH_SIZE,
-#     shuffle=True,
-#     transform=None
-# )
-print(f"Train loader: {len(train_loader)} batches")
-print(f"Validation loader: {len(val_loader)} batches")  
-print(f"Test loader: {len(test_loader)} batches")
-print(f"Train loader: {len(train_loader.dataset)} images")
-print(f"Validation loader: {len(val_loader.dataset)} images")   
-print(f"Test loader: {len(test_loader.dataset)} images")
 
 # ==================
 
@@ -268,51 +237,6 @@ ax.axis("off")
 # Mostrar el resultado
 plt.show()
 
-
-# --------------
-# # LET'S VISUALIZE SOME OF OUR INPUT DATA STRAIGHT FROM THE FOLDER 
-# import os
-# from PIL import Image
-# import matplotlib.pyplot as plt
-
-# # Selecciona un archivo de imagen y etiqueta (usa el mismo nombre de base)
-# image_filename = "PAC5_right_main_right.tif"  # Reemplaza con un nombre de archivo válido
-# label_filename = "PAC5_right_main_right.tif"  # Reemplaza con el nombre correspondiente
-
-# # Construir rutas completas
-# image_path = os.path.join(IMAGES_FOLDER, image_filename)
-# label_path = os.path.join(LABELS_FOLDER, label_filename)
-
-# # Cargar la imagen y la etiqueta usando PIL
-# image = Image.open(image_path)
-# label = Image.open(label_path)
-
-# # Mostrar imagen y etiqueta en un subplot de dos secciones
-# fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-
-# # Mostrar la imagen
-# ax[0].imshow(image, cmap="gray")
-# ax[0].set_title("Imagen")
-# ax[0].axis("off")
-
-# # Mostrar la etiqueta
-# ax[1].imshow(label, cmap="gray")  # Cambia cmap según el formato de la etiqueta
-# ax[1].set_title("Etiqueta")
-# ax[1].axis("off")
-
-# # Mostrar el plot
-# plt.tight_layout()
-# plt.show()
-
-# # Convert to numpy array
-# image = np.array(image)
-
-# print("Image min:", image.min())
-# print("Image max:", image.max())
-
-
-# ==============================================================================
-
 # Check shape of data: Obtener un batch del train_loader
 for images, labels, names in train_loader:
     print(f"Dimensiones de las imágenes: {images.shape}")
@@ -337,24 +261,9 @@ elif USE_PEI:
     # Evaluate inference MRC
     print("Evaluating model with inference PEI")
     model_path = 'C:\\Users\\TFM1\\Desktop\\pei_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
-    #model_path = "D:/Models/EHydropsAnalysis/2025/segmentator_PEI_weights.pt"
     segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
     segmentator.eval() 
     trained_model = segmentator  # Asignar el modelo entrenado a trained_model
-
-# print("Evaluating model with inference MRC")
-# model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
-# segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
-# segmentator.eval() 
-# trained_model = segmentator  # Asignar el modelo entrenado a trained_model
-
-# ===============
-# # Evaluate inference MRC
-# print("Evaluating model with inference PEI")
-# model_path = 'C:\\Users\\TFM1\\Desktop\\peinew_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
-# segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
-# segmentator.eval() 
-# trained_model = segmentator  # Asignar el modelo entrenado a trained_model
 
 # Evaluate the model
 if USE_MRC:
@@ -362,8 +271,7 @@ if USE_MRC:
 elif USE_PEI:
     threshold = 0.8
 print("Evaluating model...")
-avg_loss, mean_dice, mean_iou = complete_evaluate_model(trained_model, test_loader, device, criterion, results_dir, threshold=threshold) #for PEI = 0.8 for mrc = 0.98
-#avg_loss, mean_dice, mean_iou = mrc_evaluate_model(trained_model, test_loader, device, criterion, results_dir)
+avg_loss, mean_dice, mean_iou = complete_evaluate_model(trained_model, test_loader, device, criterion, results_dir, threshold=threshold) 
 
 # Save the trained model if results are being saved
 if SAVE_RESULTS:
@@ -372,10 +280,7 @@ if SAVE_RESULTS:
     print(f"Model saved to {model_save_path}")
 
 if SAVE_WEIGHTS:
-    #best_epoch = np.argmin(val_losses)  # Find the epoch with the lowest validation loss
     weights_save_path = os.path.join(results_dir, "mrc_segmentator_best_weights.pt")
     torch.save(trained_model.state_dict(), weights_save_path)
     print(f"Model weights saved at {weights_save_path}")
 
-# ==============================================================================
-#trained_model.new_visualize_segmentation(test_loader, device=device, results_dir=results_dir, save_results=SAVE_RESULTS)
