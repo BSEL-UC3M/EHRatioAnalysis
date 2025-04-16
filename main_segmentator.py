@@ -14,27 +14,31 @@ from losses import losses
 from dataloader.dataloader_MRC import DataLoaderByPatientSpecific
 from trainers.segmentator.pretrained_trainers import train_model, complete_evaluate_model
 from models.segmentator.segmentator import Segmentator, UNetOptimizedDO
+from utils.visualize_mask import visualize_sample_with_overlay_and_contour
 
 
 # ==============================================================================
 
 # Configuration Parameters
-SAVE_RESULTS = True  # Toggle to save results
+
+USE_MRC = False  
+USE_PEI = True  
+
+SAVE_RESULTS = True  
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 25  # Number of training epochs
+NUM_EPOCHS = 25  
 
-LEARNING_RATE = 1e-4  # Learning rate for the optimizer
-BATCH_SIZE = 16  # Batch size for training
-#DATA_SPLITS = (0.6, 0.2, 0.2)  # Train, validation, test splits
+LEARNING_RATE = 1e-4  
+BATCH_SIZE = 16  
 
-USE_MRC = True  # Toggle to use the MRC dataset 
-USE_PEI = False  # Toggle to use the PEI dataset
+MODE = "inference"  # Set the mode: "train", "inference_mrc", or "inference_pei"
 
 LOSS_FUNCTION = "bce_dice" 
 
 # =================================================================================
 
 # Verify wether using Kaggle or local environment
+
 if os.path.exists('/kaggle/input'):
     MRC_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/images/flipped_images_MRC'
     MRC_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/new_flipped_labels_MRC'
@@ -56,9 +60,9 @@ elif USE_PEI:
 # ================================================================================
 
 # Initialize the segmentation model
+
 segmentator = UNetOptimizedDO()
 
-# Check if GPU is available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 segmentator = segmentator.to(device)
 
@@ -82,12 +86,10 @@ elif LOSS_FUNCTION == "custom_combined":
 else:
     raise ValueError("Invalid loss function selected. Choose 'bce_dice' or 'focal'.")
 
-# Define the optimizer (Adam optimizer)
 optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 
 # ==============================================================================
 
-# Create results directory if needed
 if SAVE_RESULTS:
     results_folder = "./results/results_segmentator/MRC/20250416"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -96,6 +98,7 @@ if SAVE_RESULTS:
 else:
     results_dir = None
 # ================================================================================
+
 # Sepecific patient Dataloader for each dataset
 
 train_patients = [
@@ -136,136 +139,39 @@ train_loader, val_loader, test_loader = DataLoaderByPatientSpecific.train_val_te
     shuffle=True, transform=None
 )
 
-# ==================
+# ==================================================================================
 
-# LET'S VISUALIZE SOME OF OUR INPUT DATA FROM THE DATALOADER
-import matplotlib.pyplot as plt
-import torchvision.transforms as transforms
+# Visualize a sample from the training set
 
-# Obtener un lote del train_loader
-data_iter = iter(train_loader)
-images, labels, names = next(data_iter)
+visualize_sample_with_overlay_and_contour(train_loader, index=1)
 
-# Seleccionar la primera imagen y su correspondiente label
-image = images[1]  # Primera imagen
-label = labels[1]  # Primer label
+# ==================================================================================
 
-# Transponer la imagen de [3, 96, 96] a [96, 96, 3] para visualización
-image = image.permute(1, 2, 0)
-label = label.permute(1,2,0)
+# Train the model or do inference
 
-# Normalizar los valores de la imagen para mostrarlos (si es necesario)
-image = image.numpy()  # Convertir a numpy
-label = label.numpy()
+if MODE == "train":
+    print("Starting training...")
+    trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, NUM_EPOCHS, val_dataloader=val_loader)
+elif MODE == "inference": 
+    if USE_MRC:
+        print("Evaluating model with inference MRC")
+        model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt' 
+        segmentator.load_state_dict(torch.load(model_path))  
+        segmentator.eval() 
+        trained_model = segmentator  
+    elif USE_PEI:
+        # Evaluate inference MRC
+        print("Evaluating model with inference PEI")
+        model_path = 'C:\\Users\\TFM1\\Desktop\\pei_segmentator_best_weights.pt'  
+        segmentator.load_state_dict(torch.load(model_path))  
+        segmentator.eval() 
+        trained_model = segmentator  
 
-# ============= PLOT IMAHES AND LABELS THAT GO INTO THE MODEL FOR TRAINING
-# Crear un plot con dos secciones
-fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
-# Mostrar la imagen en la primera sección
-ax[0].imshow(image, cmap="gray")
-ax[0].set_title("Imagen")
-ax[0].axis("off")
-
-# Mostrar el label correspondiente en la segunda sección
-ax[1].imshow(label, cmap="gray")
-ax[1].set_title("Label")
-ax[1].axis("off")
-
-# Mostrar el plot
-plt.tight_layout()
-plt.show()
-
-# =================== NEW PLOT 
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Asegurarnos de que 'label' sea 2D
-if label.ndim == 3:
-    label_red = label[:, :, 0]  # Eliminar dimensión extra si existe
-
-# Crear una imagen RGBA vacía con el mismo tamaño que la imagen
-mask_rgba = np.zeros((label_red.shape[0], label_red.shape[1], 4))  # (H, W, 4)
-
-# Asignar color rojo con 50% de transparencia solo a los píxeles blancos de la máscara
-mask_rgba[label_red > 0] = [1, 0, 0, 0.4]  # (Rojo, Verde, Azul, Transparencia)
-
-# Crear el plot
-fig, ax = plt.subplots(figsize=(6, 6))
-
-# Mostrar la imagen original en escala de grises
-ax.imshow(image, cmap="gray")
-
-# Superponer la máscara en rojo semitransparente
-ax.imshow(mask_rgba)
-
-# Configurar el título y quitar ejes
-ax.set_title("Image with Superposed Label (Red)")
-ax.axis("off")
-
-# Mostrar el resultado
-plt.show()
-
- #----------- CONTOUR PLOT
-
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Asegurar que la máscara es binaria (0 y 255)
-label_bin = (label > 0).astype(np.uint8) * 255  
-
-# Encontrar contornos con cv2 (RETR_EXTERNAL para solo el borde externo)
-contours, _ = cv2.findContours(label_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
-# Crear el plot
-fig, ax = plt.subplots(figsize=(6, 6))
-
-# Mostrar la imagen original
-ax.imshow(image, cmap="gray")
-
-# Dibujar los contornos sobre la imagen en rojo, pixel-perfect
-for contour in contours:
-    contour = contour.squeeze()  # Asegurar que está en el formato correcto
-    ax.plot(contour[:, 0], contour[:, 1], color='red', linewidth=1)  # Contorno fino
-
-# Configurar el título y quitar ejes
-ax.set_title("Image with contour of the Ground Truth label")
-ax.axis("off")
-
-# Mostrar el resultado
-plt.show()
-
-# Check shape of data: Obtener un batch del train_loader
-for images, labels, names in train_loader:
-    print(f"Dimensiones de las imágenes: {images.shape}")
-    print(f"Dimensiones de las etiquetas: {labels.shape}")
-    break  
-
-# =================================
-
-# Train the model
-# print("Starting training...")
-# trained_model = train_model(segmentator, train_loader, criterion, optimizer, device, results_dir, NUM_EPOCHS, val_dataloader=val_loader)
-
-# # ===============
-# # Evaluate inference 
-if USE_MRC:
-    print("Evaluating model with inference MRC")
-    model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
-    segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
-    segmentator.eval() 
-    trained_model = segmentator  # Asignar el modelo entrenado a trained_model
-elif USE_PEI:
-    # Evaluate inference MRC
-    print("Evaluating model with inference PEI")
-    model_path = 'C:\\Users\\TFM1\\Desktop\\pei_segmentator_best_weights.pt'  # Ajusta el camino a tu archivo .pt
-    segmentator.load_state_dict(torch.load(model_path))  # Cargar los pesos en el modelo
-    segmentator.eval() 
-    trained_model = segmentator  # Asignar el modelo entrenado a trained_model
-
+# ==================================================================================   
+ 
 # Evaluate the model
+
 if USE_MRC:
     threshold = 0.98
 elif USE_PEI:
@@ -273,14 +179,13 @@ elif USE_PEI:
 print("Evaluating model...")
 avg_loss, mean_dice, mean_iou = complete_evaluate_model(trained_model, test_loader, device, criterion, results_dir, threshold=threshold) 
 
-# Save the trained model if results are being saved
 if SAVE_RESULTS:
-    model_save_path = os.path.join(results_dir, 'unet_brain_segmentation.pth')
+    model_save_path = os.path.join(results_dir, 'unet_segmentation.pth')
     torch.save(trained_model.state_dict(), model_save_path)
     print(f"Model saved to {model_save_path}")
 
 if SAVE_WEIGHTS:
-    weights_save_path = os.path.join(results_dir, "mrc_segmentator_best_weights.pt")
+    weights_save_path = os.path.join(results_dir, "segmentator_best_weights.pt")
     torch.save(trained_model.state_dict(), weights_save_path)
     print(f"Model weights saved at {weights_save_path}")
 
