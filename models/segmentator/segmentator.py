@@ -3,7 +3,9 @@
 # Description: This file defines the baseline segmentation model using a pre-trained
 #              U-Net architecture from TorchHub. The model is designed for binary
 #              segmentation tasks (e.g., medical image segmentation).
-# Author: @cfusterbarcelo
+#              It includes a custom Segmentator class that wraps a optimized U-Net model,
+#              allowing for easy integration and usage. 
+# Author: @laurarodrmu
 # Created: 30/12/2024
 # ==============================================================================
 

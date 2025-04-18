@@ -1,7 +1,7 @@
 # ==============================================================================
 # Description: PyTorch training script for a U-Net model with custom dataloader
-# Author: Caterina Fuster-Barceló
-# Creation date: 30/08/2024
+# Author: @laurarodmu 
+# Creation date: 30/10/2024
 # ==============================================================================
 
 import os

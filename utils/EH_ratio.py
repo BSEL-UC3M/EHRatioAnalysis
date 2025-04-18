@@ -1,8 +1,8 @@
 # ======================================================================
-# File: pipeline_setup/RatioCalculator.py
+# File: EH_ratio.py
 # Description: Calculates EH Ratio using predicted segmentation masks.
-# Author: @cfusterbarcelo
-# Created: 09/04/2025
+# Author: @laurarodrmu
+# Created: 16/04/2025
 # ======================================================================
 
 import os
@@ -114,35 +114,29 @@ import cv2
 import matplotlib.pyplot as plt
 from scipy.ndimage import center_of_mass, shift
 
-# Función para cargar las máscaras
 def cargar_mascara(ruta):
     return cv2.imread(ruta, cv2.IMREAD_GRAYSCALE)
-
-# Función para calcular los centroides
+s
 def calcular_centroides(mascara):
     return np.array(center_of_mass(mascara))
 
-# Función para calcular el desplazamiento necesario para alinear el líquido con la cavidad
 def calcular_desplazamiento(centro_cavidad, centro_liquido):
     return centro_cavidad - centro_liquido
 
-# Función para alinear la máscara del líquido
 def alinear_mascara_liquido(mascara_liquido, vector_traslacion):
     return shift(mascara_liquido.astype(float), shift=vector_traslacion, order=0)
 
-# Función para superponer los colores de las máscaras
 def superponer_colores(mask_cav, mask_liq):
     cav = (mask_cav > 0).astype(np.uint8)
     liq = (mask_liq > 0).astype(np.uint8)
     
     h, w = cav.shape
     rgb = np.zeros((h, w, 3), dtype=np.uint8)
-    rgb[:, :, 0] += cav * 255  # Color rojo para la cavidad
-    rgb[:, :, 1] += liq * 255  # Color verde para el líquido
+    rgb[:, :, 0] += cav * 255  
+    rgb[:, :, 1] += liq * 255 
     
     return rgb
 
-# Función para recortar la región activa
 def recortar_region_activa(mask1, mask2, margen=5):
     combinada = (mask1 > 0) | (mask2 > 0)
     filas, columnas = np.where(combinada)
@@ -161,7 +155,6 @@ def recortar_region_activa(mask1, mask2, margen=5):
 
     return rec1, rec2, super_rec
 
-# Función para visualizar los resultados
 import matplotlib.lines as mlines
 
 def visualizar_resultados(rec_cavidad, rec_liquido, rec_superpuesta):
@@ -180,39 +173,30 @@ def visualizar_resultados(rec_cavidad, rec_liquido, rec_superpuesta):
     rgb_superpuesta = superponer_colores(rec_cavidad, rec_liquido)
     plt.imshow(rgb_superpuesta)
 
-    # Agregar leyenda
-    # Crear las "handles" de la leyenda (las representaciones de los colores)
     red_patch = mlines.Line2D([], [], marker='o', color='r', label="Cavidad", markersize=10)
     green_patch = mlines.Line2D([], [], marker='o', color='g', label="Líquido", markersize=10)
     yellow_patch = mlines.Line2D([], [], marker='o', color='y', label="Superposición", markersize=10)
 
-    # Añadir la leyenda
     plt.legend(handles=[red_patch, green_patch, yellow_patch], loc="upper right", fontsize=8)
 
     plt.tight_layout()
     plt.show()
 
 
-# Función principal que integra todos los pasos
 def procesar_imagenes(mrc_path, pei_path):
-    # 1. Cargar las máscaras
+
     mascara_cavidad = cargar_mascara(mrc_path)
     mascara_liquido = cargar_mascara(pei_path)
 
-    # 2. Calcular centroides
     centro_cavidad = calcular_centroides(mascara_cavidad)
     centro_liquido = calcular_centroides(mascara_liquido)
 
-    # 3. Calcular el desplazamiento necesario para alinear
     vector_traslacion = calcular_desplazamiento(centro_cavidad, centro_liquido)
 
-    # 4. Alinear la máscara del líquido
     mascara_liquido_alineada = alinear_mascara_liquido(mascara_liquido, vector_traslacion)
 
-    # 5. Recortar la región activa
     rec_cavidad, rec_liquido, rec_superpuesta = recortar_region_activa(mascara_cavidad, mascara_liquido_alineada)
 
-    # 6. Visualizar los resultados
     visualizar_resultados(rec_cavidad, rec_liquido, rec_superpuesta)
 
 

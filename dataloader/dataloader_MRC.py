@@ -1,8 +1,7 @@
 # ==============================================================================
 # Description: File to load and split images and labels by patient IDs with Pytorch
-# Author: Gloria del Rocío Delicado Correa
-# Maintainer: Caterina Fuster-Barceló
-# Creation date: 29/08/2023
+# Author: @laurarodmu
+# Creation date: 29/03/2025
 # ==============================================================================
 
 import numpy as np

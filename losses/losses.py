@@ -1,7 +1,8 @@
 # ==============================================================================
 # Description: PyTorch custom loss functions for segmentation tasks
 # Author: Alejandro Guerrero-López, Yichun Sun
-# Maintainer: Caterina Fuster-Barceló
+# Maintainer: Caterina Fuster-Barceló 
+# Maintainer 2: @laurarodrmu
 # Creation date: 30/08/2024
 # ==============================================================================
 

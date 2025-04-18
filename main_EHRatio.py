@@ -1,9 +1,18 @@
+# ==============================================================================
+# File: main_EHRatio.py
+# Description: Main script for training and evaluating the segmentation model.
+# Author: @laurarodmu
+# Creation Date: 16/04/2025
+# ==============================================================================
+
 from utils.EH_ratio import compute_eh_ratios
 import os
 import csv
 import numpy as np
 from datetime import datetime
 from utils.EH_ratio import procesar_imagenes
+
+# ==============================================================================
 
 RESULTS_FOLDER = "./results/results_segmentator/Ratio"
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -21,6 +30,9 @@ compute_eh_ratios(
     pei_mask_folder=os.path.join(PEI_SEGMENT_DIR),
     output_csv_path=RATIO_OUTPUT_CSV,
 )
+
+# ==============================================================================
+# Example for visualization 
 
 
 mrc_path = "C:/Users/TFM1/Documents/GitHub/EHRatioAnalysis/results/results_segmentator/MRC/20250416/20250416-154715/20250416-154716/binary_masks/PAC5_right_previous_right.tif.png"
