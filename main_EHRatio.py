@@ -3,6 +3,7 @@ import os
 import csv
 import numpy as np
 from datetime import datetime
+from utils.EH_ratio import procesar_imagenes
 
 RESULTS_FOLDER = "./results/results_segmentator/Ratio"
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -20,3 +21,9 @@ compute_eh_ratios(
     pei_mask_folder=os.path.join(PEI_SEGMENT_DIR),
     output_csv_path=RATIO_OUTPUT_CSV,
 )
+
+
+mrc_path = "C:/Users/TFM1/Documents/GitHub/EHRatioAnalysis/results/results_segmentator/MRC/20250416/20250416-154715/20250416-154716/binary_masks/PAC5_right_previous_right.tif.png"
+pei_path = "C:/Users/TFM1/Documents/GitHub/EHRatioAnalysis/results/results_segmentator/PEI/20250411/20250411-113208/20250411-113209/binary_masks/PAC5_right_previous_right.tif.png"
+
+procesar_imagenes(mrc_path, pei_path)

@@ -1,0 +1,17 @@
+method: bayes
+metric:
+  name: validation_loss
+  goal: minimize
+
+parameters:
+  learning_rate:
+    min: 0.00001
+    max: 0.001
+  batch_size:
+    values: [8, 16, 32]
+  num_epochs:
+    values: [20, 25, 30]
+  loss_function:
+    values: ["bce_dice", "focal", "FLProbs", "custom_combined"]
+  optimizer:
+    values: ["adam", "sgd", "rmsprop", "adamw"]

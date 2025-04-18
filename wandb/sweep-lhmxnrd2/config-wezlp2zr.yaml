@@ -1,0 +1,12 @@
+wandb_version: 1
+
+batch_size:
+  value: 8
+learning_rate:
+  value: 0.00040996156474986935
+loss_function:
+  value: custom_combined
+num_epochs:
+  value: 30
+optimizer:
+  value: sgd
