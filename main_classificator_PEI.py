@@ -19,10 +19,6 @@ from models.classificator.five_layer_cnn_PEI import train_model, evaluate_model,
 from models.classificator.resnet50 import fine_tune_resnet, train_model, evaluate_model
 from utils.preprocessing_all_images import preprocess_all_images
 
-# Add utils folder to path to import preprocessing script
-# CAT: Why are you adding the path to the preprocessing script here?
-# sys.path.append("/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/utils")
-# from preprocessing_all_images import preprocess_all_images
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
@@ -30,11 +26,11 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 # Configuration Parameters
 SAVE_RESULTS = input("Save results? (yes/no): ").strip().lower() == "yes"
 SAVE_WEIGHTS = input("Save model weights? (yes/no): ").strip().lower() == "yes"
-SAVE_PREPROCESSING = False  # Toggle to save preprocessed images
-LEARNING_RATE = 1e-4  # Learning rate for the optimizer
-BATCH_SIZE = 16  # Batch size for training
-DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
-NUM_EPOCHS = 50  # Define number of epochs
+SAVE_PREPROCESSING = False  
+LEARNING_RATE = 1e-4  
+BATCH_SIZE = 16 
+DATA_SPLITS = (0.7, 0.1, 0.2)  
+NUM_EPOCHS = 50  
 
 # CAT's paths
 # RAW_IMAGES_FOLDER = "D:/Data/EHRatioAnalysis/PEI TIFF"
@@ -57,40 +53,29 @@ elif system_name in ["windows", "linux"]:  # Windows or Linux
 else:
     device = torch.device("cpu")  # Fallback to CPU for unknown OS
 
-print(f"✅ Using device: {device}")
+print(f" Using device: {device}")
 
 # ==============================================================================
-# ✅ Step 1: Preprocess Images
+# Step 1: Preprocess Images
 if SAVE_PREPROCESSING:
-    print("\n🔄 Preprocessing PEI images...\n")
+    print("\n Preprocessing PEI images...\n")
     os.makedirs(PROCESSED_IMAGES_FOLDER, exist_ok=True)  # Ensure folder exists
     preprocess_all_images(RAW_IMAGES_FOLDER, PROCESSED_IMAGES_FOLDER)
-    print("✅ Preprocessing complete. Processed images saved in:", PROCESSED_IMAGES_FOLDER)
+    print(" Preprocessing complete. Processed images saved in:", PROCESSED_IMAGES_FOLDER)
 else:
-    print("⚠️ Skipping image preprocessing. Using existing processed images.")
+    print(" Skipping image preprocessing. Using existing processed images.")
 
 # ==============================================================================
-# ✅ Step 2: Load Dataset
-
-# annotations = ClassificationDataLoader.load_annotations(ANNOTATIONS_FOLDER)
-
-# train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_split(
-#     images_folder=PROCESSED_IMAGES_FOLDER,
-#     annotations=annotations,
-#     splits=DATA_SPLITS,
-#     batch_size=BATCH_SIZE,
-#     shuffle=True,
-#     transform=None
-# )
+# Step 2: Load Dataset
 
 
-# ✅ Cargar anotaciones
+# Load annotations
 annotations = ClassificationDataLoader.load_annotations(ANNOTATIONS_FOLDER)
 
-# Paso 1: Obtener todos los nombres desde las anotaciones
+# Step 2.1: obtain all name from annotations
 all_patients = list(annotations.keys())
 
-# Paso 2: Pacientes fijos para validación y test (MRC, no PEI)
+# Step 2.2: use the same patients for validation and test 
 val_patients = [
     "PACIENTE 45 PEI TIFF", "PACIENTE 21 PEI TIFF", "PACIENTE 1 PEI TIFF", "PACIENTE 87 PEI TIFF",
     "PACIENTE 58 PEI TIFF", "PACIENTE 85 PEI TIFF", "PACIENTE 54 PEI TIFF", "PACIENTE 90 PEI TIFF",
@@ -105,10 +90,10 @@ test_patients = [
     "PACIENTE 4 PEI TIFF", "PACIENTE 15 PEI TIFF", "PACIENTE 82 PEI TIFF"
 ]
 
-# Paso 3: El resto son pacientes de entrenamiento
+# Step 2.3: the remaining patients are used for training 
 train_patients = [p for p in all_patients if p not in val_patients and p not in test_patients]
 
-# ✅ Cargar los dataloaders con nombres completos
+# Step 2.4: load the dataloaders with full names 
 train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_split(
     images_folder=PROCESSED_IMAGES_FOLDER,
     annotations=annotations,
@@ -121,7 +106,7 @@ train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_
 
 
 
-# Determine the number of classes dynamically
+# Step 2.5: Determine the number of classes dynamically
 num_classes = len(set(
     annotation 
     for patient_data in annotations.values() 
@@ -129,7 +114,7 @@ num_classes = len(set(
 ))
 
 # ==============================================================================
-# ✅ Step 3: User selects the model type
+# Step 3: User selects the model type
 MODEL_TYPE = input("Select model type ('cnn' or 'resnet50'): ").strip().lower()
 
 while MODEL_TYPE not in ["cnn", "resnet50"]:
@@ -138,7 +123,7 @@ while MODEL_TYPE not in ["cnn", "resnet50"]:
 print(f"\nTraining {MODEL_TYPE.upper()} model...\n")
 
 # ==============================================================================
-# ✅ Step 4: Model Definition & Training
+# Step 4: Model Definition & Training
 if MODEL_TYPE == "cnn":
     model = FiveLayerCNN(num_classes).to(device)
     criterion = torch.nn.CrossEntropyLoss()
@@ -151,17 +136,17 @@ elif MODEL_TYPE == "resnet50":
     )
 
 # Train the model explicitly
-print(f"\n🚀 Training {MODEL_TYPE.upper()} model for {NUM_EPOCHS} epochs...\n")
+print(f"\n Training {MODEL_TYPE.upper()} model for {NUM_EPOCHS} epochs...\n")
 trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
     model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS
 )
-# ✅ Evaluación final sobre el conjunto de test
+# Final evaluation over the test set
 avg_loss, accuracy, conf_matrix = evaluate_model(
     trained_model, test_loader, device
 )
 
 # ==============================================================================
-# ✅ Step 5: Prepare Result Directory (Ensuring All Outputs Are in the Same Folder)
+# Step 5: Prepare Result Directory (Ensuring All Outputs Are in the Same Folder)
 if SAVE_RESULTS or SAVE_WEIGHTS:
     results_root = "./results/results_classificator/results_classificator_PEI"
     os.makedirs(results_root, exist_ok=True)  # Ensure base directory exists
@@ -170,15 +155,15 @@ if SAVE_RESULTS or SAVE_WEIGHTS:
     os.makedirs(results_dir, exist_ok=True)  # Create timestamped directory
 
 # ==============================================================================
-# ✅ Step 6: Save Best Weights Based on Validation Loss
+# Step 6: Save Best Weights Based on Validation Loss
 if SAVE_WEIGHTS:
     best_epoch = np.argmin(val_losses)  # Find the epoch with the lowest validation loss
     weights_save_path = os.path.join(results_dir, f"{MODEL_TYPE}_best_weights_PEI.pt")  # Ensure it is saved in `results_dir`
     torch.save(trained_model.state_dict(), weights_save_path)
-    print(f"✅ Best model weights saved at {weights_save_path} (Epoch {best_epoch + 1})")
+    print(f" Best model weights saved at {weights_save_path} (Epoch {best_epoch + 1})")
 
 # ==============================================================================
-# ✅ Step 8: Save Results in the Same Directory
+# Step 8: Save Results in the Same Directory
 if SAVE_RESULTS:
     # Save performance metrics
     with open(os.path.join(results_dir, "results.txt"), "w") as f:
@@ -224,6 +209,6 @@ if SAVE_RESULTS:
     plt.savefig(os.path.join(results_dir, "train_val_accuracy.png"), dpi=300, bbox_inches='tight')
     plt.close()
 
-    print(f"\n✅ Results saved in {results_dir}\n")
+    print(f"\n Results saved in {results_dir}\n")
 
-print("🎉 Process completed.")
+print("Process completed.")

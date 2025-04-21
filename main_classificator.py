@@ -28,19 +28,30 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 # Configuration Parameters
 SAVE_RESULTS = input("Save results? (yes/no): ").strip().lower() == "yes"
 SAVE_WEIGHTS = input("Save model weights? (yes/no): ").strip().lower() == "yes"
-LEARNING_RATE = 1e-4  # Learning rate for the optimizer
-BATCH_SIZE = 16  # Batch size for training
-DATA_SPLITS = (0.7, 0.1, 0.2)  # Train, validation, test splits
+LEARNING_RATE = 1e-4  
+BATCH_SIZE = 16 
+DATA_SPLITS = (0.7, 0.1, 0.2)  
 IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF" 
-NUM_EPOCHS = 50  # Define number of epochs
+NUM_EPOCHS = 50  
 DA = False
 THRESHOLD = 0.2
 
-# Select computing device (use Apple Silicon GPU if available)
-# device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Select computing device 
+# Detect OS
+system_name = platform.system().lower()
+
+# Select GPU backend based on OS (Windows or macOS)
+if system_name == "darwin":  # macOS
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+elif system_name in ["windows", "linux"]:  # Windows or Linux
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+else:
+    device = torch.device("cpu")  # Fallback to CPU for unknown OS
+
+print(f"Using device: {device}")
 
 # ==============================================================================
+# Step 1: load dataset
 # Load Dataset
 annotations = ClassificationDataLoader.load_annotations(IMAGES_FOLDER)
 
@@ -51,7 +62,8 @@ num_classes = len(set(
     for annotation in patient_data['Annotation']
 ))
 
-# User selects the model type
+# ==============================================================================
+# Step 2: User selects the model type
 MODEL_TYPE = input("Select model type 'custom' to train a model from scratch or 'pretrained' to use the ResNet50): ").strip().lower()
 
 while MODEL_TYPE not in ["custom", "pretrained"]:
@@ -59,7 +71,8 @@ while MODEL_TYPE not in ["custom", "pretrained"]:
 
 print(f"\nTraining {MODEL_TYPE.upper()} model...\n")
 
-#  Model Definition & Training
+# ==============================================================================
+# Step 3: Model Definition & Training
 if MODEL_TYPE == "custom":
     # Initialize CNN model
     model = FiveLayerCNN(num_classes).to(device)
@@ -99,12 +112,12 @@ train_loader, val_loader, test_loader, train_patients, val_patients, test_patien
 
 
 # Train the model explicitly
-print(f"\n🚀 Training {MODEL_TYPE.upper()} model for {NUM_EPOCHS} epochs...\n")
+print(f"\n Training {MODEL_TYPE.upper()} model for {NUM_EPOCHS} epochs...\n")
 trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
     model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS, model_type=MODEL_TYPE
 )
 # ==============================================================================
-# ✅ Step 4: Prepare Result Directory
+# Step 4: Prepare Result Directory
 if SAVE_RESULTS or SAVE_WEIGHTS:
     results_root = "./results/results_classificator/results_classificator_MRC"
     os.makedirs(results_root, exist_ok=True)  # Ensure base directory exists
@@ -113,25 +126,25 @@ if SAVE_RESULTS or SAVE_WEIGHTS:
     os.makedirs(results_dir, exist_ok=True)  # Create timestamped directory
 
 # ==============================================================================
-# ✅ Step 5: Save Best Weights Based on Validation Loss
+# Step 5: Save Best Weights Based on Validation Loss
 if SAVE_WEIGHTS:
     best_epoch = np.argmin(val_losses)  # Find the epoch with the lowest validation loss
     weights_save_path = os.path.join(results_dir, "cnn_best_weights.pt")
     torch.save(trained_model.state_dict(), weights_save_path)
-    print(f"✅ Best model weights saved at {weights_save_path} (Epoch {best_epoch + 1})")
+    print(f" Best model weights saved at {weights_save_path} (Epoch {best_epoch + 1})")
 
 # ==============================================================================
-# ✅ Step 6: Evaluate Model on Test Set
-print(f"\n📊 Evaluating {MODEL_TYPE.upper()} model on the test set...\n")
+# Step 6: Evaluate Model on Test Set
+print(f"\n Evaluating {MODEL_TYPE.upper()} model on the test set...\n")
 y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device, threshold=THRESHOLD)
-print(f"✅ {MODEL_TYPE.upper()} Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
+print(f" {MODEL_TYPE.upper()} Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
 
 # Compute confusion matrix BEFORE post-processing
 conf_matrix_before = confusion_matrix(y_true, y_pred)
 plot_class1_probability_histogram(trained_model, test_loader, device, threshold = THRESHOLD, results_dir=results_dir)
 
 # ==============================================================================
-# ✅ Step 7: Save Results (confusion matrix, train and validation losses/accuracies, .txt file)
+# Step 7: Save Results (confusion matrix, train and validation losses/accuracies, .txt file)
 if SAVE_RESULTS:
     # Save performance metrics
     with open(os.path.join(results_dir, "results.txt"), "w") as f:
@@ -188,5 +201,5 @@ if SAVE_RESULTS:
     metrics = threshold_sweep(trained_model, test_loader, device, )
     plot_threshold_tradeoffs(metrics, results_dir=results_dir)
 
-    print(f"\n✅ Results saved in {results_dir}\n")
+    print(f"\n Results saved in {results_dir}\n")
 
