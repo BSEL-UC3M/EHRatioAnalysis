@@ -1,7 +1,7 @@
 # ==============================================================================
 # File: trainer.py
 # Description: Shared trainer and evaluator for all classification models (ResNet, custom CNN)
-# Author: Caterina Fuster-Barceló (refactored by ChatGPT)
+# Author: @claudiacastrillon
 # Created: 02/04/2025
 # ==============================================================================
 
@@ -23,7 +23,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     best_val_loss = float('inf')
     early_stop_counter = 0
 
-    print(f"\n🚀 Training {model_type} started for {num_epochs} epochs...\n")
+    print(f"\n Training {model_type} started for {num_epochs} epochs...\n")
 
     for epoch in range(num_epochs):
         running_loss = 0.0
@@ -81,7 +81,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         train_accuracies.append(train_accuracy)
         val_accuracies.append(val_accuracy)
 
-        print(f"\n✅ Epoch {epoch + 1}/{num_epochs} | Train Loss: {avg_train_loss:.4f}, Train Acc: {train_accuracy:.2f}% | Val Loss: {avg_val_loss:.4f}, Val Acc: {val_accuracy:.2f}%\n")
+        print(f"\n Epoch {epoch + 1}/{num_epochs} | Train Loss: {avg_train_loss:.4f}, Train Acc: {train_accuracy:.2f}% | Val Loss: {avg_val_loss:.4f}, Val Acc: {val_accuracy:.2f}%\n")
 
         scheduler.step(avg_val_loss)
         model.train()
@@ -93,10 +93,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         else:
             early_stop_counter += 1
             if early_stop_counter >= early_stop_patience:
-                print("\n🛑 Early stopping triggered.")
+                print("\n Early stopping triggered.")
                 break
 
-    print("🎉 Training complete!")
+    print(" Training complete!")
     return model, train_losses, val_losses, train_accuracies, val_accuracies
 
 
@@ -119,16 +119,13 @@ def evaluate_model(model, test_loader, device, threshold=0.5):
             total_loss += loss.item()
 
             probs = torch.softmax(outputs, dim=1)
-            biased_preds = (probs[:, 1] > threshold).long()  # ⚠️ Biased prediction in favour of class 1
+            biased_preds = (probs[:, 1] > threshold).long() 
             
-            # _, predicted = torch.max(outputs, 1)
-            # total_correct += (predicted == labels).sum().item()
-            # total_samples += labels.size(0)
+
             total_samples += labels.size(0)
             total_correct += (biased_preds == labels).sum().item()
 
             y_true.extend(labels.cpu().numpy())
-            # y_pred.extend(predicted.cpu().numpy())
             y_pred.extend(biased_preds.cpu().numpy())
 
     avg_loss = total_loss / len(test_loader)
