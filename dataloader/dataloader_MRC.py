@@ -37,7 +37,8 @@ class New_PatientDataset(Dataset):
         label_path = os.path.join(self.labels_folder, self.label_files[idx])
 
         image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
 
         label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
         label = np.expand_dims(label, axis=-1)  

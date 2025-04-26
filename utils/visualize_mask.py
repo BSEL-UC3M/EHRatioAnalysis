@@ -19,15 +19,13 @@ def visualize_sample_with_overlay_and_contour(
         show_contour (bool): Whether to plot contours of the mask.
     """
     
-    # Get a batch
     data_iter = iter(dataloader)
     images, labels, names = next(data_iter)
 
-    # Select image and label at the specified index
     image = images[index].permute(1, 2, 0).numpy()
     label = labels[index].permute(1, 2, 0).numpy()
 
-    # Convert label to 2D if necessary
+
     if label.ndim == 3:
         label_red = label[:, :, 0]
     else:
@@ -35,16 +33,13 @@ def visualize_sample_with_overlay_and_contour(
 
     fig, ax = plt.subplots(figsize=(6, 6))
 
-    # Show grayscale base image
     ax.imshow(image, cmap="gray")
 
-    # Optional: Overlay
     if show_overlay:
         mask_rgba = np.zeros((label_red.shape[0], label_red.shape[1], 4))
         mask_rgba[label_red > 0] = [1, 0, 0, 0.4]
         ax.imshow(mask_rgba)
 
-    # Optional: Contour
     if show_contour:
         label_bin = (label_red > 0).astype(np.uint8) * 255
         contours, _ = cv2.findContours(label_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -57,6 +52,6 @@ def visualize_sample_with_overlay_and_contour(
     ax.axis("off")
     plt.show()
 
-    # Print shapes for debug
-    print(f"Image shape: {images[index].shape}")
-    print(f"Label shape: {labels[index].shape}")
+    # Debigging information
+    #print(f"Image shape: {images[index].shape}")
+    #print(f"Label shape: {labels[index].shape}")

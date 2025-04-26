@@ -21,17 +21,17 @@ from utils.visualize_mask import visualize_sample_with_overlay_and_contour
 
 # Configuration Parameters
 
-USE_MRC = False  
-USE_PEI = True  
+USE_MRC = True  
+USE_PEI = False  
 
 SAVE_RESULTS = True  
 SAVE_WEIGHTS = True
 NUM_EPOCHS = 25  
 
 LEARNING_RATE = 1e-4  
-BATCH_SIZE = 16  
+BATCH_SIZE = 16
 
-MODE = "inference"  # Set the mode: "train", "inference_mrc", or "inference_pei"
+MODE = "train"  # Set the mode: "train", "inference_mrc", or "inference_pei"
 
 LOSS_FUNCTION = "bce_dice" 
 
@@ -62,6 +62,7 @@ elif USE_PEI:
 # Initialize the segmentation model
 
 segmentator = UNetOptimizedDO()
+#segmentator = Segmentator()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 segmentator = segmentator.to(device)
@@ -91,7 +92,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 # ==============================================================================
 
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/MRC/20250416"
+    results_folder = "./results/results_segmentator/MRC/20250426 one channel"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
