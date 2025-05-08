@@ -116,7 +116,7 @@ from scipy.ndimage import center_of_mass, shift
 
 def cargar_mascara(ruta):
     return cv2.imread(ruta, cv2.IMREAD_GRAYSCALE)
-s
+
 def calcular_centroides(mascara):
     return np.array(center_of_mass(mascara))
 
@@ -198,196 +198,31 @@ def procesar_imagenes(mrc_path, pei_path):
     rec_cavidad, rec_liquido, rec_superpuesta = recortar_region_activa(mascara_cavidad, mascara_liquido_alineada)
 
     visualizar_resultados(rec_cavidad, rec_liquido, rec_superpuesta)
+    
+    area_cavidad, area_liquido, ratio = calcular_areas(rec_cavidad, rec_liquido)
+    print(f"Área Cavidad: {area_cavidad:.2f} mm²")
+    print(f"Área Líquido: {area_liquido:.2f} mm²")
+    print(f"Ratio Líquido/Cavidad: {ratio:.3f}")
+
+
+
+def calcular_areas(mask1, mask2, tam_pixel_mm=0.5):
+    area_pixel = tam_pixel_mm ** 2  
+
+    bin1 = (mask1 > 0).astype(np.uint8)
+    bin2 = (mask2 > 0).astype(np.uint8)
+
+    num_pix1 = np.sum(bin1)
+    num_pix2 = np.sum(bin2)
+
+    area1 = num_pix1 * area_pixel
+    area2 = num_pix2 * area_pixel
+
+    ratio = area2 / area1 if area1 != 0 else float('inf')
+
+    return area1, area2, ratio
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-# import os
-# import numpy as np
-# from glob import glob
-# from PIL import Image
-
-# import plotly.graph_objects as go
-# import numpy as np
-
-
-# def build_3d_volume(mask_folder, patient_id, ear):
-#     """
-#     Construye un volumen 3D para un paciente y oreja a partir de slices.
-#     """
-#     slice_keywords = ["previous", "main", "posterior"]
-#     volume_slices = []
-
-#     for keyword in slice_keywords:
-#         filename_pattern = f"PAC{patient_id}_right_{keyword}_{ear}.tif.png"
-#         filepath = os.path.join(mask_folder, filename_pattern)
-#         filepath = filepath.replace("\\", "/")
-
-#         if not os.path.exists(filepath):
-#             print(f"⚠️ Slice not found: {filepath}")
-#             continue
-
-        
-#         slice_img = np.array(Image.open(filepath).convert("L"))
-
-#         volume_slices.append(slice_img)
-
-#     if len(volume_slices) == 0:
-#         raise ValueError(f"No slices found for PAC{patient_id} {ear}")
-#     print(f"Found {len(volume_slices)} slices for PAC{patient_id} {ear}")
-#     volume_3d = np.stack(volume_slices, axis=0)  # Shape: (Z, Y, X)
-#     return volume_3d
-
-# import plotly.graph_objects as go
-
-# def show_3d_plotly(mask, color, title="3D Mask Volume"):
-#     filled = mask > 0
-#     x, y, z = np.where(filled)
-#     z = z*0.2
-
-#     fig = go.Figure(data=go.Scatter3d(
-#         x=x, y=y, z=z,
-#         mode='markers',
-#         marker=dict(size=40, color=color, opacity=0.2)
-#     ))
-
-#     fig.update_layout(
-#         title=title,
-#         scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Z'),
-#         margin=dict(l=30, r=30, b=30, t=0)
-#     )
-#     fig.show()
-
-
-
-# mask_folder = "C:/Users/TFM1/Documents/GitHub/EHRatioAnalysis/results/results_segmentator/MRC/20250416/20250416-154715/20250416-154716/binary_masks"
-# patient_id = 5
-# ear = "right"
-
-# volume_3d = build_3d_volume(mask_folder, patient_id, ear)
-# print(volume_3d.shape)
-# volume_3d = volume_3d.squeeze()
-# print(volume_3d.shape)
-# show_3d_plotly(volume_3d, "blue", title=f"PAC{patient_id} - {ear}")
-
-# mask_folder = "C:/Users/TFM1/Documents/GitHub/EHRatioAnalysis/results/results_segmentator/PEI/20250411/20250411-113208/20250411-113209/binary_masks"
-# patient_id = 5
-# ear = "right"
-
-# volume_3d = build_3d_volume(mask_folder,  patient_id, ear)
-# print(volume_3d.shape)
-# volume_3d = volume_3d.squeeze()
-# print(volume_3d.shape)
-# show_3d_plotly(volume_3d,"red", title=f"PAC{patient_id} - {ear}")
-
-
-# # ======================================================================
-
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import cv2
-# from scipy.ndimage import center_of_mass, shift
-
-# # Suponiendo que ya tienes las dos máscaras binarias:
-# # mascara_cavidad: np.ndarray (por ejemplo, shape (100, 100))
-# # mascara_liquido: np.ndarray
-
-
-
-
-
-# def build_rgb_volume(mask_cav_vol, mask_liq_vol):
-#     """
-#     Construye un volumen RGB a partir de volúmenes binarios de cavidad y líquido.
-#     """
-#     assert mask_cav_vol.shape == mask_liq_vol.shape
-#     slices_rgb = []
-
-#     for i in range(mask_cav_vol.shape[0]):
-#         cav = mask_cav_vol[i]
-#         liq = mask_liq_vol[i]
-#         rgb_slice = superponer_colores(cav, liq)
-#         slices_rgb.append(rgb_slice)
-
-#     volume_rgb = np.stack(slices_rgb, axis=0)  # (Z, Y, X, 3)
-#     return volume_rgb
-
-# def show_3d_rgb_plotly(rgb_volume, title="3D RGB Volume"):
-#     z_dim, y_dim, x_dim, _ = rgb_volume.shape
-
-#     x_vals, y_vals, z_vals, colors = [], [], [], []
-
-#     for z in range(z_dim):
-#         for y in range(y_dim):
-#             for x in range(x_dim):
-#                 color = rgb_volume[z, y, x]
-#                 if not np.all(color == 0):  # Si no es negro
-#                     x_vals.append(x)
-#                     y_vals.append(y)
-#                     z_vals.append(z)
-#                     # Convert RGB to hex
-#                     color_hex = f'rgb({color[0]},{color[1]},{color[2]})'
-#                     colors.append(color_hex)
-
-#     fig = go.Figure(data=go.Scatter3d(
-#         x=x_vals, y=y_vals, z=z_vals,
-#         mode='markers',
-#         marker=dict(size=30, color=colors, opacity=0.8)
-#     ))
-
-#     fig.update_layout(
-#         title=title,
-#         scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Z'),
-#         margin=dict(l=30, r=30, b=30, t=30)
-#     )
-
-#     fig.show()
-
-# def build_binary_volume(mask_folder, patient_id, ear):
-#     """
-#     Construye un volumen 3D binario para un paciente, oreja y tipo de máscara ('cavidad' o 'liquido').
-#     """
-#     slice_keywords = ["previous", "main", "posterior"]
-#     volume_slices = []
-
-#     for keyword in slice_keywords:
-#         filename_pattern = f"PAC{patient_id}_right_{keyword}_{ear}.tif.png"
-#         filepath = os.path.join(mask_folder, filename_pattern).replace("\\", "/")
-
-#         if not os.path.exists(filepath):
-#             print(f"⚠️ Slice not found: {filepath}")
-#             continue
-
-#         slice_img = np.array(Image.open(filepath).convert("L"))
-#         binary_slice = (slice_img > 0).astype(np.uint8)
-#         volume_slices.append(binary_slice)
-
-#     if not volume_slices:
-#         raise ValueError(f"No slices found for PAC{patient_id} {ear}]")
-
-#     return np.stack(volume_slices, axis=0)  # (Z, Y, X)
-# # Carga los dos volúmenes binarios
-# mrc_path = "C:/Users/TFM1/Documents/GitHub/EHRatioAnalysis/results/results_segmentator/MRC/20250416/20250416-154715/20250416-154716/binary_masks"
-# pei_path = "C:/Users/TFM1/Documents/GitHub/EHRatioAnalysis/results/results_segmentator/PEI/20250411/20250411-113208/20250411-113209/binary_masks"
-# patient_id = 5
-# ear = "right"
-# vol_cavidad = build_binary_volume(mrc_path, patient_id, ear)
-# vol_liquido = build_binary_volume(pei_path, patient_id, ear)
-
-# # Construye el volumen RGB combinando cavidad (rojo) y líquido (verde)
-# rgb_vol = build_rgb_volume(vol_cavidad, vol_liquido)
-
-# # Muestra la visualización 3D
-# show_3d_rgb_plotly(rgb_vol)
