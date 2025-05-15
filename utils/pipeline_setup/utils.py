@@ -10,7 +10,7 @@ import numpy as np
 from pathlib import Path
 from tifffile import imread, imwrite
 from datetime import datetime
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, label, generate_binary_structure, binary_fill_holes
 from collections import defaultdict
 
 def find_model_by_keywords(root_folder, required_keywords, extension=".pt"):
@@ -116,3 +116,27 @@ def convert_images_to_uint8(image_paths, output_folder=None):
             print(f"❌ Error converting {image_path}: {e}")
 
     return str(base), converted_files
+
+def postprocess_3d_mask(mask_stack):
+    """
+    Fill holes and keep only the largest 3D connected component in the mask volume.
+    Args:
+        mask_stack: np.ndarray of shape [num_slices, H, W] (binary mask)
+    Returns:
+        np.ndarray: Postprocessed mask (same shape)
+    """
+    # Fill holes in each slice
+    filled = np.zeros_like(mask_stack)
+    for z in range(mask_stack.shape[0]):
+        filled[z] = binary_fill_holes(mask_stack[z])
+
+    # 3D connected components: keep the largest
+    struct = generate_binary_structure(3, 3)  # 26-connectivity
+    labeled, num = label(filled, structure=struct)
+    if num == 0:
+        return filled  # Nothing detected, return as is
+
+    sizes = np.bincount(labeled.ravel())
+    sizes[0] = 0  # background is label 0
+    largest = labeled == sizes.argmax()
+    return largest.astype(np.uint8)

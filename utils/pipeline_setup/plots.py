@@ -9,6 +9,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from PIL import Image
 
 def plot_confidence_distribution(detections_dict, save_path):
     """
@@ -99,3 +100,52 @@ def save_segmentation_overlay(image_np, mask_np, save_path, title=None):
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
+
+def plot_postprocessing_comparison(
+    before_folder,
+    after_folder,
+    patient_id,
+    ear,
+    num_slices=5
+):
+    """
+    Plots before/after 3D postprocessing for a patient/ear.
+    - before_folder: Path to folder with original mask PNGs
+    - after_folder: Path to folder with postprocessed mask PNGs
+    - patient_id: Patient identifier prefix
+    - ear: 'left' or 'right'
+    - num_slices: How many slices to show
+    """
+    # Detect crop index for ear (crop0 = left, crop1 = right)
+    crop_idx = 0 if ear.lower() == "left" else 1
+
+    # Get mask files for this patient/ear
+    before_files = sorted([
+        f for f in os.listdir(before_folder)
+        if f.startswith(patient_id) and f"_crop{crop_idx}_" in f and f.endswith("_mask.png")
+    ])
+    after_files = sorted([
+        f for f in os.listdir(after_folder)
+        if f.startswith(patient_id) and f"_crop{crop_idx}_" in f and f.endswith("_mask.png")
+    ])
+
+    n_show = min(num_slices, len(before_files), len(after_files))
+    if n_show == 0:
+        print(f"No slices found for {patient_id} ({ear})")
+        return
+
+    plt.figure(figsize=(n_show*3, 6))
+    for i in range(n_show):
+        mask_before = np.array(Image.open(os.path.join(before_folder, before_files[i])))
+        mask_after = np.array(Image.open(os.path.join(after_folder, after_files[i])))
+
+        plt.subplot(2, n_show, i+1)
+        plt.imshow(mask_before, cmap="gray")
+        plt.title(f"Before\nSlice {i}")
+        plt.axis("off")
+        plt.subplot(2, n_show, n_show+i+1)
+        plt.imshow(mask_after, cmap="gray")
+        plt.title(f"After\nSlice {i}")
+        plt.axis("off")
+    plt.tight_layout()
+    plt.show()

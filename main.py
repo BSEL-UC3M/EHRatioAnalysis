@@ -16,6 +16,8 @@ from utils.pipeline_setup.utils import find_model_by_keywords, setup_pipeline_fo
 from utils.pipeline_setup.AuriBox import run_auribox_inference
 from utils.pipeline_setup.EHMasker import run_ehmasker_inference
 from utils.pipeline_setup.RatioCalculator import compute_eh_ratios
+from utils.pipeline_setup.plots import plot_postprocessing_comparison
+from utils.pipeline_setup.PostProcess3D import postprocess_all_patients_ears, report_mask_volumes
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -32,7 +34,7 @@ MODELS_FOLDER = "D:/Models/EHydropsAnalysis/2025/"
 RAW_DATA_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
 RAW_DATA_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI-TEST-INFERENCE/"
 
-RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-OverclassifiedPEI"
+RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-PostProcessed"
 folder_paths = setup_pipeline_folders(RESULTS_FOLDER)
 
 MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]
@@ -41,6 +43,9 @@ MRC_DETECT_DIR = folder_paths["detection"]["mrc"]["base"]
 PEI_DETECT_DIR = folder_paths["detection"]["pei"]["base"]
 MRC_SEGMENT_DIR = folder_paths["segmentation"]["mrc"]["base"]
 PEI_SEGMENT_DIR = folder_paths["segmentation"]["pei"]["base"]
+MRC_POSTPROC_MASKS_DIR = os.path.join(MRC_SEGMENT_DIR, "masks_postprocessed")
+PEI_POSTPROC_MASKS_DIR = os.path.join(PEI_SEGMENT_DIR, "masks_postprocessed")
+
 
 # Other config
 BATCH_SIZE = 16
@@ -102,7 +107,6 @@ results_pei_filtered = run_eargate_inference(
     dataset_type="PEI",
     class_threshold=CLASS_THRESHOLD,
     batch_size=BATCH_SIZE,
-    expand_around_ear_slices=5
 )
 print("\n✅ EarGate complete! Ready to proceed to object detection...\n")
 
@@ -152,6 +156,24 @@ pei_segmentation_masks = run_ehmasker_inference(
     result_folder=PEI_SEGMENT_DIR,
     dataset_type="PEI",
     confidence=CONFIDENCE
+)
+
+postprocess_all_patients_ears(mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
+                             out_folder=MRC_POSTPROC_MASKS_DIR)
+postprocess_all_patients_ears(mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks"),
+                             out_folder=PEI_POSTPROC_MASKS_DIR)
+
+plot_postprocessing_comparison(
+    before_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
+    after_folder=os.path.join(MRC_SEGMENT_DIR, "masks_postprocessed"),
+    patient_id="MRC_4_61615674",  # Example patient
+    ear="left",                   # or "right"
+    num_slices=5
+)
+report_mask_volumes(
+    before_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
+    after_folder=os.path.join(MRC_SEGMENT_DIR, "masks_postprocessed"),
+    output_csv="mrc_mask_postproc_comparison.csv"
 )
 
 print("\n✅ EHMasker complete! Segmentation results ready for EH Ratio computation...\n")
