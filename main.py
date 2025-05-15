@@ -32,7 +32,7 @@ MODELS_FOLDER = "D:/Models/EHydropsAnalysis/2025/"
 RAW_DATA_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
 RAW_DATA_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI-TEST-INFERENCE/"
 
-RESULTS_FOLDER = "./results/pipeline"
+RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-OverclassifiedPEI"
 folder_paths = setup_pipeline_folders(RESULTS_FOLDER)
 
 MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]
@@ -90,7 +90,7 @@ results_mrc_filtered = run_eargate_inference(
     label_csv=None,
     dataset_type="MRC",
     class_threshold=CLASS_THRESHOLD,
-    batch_size=BATCH_SIZE
+    batch_size=BATCH_SIZE,
 )
 
 results_pei_filtered = run_eargate_inference(
@@ -101,7 +101,8 @@ results_pei_filtered = run_eargate_inference(
     label_csv=None,
     dataset_type="PEI",
     class_threshold=CLASS_THRESHOLD,
-    batch_size=BATCH_SIZE
+    batch_size=BATCH_SIZE,
+    expand_around_ear_slices=5
 )
 print("\n✅ EarGate complete! Ready to proceed to object detection...\n")
 

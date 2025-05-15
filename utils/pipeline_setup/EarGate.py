@@ -27,6 +27,7 @@ def run_eargate_inference(
     dataset_type="MRC",
     class_threshold=0.2,
     batch_size=16,
+    expand_around_ear_slices: int = 0
 ):
     """
     Run classification + postprocessing for MRC or PEI.
@@ -61,7 +62,30 @@ def run_eargate_inference(
 
     # Postprocessing
     cleaned = smooth_classification_predictions(raw_preds)
+    
+    # === EXPAND CONTEXT FOR PEI ===
+    if dataset_type == "PEI" and expand_around_ear_slices > 0:
+        filenames = [f for f, _ in raw_preds]
+        filename_to_index = {f: i for i, f in enumerate(filenames)}
+        selected_indices = [filename_to_index[f] for f, p in cleaned if p == 1]
 
+        expanded_indices = set()
+        for idx in selected_indices:
+            for offset in range(-expand_around_ear_slices, expand_around_ear_slices + 1):
+                new_idx = idx + offset
+                if 0 <= new_idx < len(filenames):
+                    expanded_indices.add(new_idx)
+
+        # Build final expanded cleaned list
+        expanded_cleaned = [(filenames[i], 1) for i in sorted(expanded_indices)]
+        full_cleaned = []
+        for fname in filenames:
+            label = 1 if fname in dict(expanded_cleaned) else 0
+            full_cleaned.append((fname, label))
+        cleaned = full_cleaned
+
+    
+    # === PLOTTING ===
     plots_path = os.path.join(result_folder, "plots")
 
     plots_with_labels_path = os.path.join(result_folder, "plots_with_labels")
