@@ -90,3 +90,50 @@ def report_mask_volumes(
     df.to_csv(output_csv, index=False)
     print(f"Volume comparison report saved to {output_csv}")
     return df
+
+def volume_difference_report(before_folder, after_folder, output_csv="mask_volume_comparison.csv"):
+    # Map: (pid, ear) -> list of mask file paths
+    def collect_masks(folder):
+        mapping = {}
+        for fname in os.listdir(folder):
+            if not fname.endswith("_mask.png"):
+                continue
+            parts = fname.split("_")
+            pid = "_".join(parts[:2])
+            crop_i = int(parts[-2].replace("crop", ""))
+            ear = "left" if crop_i == 0 else "right"
+            key = (pid, ear)
+            if key not in mapping:
+                mapping[key] = []
+            mapping[key].append(os.path.join(folder, fname))
+        return mapping
+
+    before_map = collect_masks(before_folder)
+    after_map = collect_masks(after_folder)
+    results = []
+
+    for key in before_map:
+        pid, ear = key
+        before_masks = before_map[key]
+        after_masks = after_map.get(key, [])
+        before_volume = 0
+        after_volume = 0
+
+        for f in before_masks:
+            before_volume += (np.array(Image.open(f)) > 127).sum()
+        for f in after_masks:
+            after_volume += (np.array(Image.open(f)) > 127).sum()
+
+        results.append({
+            "patient_id": pid,
+            "ear": ear,
+            "volume_before": before_volume,
+            "volume_after": after_volume,
+            "delta": after_volume - before_volume,
+            "percent_change": 100 * (after_volume - before_volume) / (before_volume+1e-6)
+        })
+
+    df = pd.DataFrame(results)
+    df.to_csv(output_csv, index=False)
+    print(f"Report saved to {output_csv}")
+    return df

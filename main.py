@@ -16,7 +16,6 @@ from utils.pipeline_setup.utils import find_model_by_keywords, setup_pipeline_fo
 from utils.pipeline_setup.AuriBox import run_auribox_inference
 from utils.pipeline_setup.EHMasker import run_ehmasker_inference
 from utils.pipeline_setup.RatioCalculator import compute_eh_ratios
-from utils.pipeline_setup.plots import plot_postprocessing_comparison
 from utils.pipeline_setup.PostProcess3D import postprocess_all_patients_ears, report_mask_volumes
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -158,22 +157,17 @@ pei_segmentation_masks = run_ehmasker_inference(
     confidence=CONFIDENCE
 )
 
+# TODO: only working for some patients
 postprocess_all_patients_ears(mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
                              out_folder=MRC_POSTPROC_MASKS_DIR)
 postprocess_all_patients_ears(mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks"),
                              out_folder=PEI_POSTPROC_MASKS_DIR)
 
-plot_postprocessing_comparison(
-    before_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
-    after_folder=os.path.join(MRC_SEGMENT_DIR, "masks_postprocessed"),
-    patient_id="MRC_4_61615674",  # Example patient
-    ear="left",                   # or "right"
-    num_slices=5
-)
+# TODO: Add for PEI
 report_mask_volumes(
     before_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
     after_folder=os.path.join(MRC_SEGMENT_DIR, "masks_postprocessed"),
-    output_csv="mrc_mask_postproc_comparison.csv"
+    output_csv=os.path.join(RESULTS_FOLDER, "mrc_mask_postproc_comparison.csv")
 )
 
 print("\n✅ EHMasker complete! Segmentation results ready for EH Ratio computation...\n")
