@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from losses import losses
 from matplotlib import pyplot as plt
-from utils.metrics import dice_score, iou_score
+from utils.metrics import dice_score, iou_score, sensitivity, specificity, precision
 import torchvision.transforms as T
 import matplotlib.pyplot as plt
 import time
@@ -161,6 +161,9 @@ def complete_evaluate_model(model, dataloader, device, criterion, results_dir=No
     dice_scores = []
     iou_scores = []
     predictions = []
+    precision_scores = []
+    recall_scores = []
+    specificity_scores = []
 
     print(f"Number of images: {len(dataloader)}")
 
@@ -189,9 +192,14 @@ def complete_evaluate_model(model, dataloader, device, criterion, results_dir=No
 
                 dice = dice_score(mask, mask_label)
                 iou = iou_score(mask, mask_label)
+                prec = precision(mask, mask_label)
+                rec = sensitivity(mask, mask_label)
+                spec = specificity(mask, mask_label)
 
                 predictions.append((inputs[j].cpu(), mask.cpu(), mask_label.cpu(), dice, iou, outputs[j].cpu(), names[j]))
-
+                precision_scores.append(prec)
+                recall_scores.append(rec)
+                specificity_scores.append(spec)
                 dice_scores.append(dice)
                 iou_scores.append(iou)
 
@@ -210,6 +218,10 @@ def complete_evaluate_model(model, dataloader, device, criterion, results_dir=No
     print(f'Standard Deviation of Dice Score: {std_dice:.4f}')
     print(f'Mean IoU: {mean_iou:.4f}')
     print(f'Standard Deviation of IoU: {std_iou:.4f}')
+    print(f'Mean Precision: {np.mean(precision_scores):.4f}')
+    print(f'Mean Recall (Sensitivity): {np.mean(recall_scores):.4f}')
+    print(f'Mean Specificity: {np.mean(specificity_scores):.4f}')
+
 
     if results_dir:
         with open(os.path.join(save_dir, "evaluation_results.txt"), "w") as f:

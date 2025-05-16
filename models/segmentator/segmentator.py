@@ -101,9 +101,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-class UNetOptimizedDO(nn.Module):
+class CustomUNet(nn.Module):
     """
-    UNetOptimizedDO is a customized U-Net architecture for image segmentation tasks, 
+    CustomUNet is a customized U-Net architecture for image segmentation tasks, 
     incorporating several enhancements for improved performance and regularization.
 
     Key Features:
@@ -120,42 +120,42 @@ class UNetOptimizedDO(nn.Module):
         init_features (int): Number of feature maps in the first layer. Default is 32.
 
     Example usage:
-        model = UNetOptimizedDO(in_channels=3, out_channels=1)
+        model = CustomUNet(in_channels=3, out_channels=1)
     """
 
     def __init__(self, in_channels=3, out_channels=1, init_features=32):
-        super(UNetOptimizedDO, self).__init__()
+        super(CustomUNet, self).__init__()
 
         features = init_features
-        self.encoder1 = UNetOptimizedDO._block(in_channels, features, name="enc1")
+        self.encoder1 = CustomUNet._block(in_channels, features, name="enc1")
         self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.encoder2 = UNetOptimizedDO._block(features, features * 2, name="enc2")
+        self.encoder2 = CustomUNet._block(features, features * 2, name="enc2")
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.encoder3 = UNetOptimizedDO._block(features * 2, features * 4, name="enc3")
+        self.encoder3 = CustomUNet._block(features * 2, features * 4, name="enc3")
         self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.encoder4 = UNetOptimizedDO._block(features * 4, features * 8, name="enc4")
+        self.encoder4 = CustomUNet._block(features * 4, features * 8, name="enc4")
         self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         self.bottleneck = nn.Sequential(
-            UNetOptimizedDO._block(features * 8, features * 16, name="bottleneck"),
+            CustomUNet._block(features * 8, features * 16, name="bottleneck"),
             nn.InstanceNorm2d(features * 16),
             nn.Dropout2d(0.3)  
         )
 
         self.upconv4 = nn.ConvTranspose2d(features * 16, features * 8, kernel_size=2, stride=2)
-        self.decoder4 = UNetOptimizedDO._block((features * 8) * 2, features * 8, name="dec4")
+        self.decoder4 = CustomUNet._block((features * 8) * 2, features * 8, name="dec4")
         self.dropout4 = nn.Dropout2d(0.2)
 
         self.upconv3 = nn.ConvTranspose2d(features * 8, features * 4, kernel_size=2, stride=2)
-        self.decoder3 = UNetOptimizedDO._block((features * 4) * 2, features * 4, name="dec3")
+        self.decoder3 = CustomUNet._block((features * 4) * 2, features * 4, name="dec3")
         self.dropout3 = nn.Dropout2d(0.2)
 
         self.upconv2 = nn.ConvTranspose2d(features * 4, features * 2, kernel_size=2, stride=2)
-        self.decoder2 = UNetOptimizedDO._block((features * 2) * 2, features * 2, name="dec2")
+        self.decoder2 = CustomUNet._block((features * 2) * 2, features * 2, name="dec2")
         self.dropout2 = nn.Dropout2d(0.2)
 
         self.upconv1 = nn.ConvTranspose2d(features * 2, features, kernel_size=2, stride=2)
-        self.decoder1 = UNetOptimizedDO._block(features * 2, features, name="dec1")
+        self.decoder1 = CustomUNet._block(features * 2, features, name="dec1")
         self.dropout1 = nn.Dropout2d(0.2)
 
         self.conv = nn.Conv2d(in_channels=features, out_channels=out_channels, kernel_size=1)
@@ -272,4 +272,4 @@ class UNetOptimizedDO(nn.Module):
 
 
 # Ensure classes are properly exposed
-__all__ = ["Segmentator", "UNetOptimizedDO" ]
+__all__ = ["Segmentator", "CustomUNet" ]

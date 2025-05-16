@@ -13,7 +13,7 @@ from datetime import datetime
 from losses import losses
 from dataloader.dataloader_MRC import DataLoaderByPatientSpecific
 from trainers.segmentator.pretrained_trainers import train_model, complete_evaluate_model
-from models.segmentator.segmentator import Segmentator, UNetOptimizedDO
+from models.segmentator.segmentator import Segmentator, CustomUNet
 from utils.visualize_mask import visualize_sample_with_overlay_and_contour
 
 
@@ -26,7 +26,7 @@ USE_PEI = False
 
 SAVE_RESULTS = True  
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 25  
+NUM_EPOCHS = 25
 
 LEARNING_RATE = 1e-4  
 BATCH_SIZE = 16
@@ -45,11 +45,10 @@ if os.path.exists('/kaggle/input'):
     PEI_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/images/flipped_images_PEI'
     PEI_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/mod_flipped_labels_PEI'
 else:
-    MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_MRC'
-    MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC'
-    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' 
-    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI'
-  
+    MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_MRC' #augmented
+    MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC' #augmented
+    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #augmented
+    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI' #augmented
 if USE_MRC:
     IMAGES_FOLDER = MRC_IMAGES_FOLDER
     LABELS_FOLDER = MRC_LABELS_FOLDER
@@ -61,7 +60,7 @@ elif USE_PEI:
 
 # Initialize the segmentation model
 
-segmentator = UNetOptimizedDO()
+segmentator = CustomUNet()
 #segmentator = Segmentator()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -92,7 +91,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 # ==============================================================================
 
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/MRC/20250426 one channel"
+    results_folder = "./results/results_segmentator/RESULTS_new metrics/20250516"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
