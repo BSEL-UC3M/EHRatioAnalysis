@@ -74,6 +74,7 @@ def run_auribox_inference(
                 detections[filename] = detection_list
         except Exception as e:
             print(f"⚠️ Skipped {filename} due to error: {e}")
+            break
 
     plot_confidence_distribution(detections, save_path=result_folder)
     plot_detection_heatmap(detections, image_shape=(384, 324), save_path=result_folder)

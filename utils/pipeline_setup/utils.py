@@ -108,13 +108,18 @@ def convert_images_to_uint8(image_paths, output_folder=None):
             min_val, max_val = image.min(), image.max()
             image = (image - min_val) / (max_val - min_val + 1e-6)
             image_uint8 = (image * 255).astype("uint8")
+            
+            # --- Ensure 3 channels ---
+            if image_uint8.ndim == 2:  # grayscale
+                image_uint8 = np.stack([image_uint8] * 3, axis=-1)  # [H, W, 3]
+            elif image_uint8.ndim == 3 and image_uint8.shape[2] == 1:
+                image_uint8 = np.repeat(image_uint8, 3, axis=2)  # [H, W, 3]
 
             output_path = base / Path(image_path).name
             imwrite(str(output_path), image_uint8)
             converted_files.append(str(output_path))
         except Exception as e:
             print(f"❌ Error converting {image_path}: {e}")
-
     return str(base), converted_files
 
 def postprocess_3d_mask(mask_stack):
