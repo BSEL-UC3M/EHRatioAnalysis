@@ -23,7 +23,7 @@ def run_ehmasker_inference(
     device,
     result_folder,
     dataset_type="MRC",
-    confidence=0.6
+    confidence=0.5
     ):
     """
     Run segmentation on dynamically cropped ear regions from detected bounding boxes.
