@@ -33,7 +33,7 @@ MODELS_FOLDER = "D:/Models/EHydropsAnalysis/2025/"
 RAW_DATA_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
 RAW_DATA_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI-TEST-INFERENCE/"
 
-RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-PostProcessed"
+RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-PostProcessed-v3"
 folder_paths = setup_pipeline_folders(RESULTS_FOLDER)
 
 MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]

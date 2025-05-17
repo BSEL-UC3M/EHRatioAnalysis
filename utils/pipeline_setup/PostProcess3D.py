@@ -38,22 +38,22 @@ def postprocess_3d_mask(stack, dust_threshold=500, connectivity=26, fill_3d_hole
         Cleaned stack (bool)
     """
     # Remove small components
-    cleaned = cc3d.dust(stack, threshold=dust_threshold, connectivity=connectivity, in_place=False)
+    # cleaned = cc3d.dust(stack, threshold=dust_threshold, connectivity=connectivity, in_place=False)
+    cleaned = stack
+    # Fill holes
+    if fill_3d_holes:
+        cleaned = binary_fill_holes(cleaned)  # 3D fill
+    else:
+        # Or fill holes per slice if preferred
+        for i in range(cleaned.shape[0]):
+            cleaned[i] = binary_fill_holes(cleaned[i])
 
-    # Label components
+    # Label comp4onents
     labels_out = cc3d.connected_components(cleaned, connectivity=connectivity)
     if labels_out.max() == 0:
         return cleaned  # nothing left
     # Get the largest 3D component
     biggest = (labels_out == np.argmax(np.bincount(labels_out.flat)[1:]) + 1)
-    
-    # Fill holes
-    if fill_3d_holes:
-        biggest = binary_fill_holes(biggest)  # 3D fill
-    else:
-        # Or fill holes per slice if preferred
-        for i in range(biggest.shape[0]):
-            biggest[i] = binary_fill_holes(biggest[i])
 
     return biggest.astype(np.uint8)
 
