@@ -21,17 +21,17 @@ from utils.visualize_mask import visualize_sample_with_overlay_and_contour
 
 # Configuration Parameters
 
-USE_MRC = True  
-USE_PEI = False 
+USE_MRC = False  
+USE_PEI = True 
 
 SAVE_RESULTS = True  
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 30
+NUM_EPOCHS = 40
 
 LEARNING_RATE = 1e-4  
-BATCH_SIZE = 16
+BATCH_SIZE = 6
 
-MODE = "inference"  # Set the mode: "train", "inference"
+MODE = "train"  # Set the mode: "train", "inference"
 
 LOSS_FUNCTION = "bce_dice" 
 
@@ -45,14 +45,10 @@ if os.path.exists('/kaggle/input'):
     PEI_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/images/flipped_images_PEI'
     PEI_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/mod_flipped_labels_PEI'
 else:
-    # MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_MRC' #augmented
-    # MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC' #augmented
-    # PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #augmented
-    # PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI' #augmented
-    MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_MRC' #augmented
-    MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_MRC' #augmented
-    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_PEI' #augmented
-    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_PEI'
+    MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_MRC' #augmented
+    MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC' #augmented
+    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #augmented
+    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI' #augmented
 if USE_MRC:
     IMAGES_FOLDER = MRC_IMAGES_FOLDER
     LABELS_FOLDER = MRC_LABELS_FOLDER
@@ -64,8 +60,8 @@ elif USE_PEI:
 
 # Initialize the segmentation model
 
-segmentator = UNetOptimizedDO()
-#segmentator = Segmentator()
+#segmentator = UNetOptimizedDO()
+segmentator = Segmentator()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 segmentator = segmentator.to(device)
