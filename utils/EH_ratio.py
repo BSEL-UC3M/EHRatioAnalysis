@@ -15,7 +15,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import cv2
 from scipy.ndimage import center_of_mass, shift
-
+from matplotlib.colors import ListedColormap
 
 
 
@@ -160,22 +160,27 @@ import matplotlib.lines as mlines
 def visualizar_resultados(rec_cavidad, rec_liquido, rec_superpuesta):
     plt.figure(figsize=(12, 4))
 
+    red_cmap = ListedColormap(['black', 'red'])   # 0 -> black, 1 -> red
+    green_cmap = ListedColormap(['black', 'green'])  # 0 -> black, 1 -> green
+
+    plt.figure(figsize=(12, 4))
+
     plt.subplot(1, 3, 1)
-    plt.title("Máscara Cavidad")
-    plt.imshow(rec_cavidad, cmap='gray')
+    plt.title("Vestibule mask")
+    plt.imshow(rec_cavidad, cmap=red_cmap)
 
     plt.subplot(1, 3, 2)
-    plt.title("Máscara Líquido Alineada")
-    plt.imshow(rec_liquido, cmap='gray')
+    plt.title("Aligned Endolymph mask")
+    plt.imshow(rec_liquido, cmap=green_cmap)
 
     plt.subplot(1, 3, 3)
-    plt.title("Superposición")
+    plt.title("Superposition")
     rgb_superpuesta = superponer_colores(rec_cavidad, rec_liquido)
     plt.imshow(rgb_superpuesta)
 
-    red_patch = mlines.Line2D([], [], marker='o', color='r', label="Cavidad", markersize=10)
-    green_patch = mlines.Line2D([], [], marker='o', color='g', label="Líquido", markersize=10)
-    yellow_patch = mlines.Line2D([], [], marker='o', color='y', label="Superposición", markersize=10)
+    red_patch = mlines.Line2D([], [], marker='o', color='r', label="Vestibule", markersize=10)
+    green_patch = mlines.Line2D([], [], marker='o', color='g', label="Endolymph", markersize=10)
+    yellow_patch = mlines.Line2D([], [], marker='o', color='y', label="Superposition", markersize=10)
 
     plt.legend(handles=[red_patch, green_patch, yellow_patch], loc="upper right", fontsize=8)
 
@@ -200,9 +205,9 @@ def procesar_imagenes(mrc_path, pei_path):
     visualizar_resultados(rec_cavidad, rec_liquido, rec_superpuesta)
     
     area_cavidad, area_liquido, ratio = calcular_areas(rec_cavidad, rec_liquido)
-    print(f"Área Cavidad: {area_cavidad:.2f} mm²")
-    print(f"Área Líquido: {area_liquido:.2f} mm²")
-    print(f"Ratio Líquido/Cavidad: {ratio:.3f}")
+    print(f"Vestibule Area: {area_cavidad:.2f} mm²")
+    print(f"Endolymph: {area_liquido:.2f} mm²")
+    print(f"Ratio: {ratio:.3f}")
 
 
 
