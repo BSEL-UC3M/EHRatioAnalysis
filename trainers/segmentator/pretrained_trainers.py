@@ -230,29 +230,77 @@ def complete_evaluate_model(model, dataloader, device, criterion, results_dir=No
             f.write(f"Mean IoU: {mean_iou} (std: {std_iou})\n")
 
     if results_dir:
-        for idx, (input_image, pred_mask, true_mask, dice, iou, raw_output,image_name) in enumerate(predictions):
+        #for idx, (input_image, pred_mask, true_mask, dice, iou, raw_output,image_name) in enumerate(predictions):
 
-            fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+            # fig, axes = plt.subplots(1, 3, figsize=(15, 5))
             
+            # axes[0].imshow(input_image.permute(1, 2, 0)) 
+            # axes[0].imshow(true_mask.squeeze(0), cmap='Blues', alpha=0.35) 
+            # axes[0].set_title(f"Original Image + Ground Truth Label")
+            # axes[0].axis('off')
+
+            # axes[1].imshow(input_image.permute(1, 2, 0))
+            # axes[1].imshow(pred_mask.squeeze(0), cmap='Reds', alpha=0.35) 
+            # axes[1].set_title(f" Predicted Mask {idx+1} (Dice: {dice:.2f})")
+            # axes[1].axis('off')
+
+            # probability_map = raw_output.squeeze(0).cpu().numpy() 
+            # masked_pred = np.ma.masked_where(probability_map <= 0.1, probability_map) 
+            # cmap = plt.cm.RdYlGn
+            # norm = plt.Normalize(vmin=0.1, vmax=1) 
+            # im = axes[2].imshow(masked_pred, cmap=cmap, norm=norm)
+            # axes[2].set_title(f"Probability Map of the Prediction")
+            # axes[2].axis('off')
+            # cbar = fig.colorbar(im, ax=axes[2], fraction=0.046, pad=0.04)
+            # cbar.set_label("Confianza de Predicción")
+
+            # plt.tight_layout()
+            # plt.savefig(os.path.join(save_dir, f"{idx}_{image_name}.png"))
+
+        for idx, (input_image, pred_mask, true_mask, dice, iou, raw_output, image_name) in enumerate(predictions):
+
+            fig, axes = plt.subplots(1, 4, figsize=(20, 5))
+
+            # Imagen original + ground truth
             axes[0].imshow(input_image.permute(1, 2, 0)) 
             axes[0].imshow(true_mask.squeeze(0), cmap='Blues', alpha=0.35) 
-            axes[0].set_title(f"Original Image + Ground Truth Label")
+            axes[0].set_title(f"Original + Ground Truth")
             axes[0].axis('off')
 
+            # Imagen original + predicción
             axes[1].imshow(input_image.permute(1, 2, 0))
             axes[1].imshow(pred_mask.squeeze(0), cmap='Reds', alpha=0.35) 
-            axes[1].set_title(f" Predicted Mask {idx+1} (Dice: {dice:.2f})")
+            axes[1].set_title(f"Predicción (Dice: {dice:.2f})")
             axes[1].axis('off')
 
-            probability_map = raw_output.squeeze(0).cpu().numpy() 
-            masked_pred = np.ma.masked_where(probability_map <= 0.1, probability_map) 
+            # Mapa de probabilidades
+            probability_map = raw_output.squeeze(0).cpu().numpy()
+            masked_pred = np.ma.masked_where(probability_map <= 0.1, probability_map)
             cmap = plt.cm.RdYlGn
-            norm = plt.Normalize(vmin=0.1, vmax=1) 
+            norm = plt.Normalize(vmin=0.1, vmax=1)
             im = axes[2].imshow(masked_pred, cmap=cmap, norm=norm)
-            axes[2].set_title(f"Probability Map of the Prediction")
+            axes[2].set_title(f"Mapa de Probabilidad")
             axes[2].axis('off')
             cbar = fig.colorbar(im, ax=axes[2], fraction=0.046, pad=0.04)
-            cbar.set_label("Confianza de Predicción")
+            cbar.set_label("Confianza")
+
+            # Overlay de predicción y ground truth
+            pred = pred_mask.squeeze().cpu().numpy().astype(bool)
+            true = true_mask.squeeze().cpu().numpy().astype(bool)
+
+            overlay = np.zeros((pred.shape[0], pred.shape[1], 3))  # RGB
+
+            # solo GT - azul
+            overlay[(true == 1) & (pred == 0)] = [0, 0, 1]
+            # solo pred - rojo
+            overlay[(true == 0) & (pred == 1)] = [1, 0, 0]
+            # overlap - blanco
+            overlay[(true == 1) & (pred == 1)] = [1, 1, 1]
+
+            axes[3].imshow(input_image.permute(1, 2, 0))
+            axes[3].imshow(overlay, alpha=0.5)
+            axes[3].set_title("Overlay GT vs Predicción")
+            axes[3].axis('off')
 
             plt.tight_layout()
             plt.savefig(os.path.join(save_dir, f"{idx}_{image_name}.png"))

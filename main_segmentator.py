@@ -21,17 +21,17 @@ from utils.visualize_mask import visualize_sample_with_overlay_and_contour
 
 # Configuration Parameters
 
-USE_MRC = False  
-USE_PEI = True 
+USE_MRC = True  
+USE_PEI = False 
 
 SAVE_RESULTS = True  
 SAVE_WEIGHTS = True
 NUM_EPOCHS = 40
 
 LEARNING_RATE = 1e-4  
-BATCH_SIZE = 6
+BATCH_SIZE = 16
 
-MODE = "train"  # Set the mode: "train", "inference"
+MODE = "inference"  # Set the mode: "train", "inference"
 
 LOSS_FUNCTION = "bce_dice" 
 
@@ -60,8 +60,8 @@ elif USE_PEI:
 
 # Initialize the segmentation model
 
-#segmentator = UNetOptimizedDO()
-segmentator = Segmentator()
+segmentator = UNetOptimizedDO()
+#segmentator = Segmentator()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 segmentator = segmentator.to(device)
