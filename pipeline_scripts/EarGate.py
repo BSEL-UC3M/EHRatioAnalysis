@@ -6,7 +6,7 @@
 # ==============================================================================
 import torch
 import os
-from utils.classification_postprocess import (
+from pipeline_scripts.classification_postprocess import (
     smooth_classification_predictions,
     plot_comparison,
     plot_comparison_with_labels,

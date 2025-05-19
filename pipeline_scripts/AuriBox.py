@@ -10,8 +10,8 @@ import numpy as np
 from PIL import Image
 from ultralytics import YOLO
 from tqdm import tqdm
-from utils.pipeline_setup.utils import convert_images_to_uint8
-from utils.pipeline_setup.plots import plot_confidence_distribution, plot_detection_heatmap
+from pipeline_scripts.utils import convert_images_to_uint8
+from pipeline_scripts.plots import plot_confidence_distribution, plot_detection_heatmap
 
 
 def run_auribox_inference(

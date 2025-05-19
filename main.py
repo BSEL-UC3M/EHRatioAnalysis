@@ -11,12 +11,12 @@ import time
 import pandas as pd
 import os
 
-from utils.pipeline_setup.EarGate import run_eargate_inference
-from utils.pipeline_setup.utils import find_model_by_keywords, setup_pipeline_folders, save_run_metadata
-from utils.pipeline_setup.AuriBox import run_auribox_inference
-from utils.pipeline_setup.EHMasker import run_ehmasker_inference
-from utils.pipeline_setup.RatioCalculator import compute_eh_ratios
-from utils.pipeline_setup.PostProcess3D import postprocess_all_patients_ears, report_mask_volumes
+from pipeline_scripts.EarGate import run_eargate_inference
+from pipeline_scripts.utils import find_model_by_keywords, setup_pipeline_folders, save_run_metadata
+from pipeline_scripts.AuriBox import run_auribox_inference
+from pipeline_scripts.EHMasker import run_ehmasker_inference
+from pipeline_scripts.RatioCalculator import compute_eh_ratios
+from pipeline_scripts.PostProcess3D import postprocess_all_patients_ears, report_mask_volumes
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -33,7 +33,7 @@ MODELS_FOLDER = "D:/Models/EHydropsAnalysis/2025/"
 RAW_DATA_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
 RAW_DATA_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI-TEST-INFERENCE/"
 
-RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-PostProcessed-v5"
+RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline"
 folder_paths = setup_pipeline_folders(RESULTS_FOLDER)
 
 MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]

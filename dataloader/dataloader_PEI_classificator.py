@@ -7,7 +7,6 @@
 
 import os
 import pandas as pd
-import random
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 import torch
@@ -20,7 +19,7 @@ import numpy as np
 import sys
 sys.path.append("/Users/claudiacastrillonalvarez/Desktop/github/EHRatioAnalysis/utils")
 from utils.preprocessing_all_images import preprocess_all_images
-from utils.pipeline_setup.utils import preprocess_pei_image
+from pipeline_scripts.utils import preprocess_pei_image
 
 class ClassificationDataset(Dataset):
     """

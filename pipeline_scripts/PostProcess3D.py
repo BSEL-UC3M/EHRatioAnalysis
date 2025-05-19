@@ -12,7 +12,7 @@ import numpy as np
 from PIL import Image
 from scipy.ndimage import binary_fill_holes
 import cc3d
-from utils.pipeline_setup.plots import save_segmentation_overlay
+from pipeline_scripts.plots import save_segmentation_overlay
 
 def parse_patient_and_ear(filename):
     match = re.match(r"(MRC|PEI)_(\d+)_\d+_crop([01])_mask\.png", os.path.basename(filename))

@@ -13,8 +13,8 @@ import tifffile as tiff
 from PIL import Image
 from tqdm import tqdm
 from models.segmentator.segmentator import UNetOptimizedDO  # or change to your model
-from utils.classification_postprocess import extract_patient_and_index
-from utils.pipeline_setup.plots import save_segmentation_overlay
+from pipeline_scripts.classification_postprocess import extract_patient_and_index
+from pipeline_scripts.plots import save_segmentation_overlay
 
 def run_ehmasker_inference(
     image_folder,

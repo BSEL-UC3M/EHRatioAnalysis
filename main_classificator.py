@@ -19,7 +19,7 @@ from dataloader.dataloader_MRC_classificator import ClassificationDataLoader
 from models.classificator.five_layer_cnn import FiveLayerCNN
 from models.classificator.resnet50 import fine_tune_resnet
 from trainers.classificator.trainer import train_model, evaluate_model
-from utils.classification_postprocess import threshold_sweep
+from pipeline_scripts.classification_postprocess import threshold_sweep
 from utils.custom_plots import plot_threshold_tradeoffs, plot_class1_probability_histogram
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
