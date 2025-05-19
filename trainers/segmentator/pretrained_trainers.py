@@ -253,7 +253,7 @@ def complete_evaluate_model(model, dataloader, device, criterion, results_dir=No
             cmap = plt.cm.RdYlGn
             norm = plt.Normalize(vmin=0.1, vmax=1)
             im = axes[2].imshow(masked_pred, cmap=cmap, norm=norm)
-            axes[2].set_title(f"Mapa de Probabilidad", fontsize=16)
+            axes[2].set_title(f"Probability Map", fontsize=16)
             axes[2].axis('off')
             cbar = fig.colorbar(im, ax=axes[2], fraction=0.046, pad=0.04)
             cbar.set_label("Confianza")
@@ -272,7 +272,7 @@ def complete_evaluate_model(model, dataloader, device, criterion, results_dir=No
 
             axes[3].imshow(input_image.permute(1, 2, 0))
             axes[3].imshow(overlay, alpha=0.5)
-            axes[3].set_title("Overlay GT vs Predicción", fontsize=16)
+            axes[3].set_title("Overlay GT vs Prediction", fontsize=16)
             axes[3].axis('off')
             legend_patches = [
                 mpatches.Patch(color=(0, 0, 1), label='GT (Blue)'),
