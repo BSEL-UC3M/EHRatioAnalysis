@@ -103,7 +103,7 @@ import os
 
 class UNetOptimizedDO(nn.Module):
     """
-    UNetOptimizedDO is a customized U-Net architecture for image segmentation tasks, 
+    CustomUNet is a customized U-Net architecture for image segmentation tasks, 
     incorporating several enhancements for improved performance and regularization.
 
     Key Features:

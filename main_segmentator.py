@@ -22,16 +22,16 @@ from utils.visualize_mask import visualize_sample_with_overlay_and_contour
 # Configuration Parameters
 
 USE_MRC = True  
-USE_PEI = False  
+USE_PEI = False 
 
 SAVE_RESULTS = True  
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 25  
+NUM_EPOCHS = 40
 
 LEARNING_RATE = 1e-4  
 BATCH_SIZE = 16
 
-MODE = "train"  # Set the mode: "train", "inference_mrc", or "inference_pei"
+MODE = "inference"  # Set the mode: "train", "inference"
 
 LOSS_FUNCTION = "bce_dice" 
 
@@ -45,11 +45,10 @@ if os.path.exists('/kaggle/input'):
     PEI_IMAGES_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/images/flipped_images_PEI'
     PEI_LABELS_FOLDER = '/kaggle/input/cropped-dataset/NORMALIZED_CROPPED_DATASET/labels/mod_flipped_labels_PEI'
 else:
-    MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_MRC'
-    MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC'
-    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' 
-    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI'
-  
+    MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_MRC' #augmented
+    MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC' #augmented
+    PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #augmented
+    PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI' #augmented
 if USE_MRC:
     IMAGES_FOLDER = MRC_IMAGES_FOLDER
     LABELS_FOLDER = MRC_LABELS_FOLDER
@@ -92,7 +91,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 # ==============================================================================
 
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/MRC/20250426 one channel"
+    results_folder = "./results/results_segmentator/RESULTS_new metrics/20250516"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
@@ -156,14 +155,14 @@ if MODE == "train":
 elif MODE == "inference": 
     if USE_MRC:
         print("Evaluating model with inference MRC")
-        model_path = 'C:\\Users\\TFM1\\Desktop\\mrc_segmentator_best_weights.pt' 
+        model_path = 'C:\\Users\\TFM1\\Desktop\\weights\\mrc_segmentator_best_weights.pt' 
         segmentator.load_state_dict(torch.load(model_path))  
         segmentator.eval() 
         trained_model = segmentator  
     elif USE_PEI:
         # Evaluate inference MRC
         print("Evaluating model with inference PEI")
-        model_path = 'C:\\Users\\TFM1\\Desktop\\pei_segmentator_best_weights.pt'  
+        model_path = 'C:\\Users\\TFM1\\Desktop\\weights\\pei_segmentator_best_weights.pt'  
         segmentator.load_state_dict(torch.load(model_path))  
         segmentator.eval() 
         trained_model = segmentator  
