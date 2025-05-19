@@ -166,15 +166,15 @@ def visualizar_resultados(rec_cavidad, rec_liquido, rec_superpuesta):
     plt.figure(figsize=(12, 4))
 
     plt.subplot(1, 3, 1)
-    plt.title("Vestibule mask")
+    plt.title("Vestibule mask", fontsize=16)
     plt.imshow(rec_cavidad, cmap=red_cmap)
 
     plt.subplot(1, 3, 2)
-    plt.title("Aligned Endolymph mask")
+    plt.title("Aligned Endolymph mask", fontsize=16)
     plt.imshow(rec_liquido, cmap=green_cmap)
 
     plt.subplot(1, 3, 3)
-    plt.title("Superposition")
+    plt.title("Superposition",fontsize=16)
     rgb_superpuesta = superponer_colores(rec_cavidad, rec_liquido)
     plt.imshow(rgb_superpuesta)
 
@@ -182,7 +182,7 @@ def visualizar_resultados(rec_cavidad, rec_liquido, rec_superpuesta):
     green_patch = mlines.Line2D([], [], marker='o', color='g', label="Endolymph", markersize=10)
     yellow_patch = mlines.Line2D([], [], marker='o', color='y', label="Superposition", markersize=10)
 
-    plt.legend(handles=[red_patch, green_patch, yellow_patch], loc="upper right", fontsize=8)
+    plt.legend(handles=[red_patch, green_patch, yellow_patch], loc="upper right", fontsize=12)
 
     plt.tight_layout()
     plt.show()
