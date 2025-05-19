@@ -23,7 +23,8 @@ def run_ehmasker_inference(
     device,
     result_folder,
     dataset_type="MRC",
-    confidence=0.5
+    mrc_confidence=0.8,
+    pei_confidence=0.5
     ):
     """
     Run segmentation on dynamically cropped ear regions from detected bounding boxes.
@@ -80,7 +81,10 @@ def run_ehmasker_inference(
             with torch.no_grad():
                 output = model(input_tensor)
                 mask = torch.sigmoid(output).squeeze().cpu().numpy()
-                binary_mask = (mask > confidence).astype(np.uint8)
+                if dataset_type=="MRC":
+                    binary_mask = (mask > mrc_confidence).astype(np.uint8)
+                else:
+                    binary_mask = (mask > pei_confidence).astype(np.uint8)
 
             outname = f"{pid}_{idx}_crop{i}_mask.png"
             mask_path = os.path.join(masks_folder, outname)

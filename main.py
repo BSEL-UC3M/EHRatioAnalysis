@@ -12,7 +12,7 @@ import pandas as pd
 import os
 
 from utils.pipeline_setup.EarGate import run_eargate_inference
-from utils.pipeline_setup.utils import find_model_by_keywords, setup_pipeline_folders
+from utils.pipeline_setup.utils import find_model_by_keywords, setup_pipeline_folders, save_run_metadata
 from utils.pipeline_setup.AuriBox import run_auribox_inference
 from utils.pipeline_setup.EHMasker import run_ehmasker_inference
 from utils.pipeline_setup.RatioCalculator import compute_eh_ratios
@@ -33,7 +33,7 @@ MODELS_FOLDER = "D:/Models/EHydropsAnalysis/2025/"
 RAW_DATA_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
 RAW_DATA_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI-TEST-INFERENCE/"
 
-RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-PostProcessed-v3"
+RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-PostProcessed-v5"
 folder_paths = setup_pipeline_folders(RESULTS_FOLDER)
 
 MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]
@@ -50,7 +50,8 @@ PEI_POSTPROC_MASKS_DIR = os.path.join(PEI_SEGMENT_DIR, "masks_postprocessed")
 BATCH_SIZE = 16
 CLASS_THRESHOLD = 0.2
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-CONFIDENCE = 0.6
+MRC_CONFIDENCE = 0.7
+PEI_CONFIDENCE = 0.55
 
 # Finding models
 MRC_CLASSIFICATION_MODEL = find_model_by_keywords(
@@ -144,7 +145,7 @@ mrc_segmentation_masks = run_ehmasker_inference(
     device=DEVICE,
     result_folder=MRC_SEGMENT_DIR,
     dataset_type="MRC",
-    confidence=CONFIDENCE
+    mrc_confidence=MRC_CONFIDENCE
 )
 
 pei_segmentation_masks = run_ehmasker_inference(
@@ -154,14 +155,21 @@ pei_segmentation_masks = run_ehmasker_inference(
     device=DEVICE,
     result_folder=PEI_SEGMENT_DIR,
     dataset_type="PEI",
-    confidence=CONFIDENCE
+    pei_confidence=PEI_CONFIDENCE
 )
 
-# TODO: only working for some patients
-postprocess_all_patients_ears(mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
-                             out_folder=MRC_POSTPROC_MASKS_DIR)
-postprocess_all_patients_ears(mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks"),
-                             out_folder=PEI_POSTPROC_MASKS_DIR)
+postprocess_all_patients_ears(
+    orig_folder=os.path.join(MRC_SEGMENT_DIR, "tiff"),
+    mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
+    out_folder=MRC_POSTPROC_MASKS_DIR,
+    overlay_folder=os.path.join(MRC_SEGMENT_DIR, "overlays_pp")
+)
+postprocess_all_patients_ears(
+    orig_folder=os.path.join(PEI_SEGMENT_DIR, "tiff"),
+    mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks"),
+    out_folder=PEI_POSTPROC_MASKS_DIR,
+    overlay_folder=os.path.join(PEI_SEGMENT_DIR, "overlays_pp")
+)
 
 # TODO: Add for PEI
 report_mask_volumes(
@@ -186,5 +194,31 @@ compute_eh_ratios(
     output_csv_path=RATIO_OUTPUT_CSV,
 )
 
+# Gather parameters to save
+params_dict = {
+    "BATCH_SIZE": BATCH_SIZE,
+    "CLASS_THRESHOLD": CLASS_THRESHOLD,
+    "MRC_CONFIDENCE": MRC_CONFIDENCE,
+    "PEI_CONFIDENCE": PEI_CONFIDENCE,
+    "DEVICE": DEVICE,
+    "MRC_CLASSIFICATION_MODEL": MRC_CLASSIFICATION_MODEL,
+    "PEI_CLASSIFICATION_MODEL": PEI_CLASSIFICATION_MODEL,
+    "MRC_DETECT_MODEL": MRC_DETECT_MODEL,
+    "PEI_DETECT_MODEL": PEI_DETECT_MODEL,
+    "MRC_SEGMENT_MODEL": MRC_SEGMENT_MODEL,
+    "PEI_SEGMENT_MODEL": PEI_SEGMENT_MODEL,
+    "RAW_DATA_MRC": RAW_DATA_MRC,
+    "RAW_DATA_PEI": RAW_DATA_PEI,
+    "RESULTS_FOLDER": RESULTS_FOLDER,
+}
+# Save metadata
 elapsed = time.time() - start_time
+save_run_metadata(
+    results_folder=RESULTS_FOLDER,
+    params_dict=params_dict,
+    elapsed_seconds=elapsed,
+    extra_notes=None  # or "Anything else you want to add"
+)
+
+
 print(f"\n⏱️ Total pipeline runtime: {elapsed:.2f} seconds")

@@ -12,6 +12,7 @@ import numpy as np
 from PIL import Image
 from scipy.ndimage import binary_fill_holes
 import cc3d
+from utils.pipeline_setup.plots import save_segmentation_overlay
 
 def parse_patient_and_ear(filename):
     match = re.match(r"(MRC|PEI)_(\d+)_\d+_crop([01])_mask\.png", os.path.basename(filename))
@@ -27,18 +28,16 @@ def extract_slice_index(filename):
         return 0
     return int(match.group(3))
 
-def postprocess_3d_mask(stack, dust_threshold=500, connectivity=26, fill_3d_holes=True):
+def postprocess_3d_mask(stack,  connectivity=26, fill_3d_holes=True):
     """
     stack: [num_slices, H, W] binary mask (bool or 0/1)
     Steps:
-        1. Remove small components (3D) with cc3d.dust.
+        1. Fill holes (in 3D).
         2. Keep only the largest 3D connected component.
-        3. Fill holes (optionally in 3D or 2D).
     Returns:
         Cleaned stack (bool)
     """
-    # Remove small components
-    # cleaned = cc3d.dust(stack, threshold=dust_threshold, connectivity=connectivity, in_place=False)
+
     cleaned = stack
     # Fill holes
     if fill_3d_holes:
@@ -57,7 +56,7 @@ def postprocess_3d_mask(stack, dust_threshold=500, connectivity=26, fill_3d_hole
 
     return biggest.astype(np.uint8)
 
-def postprocess_all_patients_ears(mask_folder, out_folder, dust_threshold=500):
+def postprocess_all_patients_ears(orig_folder, mask_folder, out_folder, overlay_folder):
     os.makedirs(out_folder, exist_ok=True)
     groups = {}
     for fname in sorted(os.listdir(mask_folder)):
@@ -78,10 +77,47 @@ def postprocess_all_patients_ears(mask_folder, out_folder, dust_threshold=500):
             mask = np.array(Image.open(os.path.join(mask_folder, fname)).convert("L"))
             stack.append(mask > 127)
         stack = np.stack(stack, axis=0)
-        cleaned = postprocess_3d_mask(stack, dust_threshold=dust_threshold)
+        cleaned = postprocess_3d_mask(stack)
         for idx, fname in enumerate(mask_list_sorted):
+            # Saving the mask with postprocess
             out_path = os.path.join(out_folder, fname)
-            Image.fromarray((cleaned[idx] * 255).astype(np.uint8)).save(out_path)
+            mask_save = (cleaned[idx] * 255).astype(np.uint8)
+            Image.fromarray(mask_save).save(out_path)
+
+            # Get info for original image filename
+            match = re.match(r"(MRC|PEI)_(\d+)_(\d+)_crop([01])_mask\.png", fname)
+            if match:
+                prefix, pid, slice_idx, crop_i = match.groups()
+                # Rebuild the corresponding input filename
+                orig_basename = f"{prefix}_{pid}_{slice_idx}_crop{crop_i}_input.png"
+                orig_path = os.path.join(orig_folder, orig_basename)
+                if not os.path.exists(orig_path):
+                    # Try with .tif extension if .png doesn't exist
+                    orig_basename = f"{prefix}_{pid}_{slice_idx}_crop{crop_i}_input.tif"
+                    orig_path = os.path.join(orig_folder, orig_basename)
+                if not os.path.exists(orig_path):
+                    print(f"⚠️ Original image not found for overlay: {orig_path}")
+                    continue
+            else:
+                print(f"⚠️ Could not parse filename for overlay: {fname}")
+                continue
+
+            # Read original image (grayscale or RGB)
+            orig_image = np.array(Image.open(orig_path))
+            if orig_image.ndim == 2:
+                orig_image = np.stack([orig_image]*3, axis=-1)
+            elif orig_image.ndim == 3 and orig_image.shape[2] == 1:
+                orig_image = np.repeat(orig_image, 3, axis=-1)
+            # The binary mask for overlay (bool or 0/1)
+            binary_mask = cleaned[idx]
+
+            overlay_name = fname.replace("_mask.png", "_overlay.png")
+            overlay_path = os.path.join(overlay_folder, overlay_name)
+
+            # Call your overlay utility
+            os.makedirs(os.path.dirname(overlay_path), exist_ok=True)
+            save_segmentation_overlay(image_np=orig_image, mask_np=binary_mask, save_path=overlay_path)
+            
 
 # -- keep only report_mask_volumes and remove volume_difference_report
 

@@ -145,3 +145,34 @@ def postprocess_3d_mask(mask_stack):
     sizes[0] = 0  # background is label 0
     largest = labeled == sizes.argmax()
     return largest.astype(np.uint8)
+
+def save_run_metadata(
+    results_folder,
+    params_dict,
+    filename="run_parameters.md",
+    elapsed_seconds=None,
+    extra_notes=None,
+):
+    """
+    Saves the key run parameters and metadata to a markdown file in results_folder.
+    """
+    path = os.path.join(results_folder, filename)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    lines = [
+        f"# EH Ratio Analysis Run Metadata",
+        f"- **Run timestamp:** {now}",
+        f"- **Results folder:** `{results_folder}`",
+    ]
+    if elapsed_seconds is not None:
+        hours = int(elapsed_seconds // 3600)
+        minutes = int((elapsed_seconds % 3600) // 60)
+        seconds = int(elapsed_seconds % 60)
+        lines.append(f"- **Total runtime:** {hours:02}:{minutes:02}:{seconds:02} ({elapsed_seconds:.2f} seconds)")
+    lines.append("\n## Parameters")
+    for k, v in params_dict.items():
+        lines.append(f"- **{k}:** `{v}`")
+    if extra_notes is not None:
+        lines.append("\n## Notes\n" + extra_notes)
+    with open(path, "w") as f:
+        f.write("\n".join(lines))
+    print(f"📝 Run metadata saved to: {path}")
