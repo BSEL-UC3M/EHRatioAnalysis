@@ -218,6 +218,7 @@ class UNetOptimizedDO(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
+
     def new_visualize_segmentation(self, data_loader, device='cpu', results_dir=None, save_results=False):
         """
         Visualizes segmentation results from a given data loader.

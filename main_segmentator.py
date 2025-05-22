@@ -15,21 +15,23 @@ from dataloader.dataloader_MRC import DataLoaderByPatientSpecific
 from trainers.segmentator.pretrained_trainers import train_model, complete_evaluate_model
 from models.segmentator.segmentator import Segmentator, UNetOptimizedDO
 from utils.visualize_mask import visualize_sample_with_overlay_and_contour
+import torchio as tio
+
 
 
 # ==============================================================================
 
 # Configuration Parameters
 
-USE_MRC = True  
-USE_PEI = False 
+USE_MRC = False
+USE_PEI = True
 
 SAVE_RESULTS = True  
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 40
+NUM_EPOCHS = 20
 
-LEARNING_RATE = 1e-4  
-BATCH_SIZE = 16
+LEARNING_RATE = 1e-4 
+BATCH_SIZE = 6
 
 MODE = "inference"  # Set the mode: "train", "inference"
 
@@ -49,6 +51,10 @@ else:
     MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC' #augmented
     PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #augmented
     PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI' #augmented
+    # MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_MRC' #augmented
+    # MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_MRC' #augmented
+    # PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_PEI' #augmented
+    # PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_PEI' #augmented
 if USE_MRC:
     IMAGES_FOLDER = MRC_IMAGES_FOLDER
     LABELS_FOLDER = MRC_LABELS_FOLDER
@@ -91,7 +97,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 # ==============================================================================
 
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/RESULTS_new metrics/20250516"
+    results_folder = "./results/results_segmentator/RESULTS_custom/dataaug"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
@@ -128,6 +134,13 @@ test_patients = [
     "PAC18", "PAC29", "PAC32", "PAC36", "PAC4", "PAC15", "PAC82"
 ]
 
+transformation = tio.Compose([
+    tio.RandomNoise(std=(0, 0.1)),  
+    tio.RandomBlur(std=(0.5, 1.5)),  
+    tio.RandomMotion(degrees=5, translation=5), 
+    tio.RandomAnisotropy(axes=(0, 1, 2), downsampling=(1, 2)),  
+    tio.RandomAffine(scales=(0.7, 1.3), degrees=0, translation=0),  
+])
 
 train_loader, val_loader, test_loader = DataLoaderByPatientSpecific.train_val_test_split_bypatient(
     images_folder=IMAGES_FOLDER, 
@@ -173,7 +186,7 @@ elif MODE == "inference":
 # Evaluate the model
 
 if USE_MRC:
-    threshold = 0.98
+    threshold = 0.9
 elif USE_PEI:
     threshold = 0.8
 print("Evaluating model...")
