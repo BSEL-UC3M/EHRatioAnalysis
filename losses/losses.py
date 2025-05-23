@@ -459,3 +459,38 @@ class FocalLoss(nn.Module):
             return F_loss.sum()
         else:
             return F_loss
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class TverskyLoss(nn.Module):
+    def __init__(self, alpha=0.5, beta=0.5, smooth=1e-6):
+        """
+        Tversky Loss for binary segmentation.
+
+        Args:
+            alpha: weight of false positives
+            beta: weight of false negatives
+            smooth: small constant to avoid division by zero
+        """
+        super(TverskyLoss, self).__init__()
+        self.alpha = alpha
+        self.beta = beta
+        self.smooth = smooth
+
+    def forward(self, preds, targets):
+        """
+        Args:
+            preds: predicted probabilities (B x 1 x H x W), sigmoid applied
+            targets: ground truth binary mask (B x 1 x H x W)
+        """
+        preds = preds.view(-1)
+        targets = targets.view(-1)
+
+        TP = (preds * targets).sum()
+        FP = ((1 - targets) * preds).sum()
+        FN = (targets * (1 - preds)).sum()
+
+        tversky = (TP + self.smooth) / (TP + self.alpha * FP + self.beta * FN + self.smooth)
+        return 1 - tversky
