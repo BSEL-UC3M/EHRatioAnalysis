@@ -16,6 +16,7 @@ from trainers.segmentator.pretrained_trainers import train_model, complete_evalu
 from models.segmentator.segmentator import Segmentator, UNetOptimizedDO
 from utils.visualize_mask import visualize_sample_with_overlay_and_contour
 import torchio as tio
+import torch.nn as nn
 
 
 
@@ -28,14 +29,14 @@ USE_PEI = True
 
 SAVE_RESULTS = True  
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 20
+NUM_EPOCHS = 40
 
-LEARNING_RATE = 1e-4 
+LEARNING_RATE = 1e-4
 BATCH_SIZE = 6
 
-MODE = "inference"  # Set the mode: "train", "inference"
+MODE = "train"  # Set the mode: "train", "inference"
 
-LOSS_FUNCTION = "bce_dice" 
+LOSS_FUNCTION = "bce_dice"  # Options: "bce_dice", "focal", "FLProbs", "custom_combined", "dice", "bce", "tversky"
 
 # =================================================================================
 
@@ -51,10 +52,10 @@ else:
     MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC' #augmented
     PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #augmented
     PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI' #augmented
-    # MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_MRC' #augmented
-    # MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_MRC' #augmented
-    # PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_PEI' #augmented
-    # PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_PEI' #augmented
+    #MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_MRC' #augmented
+    #MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_MRC' #augmented
+    #PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_PEI' #augmented
+    #PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_PEI' #augmented
 if USE_MRC:
     IMAGES_FOLDER = MRC_IMAGES_FOLDER
     LABELS_FOLDER = MRC_LABELS_FOLDER
@@ -86,8 +87,13 @@ elif LOSS_FUNCTION == "FLProbs":
 elif LOSS_FUNCTION == "custom_combined":
     criterion = lambda pred, target: (
         0.2 * losses.FocalLossForProbabilities(gamma=3.0, alpha=0.75)(pred, target) +
-        0.8 * losses.BCE_and_Dice_loss(bce_kwargs={}, dice_class=losses.SimpleDiceLoss, weight_ce=1, weight_dice=1)(pred, target)
-    )
+        0.8 * losses.BCE_and_Dice_loss(bce_kwargs={}, dice_class=losses.SimpleDiceLoss, weight_ce=1, weight_dice=1)(pred, target))
+elif LOSS_FUNCTION == "dice":
+    criterion = losses.SimpleDiceLoss()
+elif LOSS_FUNCTION == "bce":
+    criterion = nn.BCEWithLogitsLoss() 
+elif LOSS_FUNCTION == "tversky":
+    criterion = losses.TverskyLoss()
 
 else:
     raise ValueError("Invalid loss function selected. Choose 'bce_dice' or 'focal'.")
@@ -97,7 +103,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 # ==============================================================================
 
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/RESULTS_custom/dataaug"
+    results_folder = "./results/results_segmentator/RESULTS_loss/bce"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
