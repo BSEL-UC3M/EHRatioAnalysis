@@ -2,7 +2,7 @@
 # File: convert_dataset_to_uint8.py
 # Description: Converts all .tif images in YOLO dataset folders (train/val/test)
 #              to uint8 .tif format in a new temporary dataset directory.
-# Author: ChatGPT para Tania 😊
+# Author: @claudiacastrillon
 # ==============================================================================
 
 import os

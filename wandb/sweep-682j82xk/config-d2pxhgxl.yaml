@@ -1,0 +1,12 @@
+wandb_version: 1
+
+batch_size:
+  value: 8
+learning_rate:
+  value: 0.00022666296214082885
+loss_function:
+  value: focal
+num_epochs:
+  value: 30
+optimizer:
+  value: adam

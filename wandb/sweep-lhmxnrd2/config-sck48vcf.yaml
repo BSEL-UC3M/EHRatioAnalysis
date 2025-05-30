@@ -1,0 +1,12 @@
+wandb_version: 1
+
+batch_size:
+  value: 32
+learning_rate:
+  value: 0.0006398718963595596
+loss_function:
+  value: FLProbs
+num_epochs:
+  value: 25
+optimizer:
+  value: adam

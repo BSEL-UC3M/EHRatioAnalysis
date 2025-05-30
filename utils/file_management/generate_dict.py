@@ -24,4 +24,4 @@ for sheet_name in xls.sheet_names:
 with open("image_dict.json", "w") as f:
     json.dump(image_dict, f, indent=4)
 
-print("✅ Image dictionary saved as 'image_dict.json'.")
+print(" Image dictionary saved as 'image_dict.json'.")

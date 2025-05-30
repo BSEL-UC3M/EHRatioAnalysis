@@ -1,0 +1,178 @@
+# ======================================================================
+# File: pipeline_setup/utils.py
+# Description: Utils file for inference pipeline
+# Author: @cfusterbarcelo
+# Created: 08/04/2025
+# ==============================================================================
+
+import os
+import numpy as np
+from pathlib import Path
+from tifffile import imread, imwrite
+from datetime import datetime
+from scipy.ndimage import gaussian_filter, label, generate_binary_structure, binary_fill_holes
+from collections import defaultdict
+
+def find_model_by_keywords(root_folder, required_keywords, extension=".pt"):
+    """
+    Search recursively in `root_folder` for a model file (.pt) that contains all `required_keywords`.
+    Returns the path of the first match found, or None.
+    """
+    for dirpath, _, filenames in os.walk(root_folder):
+        for file in filenames:
+            if file.endswith(extension) and all(k.lower() in file.lower() for k in required_keywords):
+                return os.path.join(dirpath, file)
+    return None
+
+def histogram_adjustment(image, lower_threshold_factor=2.4, upper_threshold_factor=2.2):
+    mean_intensity = np.mean(image)
+    std_intensity = np.std(image)
+
+    lower_threshold = mean_intensity - lower_threshold_factor * std_intensity
+    upper_threshold = mean_intensity + upper_threshold_factor * std_intensity
+
+    adjusted_image = np.clip(image, lower_threshold, upper_threshold)
+    adjusted_image = (adjusted_image - adjusted_image.min()) / (adjusted_image.max() - adjusted_image.min())
+
+    return adjusted_image
+
+def invert_image(image):
+    return 1.0 - image
+
+def preprocess_pei_image(img_array):
+    """
+    Apply PEI preprocessing steps to a single image (as numpy array scaled 0-1).
+    """
+    img_adjusted = 2 * img_array + gaussian_filter(img_array, sigma=6)
+    img_adjusted = histogram_adjustment(img_adjusted)
+    img_inverted = invert_image(img_adjusted)
+    return img_inverted
+
+def setup_pipeline_folders(base_results_folder):
+    """
+    Creates a clean folder structure for classification, detection, and segmentation,
+    separated by MRC and PEI.
+
+    Returns a dict with paths to each key output directory.
+    """
+    tasks = ["classification", "detection", "segmentation"]
+    datasets = ["mrc", "pei"]
+    folder_paths = defaultdict(dict)
+
+    for task in tasks:
+        for ds in datasets:
+            base = os.path.join(base_results_folder, task, ds)
+            os.makedirs(base, exist_ok=True)
+
+            # Initialize with base path
+            folder_paths[task][ds] = {"base": base}
+
+            # Extra folders for classification
+            if task == "classification":
+                plots_path = os.path.join(base, "plots")
+                labels_path = os.path.join(base, "plots_with_labels")
+                os.makedirs(plots_path, exist_ok=True)
+                os.makedirs(labels_path, exist_ok=True)
+                folder_paths[task][ds].update({
+                    "plots": plots_path,
+                    "plots_with_labels": labels_path
+                })
+
+            # Extra folders for detection
+            if task == "detection":
+                crops_path = os.path.join(base, "crops")
+                vis_path = os.path.join(base, "visuals")
+                os.makedirs(crops_path, exist_ok=True)
+                os.makedirs(vis_path, exist_ok=True)
+                folder_paths[task][ds].update({
+                    "crops": crops_path,
+                    "visuals": vis_path
+                })
+
+    return folder_paths
+
+def convert_images_to_uint8(image_paths, output_folder=None):
+    """
+    Convert TIFF images to uint8 and save them to a temporary folder.
+    Returns the path to the temp folder and a list of converted filenames.
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    base = Path(output_folder or f"./temp_uint8/PEI_{timestamp}")
+    base.mkdir(parents=True, exist_ok=True)
+
+    converted_files = []
+
+    for image_path in image_paths:
+        try:
+            image = imread(image_path).astype("float32")
+            min_val, max_val = image.min(), image.max()
+            image = (image - min_val) / (max_val - min_val + 1e-6)
+            image_uint8 = (image * 255).astype("uint8")
+            
+            # --- Ensure 3 channels ---
+            if image_uint8.ndim == 2:  # grayscale
+                image_uint8 = np.stack([image_uint8] * 3, axis=-1)  # [H, W, 3]
+            elif image_uint8.ndim == 3 and image_uint8.shape[2] == 1:
+                image_uint8 = np.repeat(image_uint8, 3, axis=2)  # [H, W, 3]
+
+            output_path = base / Path(image_path).name
+            imwrite(str(output_path), image_uint8)
+            converted_files.append(str(output_path))
+        except Exception as e:
+            print(f"❌ Error converting {image_path}: {e}")
+    return str(base), converted_files
+
+def postprocess_3d_mask(mask_stack):
+    """
+    Fill holes and keep only the largest 3D connected component in the mask volume.
+    Args:
+        mask_stack: np.ndarray of shape [num_slices, H, W] (binary mask)
+    Returns:
+        np.ndarray: Postprocessed mask (same shape)
+    """
+    # Fill holes in each slice
+    filled = np.zeros_like(mask_stack)
+    for z in range(mask_stack.shape[0]):
+        filled[z] = binary_fill_holes(mask_stack[z])
+
+    # 3D connected components: keep the largest
+    struct = generate_binary_structure(3, 3)  # 26-connectivity
+    labeled, num = label(filled, structure=struct)
+    if num == 0:
+        return filled  # Nothing detected, return as is
+
+    sizes = np.bincount(labeled.ravel())
+    sizes[0] = 0  # background is label 0
+    largest = labeled == sizes.argmax()
+    return largest.astype(np.uint8)
+
+def save_run_metadata(
+    results_folder,
+    params_dict,
+    filename="run_parameters.md",
+    elapsed_seconds=None,
+    extra_notes=None,
+):
+    """
+    Saves the key run parameters and metadata to a markdown file in results_folder.
+    """
+    path = os.path.join(results_folder, filename)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    lines = [
+        f"# EH Ratio Analysis Run Metadata",
+        f"- **Run timestamp:** {now}",
+        f"- **Results folder:** `{results_folder}`",
+    ]
+    if elapsed_seconds is not None:
+        hours = int(elapsed_seconds // 3600)
+        minutes = int((elapsed_seconds % 3600) // 60)
+        seconds = int(elapsed_seconds % 60)
+        lines.append(f"- **Total runtime:** {hours:02}:{minutes:02}:{seconds:02} ({elapsed_seconds:.2f} seconds)")
+    lines.append("\n## Parameters")
+    for k, v in params_dict.items():
+        lines.append(f"- **{k}:** `{v}`")
+    if extra_notes is not None:
+        lines.append("\n## Notes\n" + extra_notes)
+    with open(path, "w") as f:
+        f.write("\n".join(lines))
+    print(f"📝 Run metadata saved to: {path}")

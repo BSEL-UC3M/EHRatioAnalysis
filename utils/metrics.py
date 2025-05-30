@@ -18,6 +18,26 @@ def iou_score(y_pred, y_true, threshold=0.5):
 
 import torch
 
+def sensitivity(pred, target):
+    tp = torch.sum((pred == 1) & (target == 1)).item()
+    fn = torch.sum((pred == 0) & (target == 1)).item()
+    return tp / (tp + fn + 1e-8)
+
+def specificity(pred, target):
+    tn = torch.sum((pred == 0) & (target == 0)).item()
+    fp = torch.sum((pred == 1) & (target == 0)).item()
+    return tn / (tn + fp + 1e-8)
+
+def precision(pred, target):
+    tp = torch.sum((pred == 1) & (target == 1)).item()
+    fp = torch.sum((pred == 1) & (target == 0)).item()
+    return tp / (tp + fp + 1e-8)
+
+def f2_score(pred, target):
+    prec = precision(pred, target)
+    rec = sensitivity(pred, target)
+    return 5 * (prec * rec) / (4 * prec + rec + 1e-8)
+
 # Define a function to calculate the Local Dice score
 def local_dice_score(y_pred, y_true, threshold=0.5, margin=10):
     """

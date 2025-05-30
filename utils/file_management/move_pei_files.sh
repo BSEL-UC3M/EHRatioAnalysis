@@ -25,7 +25,7 @@ jq -r 'to_entries[] | "\(.key) \(.value)"' "$JSON_FILE" | while read -r image_na
 
                 # Copy the image
                 cp "$patient_folder$image_name" "$patient_output_folder/"
-                echo "✅ Copied: $patient_folder$image_name → $patient_output_folder/"
+                echo " Copied: $patient_folder$image_name → $patient_output_folder/"
                 found=1
                 break  # Stop searching after the first match
             fi
@@ -38,4 +38,4 @@ jq -r 'to_entries[] | "\(.key) \(.value)"' "$JSON_FILE" | while read -r image_na
     fi
 done
 
-echo "✅ All PEI ear images have been copied and organized!"
+echo " All PEI ear images have been copied and organized!"

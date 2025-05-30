@@ -9,6 +9,7 @@ results/
 *.so
 
 MRC_Data/
+temp_uint8/*
 
 # Data
 /toydataset/*

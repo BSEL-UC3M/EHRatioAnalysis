@@ -1,0 +1,58 @@
+{
+    "os": "Windows-10-10.0.19045-SP0",
+    "python": "CPython 3.11.11",
+    "heartbeatAt": "2025-04-17T16:07:55.394161",
+    "startedAt": "2025-04-17T16:07:54.591865",
+    "docker": null,
+    "args": [
+        "service",
+        "--debug",
+        "--port-filename",
+        "C:\\Users\\TFM1\\AppData\\Local\\Temp\\tmphq0xnm_c\\port-17144.txt",
+        "--pid",
+        "17144"
+    ],
+    "state": "running",
+    "program": "-m __main__",
+    "codePathLocal": null,
+    "git": {
+        "remote": "https://github.com/BSEL-UC3M/EHRatioAnalysis.git",
+        "commit": "0ebb41acbe7c7aa98211ffec0be467ceed6e9bb6"
+    },
+    "email": "laurarodrigo7@gmail.com",
+    "root": "C:/Users/TFM1/Documents/GitHub/EHRatioAnalysis",
+    "host": "DESKTOP-RSJ35SO",
+    "username": null,
+    "executable": "C:\\Users\\TFM1\\anaconda3\\envs\\EHRA_gpu\\python.exe",
+    "cpu_count": 4,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 3601.0,
+        "min": 0.0,
+        "max": 3601.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3601.0,
+            "min": 0.0,
+            "max": 3601.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 248811868160,
+            "used": 134381391872
+        }
+    },
+    "gpu": "NVIDIA GeForce GTX 760",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce GTX 760",
+            "memory_total": 2147483648
+        }
+    ],
+    "memory": {
+        "total": 17049509888
+    }
+}

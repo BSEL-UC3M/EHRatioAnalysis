@@ -1,0 +1,12 @@
+wandb_version: 1
+
+batch_size:
+  value: 16
+learning_rate:
+  value: 0.0004173500601730447
+loss_function:
+  value: bce_dice
+num_epochs:
+  value: 30
+optimizer:
+  value: sgd

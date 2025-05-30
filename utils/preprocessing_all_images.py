@@ -59,6 +59,6 @@ def preprocess_all_images(folder_path, output_folder):
             output_path = os.path.join(patient_output_path, tiff_file)
             Image.fromarray((img_inverted * 255).astype(np.uint8)).save(output_path)
 
-            print(f"✅ Saved: {output_path}")  # Debugging output
+            print(f"Saved: {output_path}")  # Debugging output
     
-    print(f"\n✅ All processed images saved in {output_folder}")
+    print(f"\n All processed images saved in {output_folder}")

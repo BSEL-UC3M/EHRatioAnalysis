@@ -1,8 +1,8 @@
 # ==============================================================================
 # File: toy_classificator.py
 # Description: Trainer for the Resnet model + 5 layer CNN + cross validation for image classification.
-# Author: [Your Name]
-# Created: [Date]
+# Author: @claudiacastrillon
+# Created: 30/01/2025
 # ==============================================================================
 
 import torch
@@ -46,7 +46,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         correct_train, total_train = 0, 0
 
         # Training loop
-        # forward pass --> loss computation --> backward pass --> optimizer update
+
         for inputs, labels in train_loader:
             inputs, labels = inputs.to(device), labels.to(device)
 
@@ -124,7 +124,7 @@ def evaluate_model(model, dataloader, device):
     accuracy = (np.array(y_true) == np.array(y_pred)).mean() * 100
     
     return y_true, y_pred, avg_loss, accuracy
-# y_true are ground truth labels, y_pred are predicted labels, avg_loss is the average loss and overall accuracy 
+
 
 # load ResNet18 and replaces the fc layer for the new dataset 
 def fine_tune_resnet(num_classes, device, learning_rate):
