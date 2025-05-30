@@ -8,6 +8,7 @@
 import os
 import torch
 import numpy as np
+import pandas as pd
 import cv2
 import tifffile as tiff
 from PIL import Image
@@ -24,7 +25,7 @@ def run_ehmasker_inference(
     result_folder,
     dataset_type="MRC",
     mrc_confidence=0.8,
-    pei_confidence=0.5
+    pei_confidence=0.5,
     ):
     """
     Run segmentation on dynamically cropped ear regions from detected bounding boxes.
@@ -33,6 +34,7 @@ def run_ehmasker_inference(
     os.makedirs(result_folder, exist_ok=True)
     masks_folder = os.path.join(result_folder, "masks")
     overlays_folder = os.path.join(result_folder, "overlays")
+    overlays_folder_withGT = os.path.join(result_folder, "overlays_withGT")
     input_folder = os.path.join(result_folder, "input")
     tiff_folder = os.path.join(result_folder, "tiff")
     os.makedirs(masks_folder, exist_ok=True)
@@ -46,6 +48,9 @@ def run_ehmasker_inference(
     model.eval()
 
     masks = {}
+    
+    dice_scores = []
+    dice_scores_per_crop = [] 
 
     for fname, dets in tqdm(detections.items(), desc=f"{dataset_type} Segmentation"):
         image_path = os.path.join(image_folder, fname)
@@ -54,17 +59,28 @@ def run_ehmasker_inference(
             img = tiff.imread(image_path)
             if img.ndim == 2:
                 img = np.stack([img]*3, axis=-1)
-            elif img.shape[2] == 1:
+            elif img.ndim == 3 and img.shape[2] == 1:
                 img = np.concatenate([img]*3, axis=-1)
+            # Drop alpha if present, silently
+            if img.ndim == 3 and img.shape[2] == 4:
+                img = img[..., :3]
+            elif img.ndim == 3 and img.shape[2] != 3:
+                raise ValueError(f"Unexpected number of channels ({img.shape[2]}) in full image {fname}!")
         except Exception as e:
             print(f"⚠️ Failed to load {fname}: {e}")
             continue
+
 
         mask_list = []
         for i, det in enumerate(dets):
             pid, idx = extract_patient_and_index(fname)
             x1, y1, x2, y2 = map(int, det["bbox"])
             crop = img[y1:y2, x1:x2]
+
+            # Dropping 4th alpha channel in case is needed
+            if crop.ndim == 3 and crop.shape[2] == 4:
+                crop = crop[..., :3]
+
             crop = cv2.resize(crop, (96, 96), interpolation=cv2.INTER_LINEAR)
             crop = crop.astype(np.float32)
             crop_min = crop.min()

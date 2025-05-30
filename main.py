@@ -26,14 +26,19 @@ start_time = time.time()
 # 🧠 Configuration
 # ------------------------------------------------------------------------------
 
-HAS_LABELS = False
-# LABELS_CSV = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF/MRC_TIFF_Annotations.xlsx"
+HAS_LABELS = True
+LABELS_MRC_CSV = "D:/Data/EHydropsAnalysis/2025-Porcessed/NEW_LABELLED_PATIENTS/MRC_TIFF_Annotations.xlsx"
+LABELS_PEI_CSV = "D:/Data/EHydropsAnalysis/2025-Porcessed/NEW_LABELLED_PATIENTS/PEI_TIFF_Annotations.xlsx"
 
 MODELS_FOLDER = "D:/Models/EHydropsAnalysis/2025/"
-RAW_DATA_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC-TEST-INFERENCE/cnn_20250326-095831/"
-RAW_DATA_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/PEI-TEST-INFERENCE/"
+RAW_DATA_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/NEW_LABELLED_PATIENTS/images/MRC/"
+RAW_DATA_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/NEW_LABELLED_PATIENTS/images/PEI/"
 
-RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline"
+HAS_MASKS = True
+MASKS_MRC = "D:/Data/EHydropsAnalysis/2025-Porcessed/NEW_LABELLED_PATIENTS/masks/MRC/"
+MASKS_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/NEW_LABELLED_PATIENTS/masks/PEI/"
+
+RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-Evaluation"
 folder_paths = setup_pipeline_folders(RESULTS_FOLDER)
 
 MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]
@@ -92,7 +97,7 @@ results_mrc_filtered = run_eargate_inference(
     model_path=MRC_CLASSIFICATION_MODEL,
     device=DEVICE,
     result_folder=MRC_CLASSIF_DIR["base"],
-    label_csv=None,
+    label_csv=LABELS_MRC_CSV,
     dataset_type="MRC",
     class_threshold=CLASS_THRESHOLD,
     batch_size=BATCH_SIZE,
@@ -103,7 +108,7 @@ results_pei_filtered = run_eargate_inference(
     model_path=PEI_CLASSIFICATION_MODEL,
     device=DEVICE,
     result_folder=PEI_CLASSIF_DIR["base"],
-    label_csv=None,
+    label_csv=LABELS_PEI_CSV,
     dataset_type="PEI",
     class_threshold=CLASS_THRESHOLD,
     batch_size=BATCH_SIZE,
@@ -149,7 +154,7 @@ mrc_segmentation_masks = run_ehmasker_inference(
 )
 
 pei_segmentation_masks = run_ehmasker_inference(
-    image_folder=RAW_DATA_PEI,
+    image_folder=RAW_DATA_PEI, 
     detections=detections_pei,
     model_path=PEI_SEGMENT_MODEL,
     device=DEVICE,

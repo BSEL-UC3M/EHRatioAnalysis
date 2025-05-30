@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from PIL import Image
+import cv2
 
 def plot_confidence_distribution(detections_dict, save_path):
     """
@@ -149,3 +150,4 @@ def plot_postprocessing_comparison(
         plt.axis("off")
     plt.tight_layout()
     plt.show()
+

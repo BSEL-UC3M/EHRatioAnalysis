@@ -220,6 +220,11 @@ class InferenceDataset(Dataset):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         # Normalize to [0, 1]
         image = image.astype('float32') / 255.0
+        
+        # Resizing if necessary > Patient 97 with size (740, 740)
+        if image.shape[:2] != (320, 320):   # image is H x W x C (numpy)
+            image = cv2.resize(image, (320, 320), interpolation=cv2.INTER_LINEAR)
+
         # Apply any optional transforms
         if self.transform:
             image = self.transform(image)

@@ -53,7 +53,8 @@ def run_auribox_inference(
             results = model(image_path, verbose=False)
             if results and len(results) > 0:
                 result_img = results[0].plot()  # numpy array
-                save_path = os.path.join(vis_folder, filename.replace(".tif", "_det.png"))
+                filename_wo_ext, _ = os.path.splitext(filename)
+                save_path = os.path.join(vis_folder, f"{filename_wo_ext}_det.png")
                 Image.fromarray(result_img).save(save_path)
 
                 # Extract one bbox per class (e.g., left/right ear)
