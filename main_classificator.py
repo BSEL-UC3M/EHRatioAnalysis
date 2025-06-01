@@ -1,205 +1,164 @@
 # ==============================================================================
 # File: main_classificator.py
-# Description: Main script for training and evaluating the classification model.
-# Author: @claudiacastrillon
-# Created: 13/02/2025
+# Description: Modified main script for repeated training with different seeds
+# Author: @claudiacastrillon 
+# Created: 31/05/2025
 # ==============================================================================
+
 import torch
 import os
 import sys
 import numpy as np
-import torch.nn.functional as F
+import torch.nn as nn
 import matplotlib.pyplot as plt
 import seaborn as sns
+import platform
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 from torchvision import transforms
 
 from dataloader.dataloader_MRC_classificator import ClassificationDataLoader
-from models.classificator.five_layer_cnn import FiveLayerCNN
 from models.classificator.resnet50 import fine_tune_resnet
+#from models.classificator.five_layer_cnn import FiveLayerCNN
 from trainers.classificator.trainer import train_model, evaluate_model
-from pipeline_scripts.classification_postprocess import threshold_sweep
-from utils.custom_plots import plot_threshold_tradeoffs, plot_class1_probability_histogram
 
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-
-# ==============================================================================
 # Configuration Parameters
-SAVE_RESULTS = input("Save results? (yes/no): ").strip().lower() == "yes"
-SAVE_WEIGHTS = input("Save model weights? (yes/no): ").strip().lower() == "yes"
-LEARNING_RATE = 1e-4  
-BATCH_SIZE = 16 
-DATA_SPLITS = (0.7, 0.1, 0.2)  
-IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/2025-Porcessed/MRC TIFF" 
-NUM_EPOCHS = 50  
-DA = False
+LEARNING_RATE = 0.0005
+BATCH_SIZE = 16
+DATA_SPLITS = (0.7, 0.1, 0.2)
+NUM_EPOCHS = 30
+IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/data/MRC_data/MRC_images"
 THRESHOLD = 0.2
+DROPOUT = 0.5
+SEEDS = [42, 123, 456, 789, 1011]
 
-# Select computing device 
-# Detect OS
+# Set device
 system_name = platform.system().lower()
-
-# Select GPU backend based on OS (Windows or macOS)
-if system_name == "darwin":  # macOS
+if system_name == "darwin":
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-elif system_name in ["windows", "linux"]:  # Windows or Linux
+elif system_name in ["windows", "linux"]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 else:
-    device = torch.device("cpu")  # Fallback to CPU for unknown OS
+    device = torch.device("cpu")
+print(f"\nUsing device: {device}")
 
-print(f"Using device: {device}")
+# Data transforms (no augmentation for now)
+default_transforms = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize((224, 224)),
+    transforms.ToTensor()
+])
 
-# ==============================================================================
-# Step 1: load dataset
-# Load Dataset
+# Load annotations and determine number of classes
 annotations = ClassificationDataLoader.load_annotations(IMAGES_FOLDER)
-
-# Determine the number of classes dynamically
 num_classes = len(set(
-    annotation 
-    for patient_data in annotations.values() 
+    annotation
+    for patient_data in annotations.values()
     for annotation in patient_data['Annotation']
 ))
 
-# ==============================================================================
-# Step 2: User selects the model type
-MODEL_TYPE = input("Select model type 'custom' to train a model from scratch or 'pretrained' to use the ResNet50): ").strip().lower()
+# Results directory
+results_root = "./results/results_classificator/repeated_runs"
+os.makedirs(results_root, exist_ok=True)
+timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+results_dir = os.path.join(results_root, f"resnet_{timestamp}")
+os.makedirs(results_dir, exist_ok=True)
 
-while MODEL_TYPE not in ["custom", "pretrained"]:
-    MODEL_TYPE = input("Invalid choice. Please select 'custom' or 'pretrained': ").strip().lower()
+# Metrics storage
+RUNS = []
 
-print(f"\nTraining {MODEL_TYPE.upper()} model...\n")
+# Loop over seeds
+for seed in SEEDS:
+    print(f"\n\n======================= SEED {seed} =======================")
 
-# ==============================================================================
-# Step 3: Model Definition & Training
-if MODEL_TYPE == "custom":
-    # Initialize CNN model
-    model = FiveLayerCNN(num_classes).to(device)
-    # Penalize errors on class 1 more heavily to bias on class 1 classification
-    weights = torch.tensor([1.0, 2.0]).to(device)
-    criterion = torch.nn.CrossEntropyLoss(weight=weights)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=5e-4)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
-    if DA:
-        default_transforms = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(10),
-            transforms.ColorJitter(brightness=0.1, contrast=0.1),
-            transforms.ToTensor()
-        ])
-        val_transforms = transforms.Compose([transforms.ToPILImage(), transforms.ToTensor()])
-    else: 
-        default_transforms = None
-
-elif MODEL_TYPE == "pretrained":
-    # Initialize ResNet50 model
-    model, criterion, optimizer, scheduler = fine_tune_resnet(
-        num_classes, device, learning_rate=LEARNING_RATE, model_type=MODEL_TYPE
+    # Split dataset
+    train_loader, val_loader, test_loader, train_patients, val_patients, test_patients = ClassificationDataLoader.train_val_test_split(
+        images_folder=IMAGES_FOLDER,
+        annotations=annotations,
+        splits=DATA_SPLITS,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        transform=default_transforms,
+        seed=seed
     )
-    default_transforms = None
 
+    # Define model
+    # model = FiveLayerCNN(num_classes, dropout_prob=DROPOUT).to(device)
+    # weights = torch.tensor([1.0, 2.0]).to(device)
+    # criterion = nn.CrossEntropyLoss(weight=weights)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=5e-4)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
+    model, criterion, optimizer, scheduler = fine_tune_resnet(
+        num_classes=num_classes,
+        device=device,
+        learning_rate=LEARNING_RATE,
+        model_type='resnet50'
+    )
+    # Train model
+    trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
+        model, train_loader, val_loader, criterion, optimizer, scheduler,
+        device, num_epochs=NUM_EPOCHS, early_stop_patience=5
+    )
 
-train_loader, val_loader, test_loader, train_patients, val_patients, test_patients = ClassificationDataLoader.train_val_test_split(
-    images_folder=IMAGES_FOLDER,
-    annotations=annotations,
-    splits=DATA_SPLITS,
-    batch_size=BATCH_SIZE,
-    shuffle=True,
-    transform=default_transforms
-)
+    # Evaluate
+    y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device)
+    cm = confusion_matrix(y_true, y_pred)
+    fn = cm[1][0] if cm.shape == (2, 2) else 0
 
+    # Store metrics
+    RUNS.append({
+        "seed": seed,
+        "accuracy": accuracy,
+        "loss": avg_loss,
+        "fn": fn,
+        "conf_matrix": cm,
+        "train_losses": train_losses,
+        "val_losses": val_losses,
+        "train_accuracies": train_accuracies,
+        "val_accuracies": val_accuracies
+    })
 
-# Train the model explicitly
-print(f"\n Training {MODEL_TYPE.upper()} model for {NUM_EPOCHS} epochs...\n")
-trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_model(
-    model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS, model_type=MODEL_TYPE
-)
-# ==============================================================================
-# Step 4: Prepare Result Directory
-if SAVE_RESULTS or SAVE_WEIGHTS:
-    results_root = "./results/results_classificator/results_classificator_MRC"
-    os.makedirs(results_root, exist_ok=True)  # Ensure base directory exists
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    results_dir = os.path.join(results_root, f"cnn_{timestamp}")
-    os.makedirs(results_dir, exist_ok=True)  # Create timestamped directory
-
-# ==============================================================================
-# Step 5: Save Best Weights Based on Validation Loss
-if SAVE_WEIGHTS:
-    best_epoch = np.argmin(val_losses)  # Find the epoch with the lowest validation loss
-    weights_save_path = os.path.join(results_dir, "cnn_best_weights.pt")
-    torch.save(trained_model.state_dict(), weights_save_path)
-    print(f" Best model weights saved at {weights_save_path} (Epoch {best_epoch + 1})")
-
-# ==============================================================================
-# Step 6: Evaluate Model on Test Set
-print(f"\n Evaluating {MODEL_TYPE.upper()} model on the test set...\n")
-y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device, threshold=THRESHOLD)
-print(f" {MODEL_TYPE.upper()} Test Accuracy: {accuracy:.2f}% | Test Loss: {avg_loss:.4f}")
-
-# Compute confusion matrix BEFORE post-processing
-conf_matrix_before = confusion_matrix(y_true, y_pred)
-plot_class1_probability_histogram(trained_model, test_loader, device, threshold = THRESHOLD, results_dir=results_dir)
-
-# ==============================================================================
-# Step 7: Save Results (confusion matrix, train and validation losses/accuracies, .txt file)
-if SAVE_RESULTS:
-    # Save performance metrics
-    with open(os.path.join(results_dir, "results.txt"), "w") as f:
-        f.write("\n--- Network Details ---\n")
-        f.write(f"Network: {MODEL_TYPE}\n")
-        f.write(f"Learning Rate: {LEARNING_RATE}\n")
-        f.write(f"Number of Epochs: {NUM_EPOCHS}\n")
-        f.write(f"Optimizer: Adam\n")
-        f.write("\n--- Patient Splits ---\n")
-        f.write(f"Train Patients ({len(train_patients)}):\n{', '.join(train_patients)}\n")
-        f.write(f"Validation Patients ({len(val_patients)}):\n{', '.join(val_patients)}\n")
-        f.write(f"Test Patients ({len(test_patients)}):\n{', '.join(test_patients)}\n")
-        f.write("\n--- Results ---\n")
-        f.write(f"Best Epoch: {best_epoch + 1}\n")
-        f.write(f"Accuracy: {accuracy:.2f}%\n")
-        f.write(f"Average Loss: {avg_loss:.4f}\n")
-        f.write(f"Confusion Matrix:\n{conf_matrix_before}\n")
-
-    # Save confusion matrix plot
+    # Save confusion matrix
     plt.figure(figsize=(6,5))
-    sns.heatmap(conf_matrix_before, annot=True, fmt='d', cmap='Blues',
-                xticklabels=[f'Class {i}' for i in range(num_classes)], 
-                yticklabels=[f'Class {i}' for i in range(num_classes)])
-    plt.xlabel("Predicted Label")
-    plt.ylabel("True Label")
-    plt.title("Confusion Matrix Before Post-Processing")
-    plt.savefig(os.path.join(results_dir, "confusion_matrix_before.png"), dpi=300, bbox_inches='tight')
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.title(f"Confusion Matrix (Seed {seed})")
+    plt.savefig(os.path.join(results_dir, f"conf_matrix_seed{seed}.png"), dpi=300)
     plt.close()
-    
-    # Save training & validation loss plot
+
+    # Save loss curves
     epochs_range = range(1, len(train_losses) + 1)
-    plt.figure(figsize=(8,6))
-    plt.plot(epochs_range, train_losses, label='Train Loss', marker='o')
-    plt.plot(epochs_range, val_losses, label='Validation Loss', marker='o')
-    plt.xlabel("Epochs")
+    plt.plot(epochs_range, train_losses, label='Train')
+    plt.plot(epochs_range, val_losses, label='Val')
+    plt.title(f"Loss Curve (Seed {seed})")
+    plt.xlabel("Epoch")
     plt.ylabel("Loss")
-    plt.title("Training and Validation Loss")
     plt.legend()
-    plt.savefig(os.path.join(results_dir, "train_val_loss.png"), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(results_dir, f"loss_curve_seed{seed}.png"), dpi=300)
     plt.close()
-    
-    # Save training & validation accuracy plot
-    plt.figure(figsize=(8,6))
-    plt.plot(epochs_range, train_accuracies, label='Train Accuracy', marker='o')
-    plt.plot(epochs_range, val_accuracies, label='Validation Accuracy', marker='o')
-    plt.xlabel("Epochs")
-    plt.ylabel("Accuracy (%)")
-    plt.title("Training and Validation Accuracy")
+
+    # Save accuracy curves
+    plt.plot(epochs_range, train_accuracies, label='Train')
+    plt.plot(epochs_range, val_accuracies, label='Val')
+    plt.title(f"Accuracy Curve (Seed {seed})")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
     plt.legend()
-    plt.savefig(os.path.join(results_dir, "train_val_accuracy.png"), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(results_dir, f"accuracy_curve_seed{seed}.png"), dpi=300)
     plt.close()
-    
-    # Evaluating biases towards class 1 PLOTS AND METRICS
-    metrics = threshold_sweep(trained_model, test_loader, device, )
-    plot_threshold_tradeoffs(metrics, results_dir=results_dir)
 
-    print(f"\n Results saved in {results_dir}\n")
+# Final aggregated metrics
+accs = [r["accuracy"] for r in RUNS]
+losses = [r["loss"] for r in RUNS]
+fns = [r["fn"] for r in RUNS]
 
+summary_path = os.path.join(results_dir, "summary.txt")
+with open(summary_path, "w") as f:
+    f.write("=== Final Summary ===\n")
+    f.write(f"Learning Rate: {LEARNING_RATE}\nBatch Size: {BATCH_SIZE}\nEpochs: {NUM_EPOCHS}\nDropout: {DROPOUT}\n\n")
+    f.write(f"Accuracy: {np.mean(accs):.2f} ± {np.std(accs):.2f}\n")
+    f.write(f"Loss: {np.mean(losses):.4f} ± {np.std(losses):.4f}\n")
+    f.write(f"False Negatives: {np.mean(fns):.1f} ± {np.std(fns):.1f}\n")
+
+print("\n✅ Completed all runs. Summary saved to:", summary_path)
