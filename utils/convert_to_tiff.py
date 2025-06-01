@@ -5,8 +5,8 @@ from matplotlib.image import imsave
 from pydicom.errors import InvalidDicomError
 
 # Define input and output folders
-input_folder = '/Users/claudiacastrillonalvarez/Desktop/PACIENTES_2_5/PACIENTE_3/DICOM/22052012/37560000'
-output_folder = '/Users/claudiacastrillonalvarez/Desktop/dicom_tiff_pac3'
+input_folder = '/Users/claudiacastrillonalvarez/Desktop/PACIENTES_97_A_102/PACIENTE_102/DICOM/25052215/01300000'
+output_folder = '/Users/claudiacastrillonalvarez/Desktop/new_patients_tiff/pac_102_tiff'
 
 # Create output folder if it doesn't exist
 os.makedirs(output_folder, exist_ok=True)
