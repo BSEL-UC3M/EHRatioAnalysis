@@ -16,8 +16,7 @@ from pipeline_scripts.utils import find_model_by_keywords, setup_pipeline_folder
 from pipeline_scripts.AuriBox import run_auribox_inference
 from pipeline_scripts.EHMasker import run_ehmasker_inference
 from pipeline_scripts.RatioCalculator import compute_eh_ratios
-from pipeline_scripts.PostProcess3D import postprocess_all_patients_ears, report_mask_volumes
-from pipeline_scripts.PostProcessAndEvaluate import postprocess_and_evaluate_volumes
+from pipeline_scripts.PostProcessAndEvaluate import postprocess_pred_and_gt
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -42,7 +41,7 @@ MASKS_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/NEW_LABELLED_PATIENTS/masks
 RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-Evaluation"
 folder_paths = setup_pipeline_folders(RESULTS_FOLDER)
 
-POSTPROC_REL_DIR = os.path.join(RESULTS_FOLDER, "postprocessing-REL")
+POSTPROC_REL_DIR = os.path.join(RESULTS_FOLDER, "REL")
 MRC_POSTPROC_REL_DIR = os.path.join(POSTPROC_REL_DIR, "MRC")
 PEI_POSTPROC_REL_DIR = os.path.join(POSTPROC_REL_DIR, "PEI")
 
@@ -57,8 +56,6 @@ MRC_SEGMENT_DIR = folder_paths["segmentation"]["mrc"]["base"]
 PEI_SEGMENT_DIR = folder_paths["segmentation"]["pei"]["base"]
 MRC_POSTPROC_MASKS_DIR = os.path.join(MRC_SEGMENT_DIR, "masks_postprocessed")
 PEI_POSTPROC_MASKS_DIR = os.path.join(PEI_SEGMENT_DIR, "masks_postprocessed")
-MRC_POSTPROC_REL_METRICS_CSV = os.path.join(MRC_POSTPROC_REL_DIR, "mrc_volume_metrics.csv")
-PEI_POSTPROC_REL_METRICS_CSV = os.path.join(PEI_POSTPROC_REL_DIR, "pei_volume_metrics.csv")
 
 # Other config
 BATCH_SIZE = 16
@@ -178,7 +175,7 @@ print("\n✅ EHMasker complete! Segmentation results ready for EH Ratio computat
 # 🚦 3D Post Process
 # -------------------------------------------------------------------------
 
-postprocess_and_evaluate_volumes(
+postprocess_pred_and_gt(
     orig_folder=os.path.join(MRC_SEGMENT_DIR, "tiff"),
     pred_mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
     out_pred_folder=MRC_POSTPROC_MASKS_DIR,
@@ -186,11 +183,9 @@ postprocess_and_evaluate_volumes(
     gt_mask_folder=MASKS_MRC if HAS_MASKS else None,
     out_gt_folder=os.path.join(MRC_SEGMENT_DIR, "masks_gt_postprocessed") if HAS_MASKS else None,
     overlay_gt_folder=os.path.join(MRC_SEGMENT_DIR, "overlays_gt_pp") if HAS_MASKS else None,
-    metrics_csv=MRC_POSTPROC_REL_METRICS_CSV if HAS_MASKS else None,
-    dataset_type="MRC"
 )
 
-postprocess_and_evaluate_volumes(
+postprocess_pred_and_gt(
     orig_folder=os.path.join(PEI_SEGMENT_DIR, "tiff"),
     pred_mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks"),
     out_pred_folder=PEI_POSTPROC_MASKS_DIR,
@@ -198,8 +193,6 @@ postprocess_and_evaluate_volumes(
     gt_mask_folder=MASKS_PEI if HAS_MASKS else None,
     out_gt_folder=os.path.join(PEI_SEGMENT_DIR, "masks_gt_postprocessed") if HAS_MASKS else None,
     overlay_gt_folder=os.path.join(PEI_SEGMENT_DIR, "overlays_gt_pp") if HAS_MASKS else None,
-    metrics_csv=PEI_POSTPROC_REL_METRICS_CSV if HAS_MASKS else None,
-    dataset_type="PEI"
 )
 
 
