@@ -7,6 +7,7 @@
 
 import os
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from PIL import Image
@@ -219,4 +220,75 @@ def plot_volume_difference_bar(df, save_path=None, title="Predicted - GT Volume 
         plt.savefig(save_path, dpi=150)
     plt.close()
 
+def plot_eh_ratio_and_vsi(pred_csv, gt_csv, vsi_csv, results_folder, modality="MRC"):
+    """
+    Plots EH Ratio (Pred vs GT), their difference, and VSI per ear/patient.
+    Saves plots to results_folder and shows them interactively.
+    
+    Parameters:
+        pred_csv: str, path to predicted EH ratio csv
+        gt_csv: str, path to GT EH ratio csv
+        vsi_csv: str, path to VSI csv
+        results_folder: str, folder to save figures
+        modality: str, e.g. "MRC" or "PEI" (for filenames/titles)
+    """
+    # Load data
+    pred_df = pd.read_csv(pred_csv)
+    gt_df = pd.read_csv(gt_csv)
+    vsi_df = pd.read_csv(vsi_csv)
+
+    # Merge EH ratios
+    merged = pd.merge(
+        pred_df[["patient_id", "ear", "eh_ratio"]].rename(columns={"eh_ratio":"eh_ratio_pred"}),
+        gt_df[["patient_id", "ear", "eh_ratio"]].rename(columns={"eh_ratio":"eh_ratio_gt"}),
+        on=["patient_id", "ear"], how="inner"
+    )
+    merged["eh_ratio_pred"] = pd.to_numeric(merged["eh_ratio_pred"], errors="coerce")
+    merged["eh_ratio_gt"] = pd.to_numeric(merged["eh_ratio_gt"], errors="coerce")
+    merged["diff"] = merged["eh_ratio_pred"] - merged["eh_ratio_gt"]
+
+    labels = merged["patient_id"].astype(str) + " " + merged["ear"].astype(str)
+    x = np.arange(len(labels))
+    bar_width = 0.35
+
+    # Plot 1: Grouped bar plot of EH Ratio (Pred vs GT)
+    plt.figure(figsize=(10,6))
+    plt.bar(x - bar_width/2, merged["eh_ratio_pred"], bar_width, label="Predicted", color="#4e79a7")
+    plt.bar(x + bar_width/2, merged["eh_ratio_gt"], bar_width, label="Ground Truth", color="#f28e2c")
+    plt.xticks(x, labels, rotation=45, ha="right")
+    plt.xlabel("Patient - Ear")
+    plt.ylabel("EH Ratio")
+    plt.title(f"EH Ratio: Prediction vs Ground Truth per Patient/Ear ({modality})")
+    plt.legend()
+    plt.tight_layout()
+    eh_ratio_fig_path = os.path.join(results_folder, f"EH_Ratio_{modality}.png")
+    plt.savefig(eh_ratio_fig_path)
+
+    # Plot 2: VSI per Ear/Patient
+    vsi_df["vsi"] = pd.to_numeric(vsi_df["vsi"], errors="coerce")
+    vsi_labels = vsi_df["patient_id"].astype(str) + " " + vsi_df["ear"].astype(str)
+
+    plt.figure(figsize=(10,6))
+    plt.bar(vsi_labels, vsi_df["vsi"], color="#76b7b2")
+    plt.ylim(0,1)
+    plt.xlabel("Patient - Ear")
+    plt.ylabel("Volume Similarity Index (VSI)")
+    plt.title(f"VSI per Patient/Ear ({modality})")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    vsi_fig_path = os.path.join(results_folder, f"VSI_{modality}.png")
+    plt.savefig(vsi_fig_path)
+
+    # Plot 3: Difference in EH Ratio as a bar
+    plt.figure(figsize=(10,4))
+    plt.bar(labels, merged["diff"], color="#e15759")
+    plt.axhline(0, color="k", linestyle="--", lw=1)
+    plt.ylabel("EH Ratio Difference (Pred - GT)")
+    plt.title(f"Difference in EH Ratio (Prediction - Ground Truth) per Patient/Ear ({modality})")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    diff_fig_path = os.path.join(results_folder, f"EH_Ratio_Diff_{modality}.png")
+    plt.savefig(diff_fig_path)
+
+    print(f"EH Ratio and VSI plots saved to {results_folder}")
 

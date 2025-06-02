@@ -40,13 +40,9 @@ MASKS_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/NEW_LABELLED_PATIENTS/masks
 
 RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-Evaluation"
 folder_paths = setup_pipeline_folders(RESULTS_FOLDER)
-
-POSTPROC_REL_DIR = os.path.join(RESULTS_FOLDER, "REL")
-MRC_POSTPROC_REL_DIR = os.path.join(POSTPROC_REL_DIR, "MRC")
-PEI_POSTPROC_REL_DIR = os.path.join(POSTPROC_REL_DIR, "PEI")
-
-os.makedirs(MRC_POSTPROC_REL_DIR, exist_ok=True)
-os.makedirs(PEI_POSTPROC_REL_DIR, exist_ok=True)
+rel_dir = os.path.join(RESULTS_FOLDER, "REL")
+os.makedirs(rel_dir, exist_ok=True)
+REL_PATH = os.path.join(rel_dir, "eh_volume_ratios")
 
 MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]
 PEI_CLASSIF_DIR = folder_paths["classification"]["pei"]
@@ -205,9 +201,11 @@ RATIO_OUTPUT_CSV = os.path.join(RESULTS_FOLDER, "eh_volume_ratios.csv")
 print("\n📊 STEP 4: RatioCalculator – Computing EH Ratios from segmented masks\n")
 
 compute_eh_ratios(
-    mrc_mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
-    pei_mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks"),
-    output_csv_path=RATIO_OUTPUT_CSV,
+    mrc_mask_folder=MRC_POSTPROC_MASKS_DIR,
+    pei_mask_folder=PEI_POSTPROC_MASKS_DIR,
+    output_path=REL_PATH,
+    mrc_gt_mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks_gt_postprocessed") if HAS_MASKS else None,
+    pei_gt_mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks_gt_postprocessed") if HAS_MASKS else None,
 )
 
 # Gather parameters to save
