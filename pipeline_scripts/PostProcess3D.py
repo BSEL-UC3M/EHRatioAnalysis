@@ -23,6 +23,14 @@ def parse_patient_and_ear(filename):
     ear = "right" if crop_idx == "0" else "left"
     return patient_id, ear
 
+def parse_gt_patient_ear_slice(filename):
+    # Matches PEI_100_63728457_left.tif
+    m = re.match(r"(MRC|PEI)_(\d+)_(\d+)_(left|right)\.[a-zA-Z0-9]+$", filename)
+    if not m:
+        return None, None, None
+    prefix, patient_id, slice_idx, ear = m.groups()
+    return f"{prefix}_{patient_id}", ear, int(slice_idx)
+
 def extract_slice_index(filename):
     match = re.match(r"(MRC|PEI)_(\d+)_(\d+)_crop[01]_mask\.png", filename)
     if not match:
@@ -57,14 +65,22 @@ def postprocess_3d_mask(stack,  connectivity=26, fill_3d_holes=True):
 
     return biggest.astype(np.uint8)
 
-def parse_gt_patient_ear_slice(filename):
-    # Matches PEI_100_63728457_left.tif
-    m = re.match(r"(MRC|PEI)_(\d+)_(\d+)_(left|right)\.[a-zA-Z0-9]+$", filename)
-    if not m:
-        return None, None, None
-    prefix, patient_id, slice_idx, ear = m.groups()
-    return f"{prefix}_{patient_id}", ear, int(slice_idx)
+def extract_patient_and_ear_pred(fname):
+    # Example: PEI_123_456789_crop0_mask.png → (PEI_123_456789, left)
+    m = re.match(r"(.+)_crop([01])_mask", fname)
+    if m:
+        patient_id, crop_idx = m.groups()
+        ear = 'left' if crop_idx == '0' else 'right'
+        return patient_id, ear
+    return None, None
 
+def extract_patient_and_ear_gt(fname):
+    # Example: PEI_123_456789_left.tif → (PEI_123_456789, left)
+    m = re.match(r"(.+?)_(left|right)\.[a-zA-Z0-9]+$", fname)
+    if m:
+        patient_id, ear = m.groups()
+        return patient_id, ear
+    return None, None
 
 def postprocess_all_patients_ears(orig_folder, mask_folder, out_folder, overlay_folder, has_masks=False):
     os.makedirs(out_folder, exist_ok=True)

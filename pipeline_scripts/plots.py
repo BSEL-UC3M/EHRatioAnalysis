@@ -151,17 +151,22 @@ def plot_postprocessing_comparison(
     plt.tight_layout()
     plt.show()
 
-def plot_scatter_pred_vs_gt_volume(df, save_path=None, title="Predicted vs GT Volume (per ear)"):
+def plot_scatter_pred_vs_gt_volume(df, save_path=None, title="Predicted vs GT Volume (per ear)", use_mm3=True):
     """
-    Scatter plot comparing predicted and GT volumes per ear.
+    Scatter plot comparing predicted and GT volumes per ear (in mm³ or voxels).
     """
-    plt.figure(figsize=(6,6))
-    plt.scatter(df['gt_volume_voxels'], df['pred_volume_voxels'], s=70, alpha=0.8, edgecolor='k')
-    min_v = min(df['gt_volume_voxels'].min(), df['pred_volume_voxels'].min())
-    max_v = max(df['gt_volume_voxels'].max(), df['pred_volume_voxels'].max())
+    x_col = 'gt_volume_mm3' if use_mm3 else 'gt_volume_voxels'
+    y_col = 'pred_volume_mm3' if use_mm3 else 'pred_volume_voxels'
+    unit = "mm³" if use_mm3 else "voxels"
+
+    plt.figure(figsize=(7,7))
+    colors = df['ear'].map({'left': 'royalblue', 'right': 'darkorange'})
+    plt.scatter(df[x_col], df[y_col], s=80, alpha=0.85, edgecolor='k', c=colors)
+    min_v = min(df[x_col].min(), df[y_col].min())
+    max_v = max(df[x_col].max(), df[y_col].max())
     plt.plot([min_v, max_v], [min_v, max_v], 'k--', label='Perfect agreement')
-    plt.xlabel('GT Volume (voxels)')
-    plt.ylabel('Predicted Volume (voxels)')
+    plt.xlabel(f'GT Volume ({unit})')
+    plt.ylabel(f'Predicted Volume ({unit})')
     plt.title(title)
     plt.legend()
     plt.tight_layout()
@@ -171,15 +176,17 @@ def plot_scatter_pred_vs_gt_volume(df, save_path=None, title="Predicted vs GT Vo
 
 def plot_vsi_bar(df, save_path=None, title="Volume Similarity Index (VSI) per ear"):
     """
-    Bar plot of VSI per patient/ear.
+    Bar plot of VSI per patient/ear, colored by ear.
     """
-    labels = df['patient_id'] + "_" + df['ear']
-    plt.figure(figsize=(0.35*len(labels), 4))
-    plt.bar(labels, df['vsi'], color='royalblue')
+    df_sorted = df.sort_values("vsi", ascending=False)
+    labels = df_sorted['patient_id'] + "_" + df_sorted['ear']
+    colors = df_sorted['ear'].map({'left': 'royalblue', 'right': 'darkorange'})
+    plt.figure(figsize=(0.4*len(labels)+2, 4))
+    plt.bar(labels, df_sorted['vsi'], color=colors)
     plt.axhline(1, ls='--', c='green', label='Perfect (1.0)')
     plt.ylim(0, 1.05)
     plt.ylabel('VSI')
-    plt.xticks(rotation=90)
+    plt.xticks(rotation=90, ha='right')
     plt.title(title)
     plt.legend()
     plt.tight_layout()
@@ -187,20 +194,29 @@ def plot_vsi_bar(df, save_path=None, title="Volume Similarity Index (VSI) per ea
         plt.savefig(save_path, dpi=150)
     plt.close()
 
-def plot_volume_difference_bar(df, save_path=None, title="Predicted - GT Volume per ear"):
+def plot_volume_difference_bar(df, save_path=None, title="Predicted - GT Volume per ear", use_mm3=True):
     """
     Bar plot of (Predicted - GT) volume per patient/ear.
     """
+    df = df.copy()
+    if use_mm3:
+        df['vol_diff'] = df['pred_volume_mm3'] - df['gt_volume_mm3']
+        unit = "mm³"
+    else:
+        df['vol_diff'] = df['pred_volume_voxels'] - df['gt_volume_voxels']
+        unit = "voxels"
+
     labels = df['patient_id'] + "_" + df['ear']
-    df['vol_diff'] = df['pred_volume_voxels'] - df['gt_volume_voxels']
-    plt.figure(figsize=(0.35*len(labels), 4))
-    plt.bar(labels, df['vol_diff'], color='coral')
+    colors = df['ear'].map({'left': 'royalblue', 'right': 'darkorange'})
+    plt.figure(figsize=(0.4*len(labels)+2, 4))
+    plt.bar(labels, df['vol_diff'], color=colors)
     plt.axhline(0, ls='--', c='black')
-    plt.ylabel('Predicted - GT Volume (voxels)')
-    plt.xticks(rotation=90)
+    plt.ylabel(f'Predicted - GT Volume ({unit})')
+    plt.xticks(rotation=90, ha='right')
     plt.title(title)
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=150)
     plt.close()
+
 
