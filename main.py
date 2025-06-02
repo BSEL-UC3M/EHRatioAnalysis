@@ -42,6 +42,14 @@ MASKS_PEI = "D:/Data/EHydropsAnalysis/2025-Porcessed/NEW_LABELLED_PATIENTS/masks
 RESULTS_FOLDER = "D:/Results/EHydrops/Pipeline-Evaluation"
 folder_paths = setup_pipeline_folders(RESULTS_FOLDER)
 
+POSTPROC_REL_DIR = os.path.join(RESULTS_FOLDER, "postprocessing-REL")
+MRC_POSTPROC_REL_DIR = os.path.join(POSTPROC_REL_DIR, "MRC")
+PEI_POSTPROC_REL_DIR = os.path.join(POSTPROC_REL_DIR, "PEI")
+
+os.makedirs(MRC_POSTPROC_REL_DIR, exist_ok=True)
+os.makedirs(PEI_POSTPROC_REL_DIR, exist_ok=True)
+
+
 MRC_CLASSIF_DIR = folder_paths["classification"]["mrc"]
 PEI_CLASSIF_DIR = folder_paths["classification"]["pei"]
 MRC_DETECT_DIR = folder_paths["detection"]["mrc"]["base"]
@@ -50,7 +58,10 @@ MRC_SEGMENT_DIR = folder_paths["segmentation"]["mrc"]["base"]
 PEI_SEGMENT_DIR = folder_paths["segmentation"]["pei"]["base"]
 MRC_POSTPROC_MASKS_DIR = os.path.join(MRC_SEGMENT_DIR, "masks_postprocessed")
 PEI_POSTPROC_MASKS_DIR = os.path.join(PEI_SEGMENT_DIR, "masks_postprocessed")
-
+MRC_POSTPROC_REL_METRICS_CSV = os.path.join(MRC_POSTPROC_REL_DIR, "mrc_volume_metrics.csv")
+PEI_POSTPROC_REL_METRICS_CSV = os.path.join(PEI_POSTPROC_REL_DIR, "pei_volume_metrics.csv")
+MRC_POSTPROC_REL_COMPARISON_CSV = os.path.join(MRC_POSTPROC_REL_DIR, "mrc_mask_postproc_comparison.csv")
+PEI_POSTPROC_REL_COMPARISON_CSV = os.path.join(PEI_POSTPROC_REL_DIR, "pei_mask_postproc_comparison.csv")
 
 # Other config
 BATCH_SIZE = 16
@@ -175,11 +186,11 @@ postprocess_and_evaluate_volumes(
     pred_mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
     out_pred_folder=MRC_POSTPROC_MASKS_DIR,
     overlay_pred_folder=os.path.join(MRC_SEGMENT_DIR, "overlays_pp"),
-    results_csv=os.path.join(RESULTS_FOLDER, "mrc_mask_postproc_comparison.csv"),
+    results_csv=MRC_POSTPROC_REL_COMPARISON_CSV,
     gt_mask_folder=MASKS_MRC if HAS_MASKS else None,
     out_gt_folder=os.path.join(MRC_SEGMENT_DIR, "masks_gt_postprocessed") if HAS_MASKS else None,
     overlay_gt_folder=os.path.join(MRC_SEGMENT_DIR, "overlays_gt_pp") if HAS_MASKS else None,
-    metrics_csv=os.path.join(RESULTS_FOLDER, "mrc_volume_metrics.csv") if HAS_MASKS else None
+    metrics_csv=MRC_POSTPROC_REL_METRICS_CSV if HAS_MASKS else None
 )
 
 postprocess_and_evaluate_volumes(
@@ -187,11 +198,11 @@ postprocess_and_evaluate_volumes(
     pred_mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks"),
     out_pred_folder=PEI_POSTPROC_MASKS_DIR,
     overlay_pred_folder=os.path.join(PEI_SEGMENT_DIR, "overlays_pp"),
-    results_csv=os.path.join(RESULTS_FOLDER, "pei_mask_postproc_comparison.csv"),
+    results_csv=PEI_POSTPROC_REL_COMPARISON_CSV,
     gt_mask_folder=MASKS_PEI if HAS_MASKS else None,
     out_gt_folder=os.path.join(PEI_SEGMENT_DIR, "masks_gt_postprocessed") if HAS_MASKS else None,
     overlay_gt_folder=os.path.join(PEI_SEGMENT_DIR, "overlays_gt_pp") if HAS_MASKS else None,
-    metrics_csv=os.path.join(RESULTS_FOLDER, "pei_volume_metrics.csv") if HAS_MASKS else None
+    metrics_csv=PEI_POSTPROC_REL_METRICS_CSV if HAS_MASKS else None
 )
 
 

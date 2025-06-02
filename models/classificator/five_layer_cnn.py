@@ -53,7 +53,7 @@ class FiveLayerCNN(nn.Module):
 
     def _compute_fc_input_size(self):
         with torch.no_grad():
-            x = torch.randn(1, 3, 224, 224)
+            x = torch.randn(1, 3, 320, 320) # Claudia's version: (1, 3, 224, 224) - why
             x = self.conv_layers(x)
             flattened_size = x.view(1, -1).size(1)
             print(f"🧩 FC input size: {flattened_size}")

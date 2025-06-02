@@ -121,11 +121,12 @@ def postprocess_and_evaluate_volumes(
         df.to_csv(metrics_csv, index=False)
         print(f"✅ Volume table saved to {metrics_csv}")
 
+        plot_base = os.path.dirname(metrics_csv)
         if metrics_csv and os.path.exists(metrics_csv):
             df = pd.read_csv(metrics_csv)
-            plot_scatter_pred_vs_gt_volume(df, save_path=metrics_csv.replace(".csv", "_scatter.png"))
-            plot_vsi_bar(df, save_path=metrics_csv.replace(".csv", "_vsi.png"))
-            plot_volume_difference_bar(df, save_path=metrics_csv.replace(".csv", "_diff.png"))
+            plot_scatter_pred_vs_gt_volume(df, save_path=os.path.join(plot_base, "volume_scatter.png"))
+            plot_vsi_bar(df, save_path=os.path.join(plot_base, "vsi_bar.png"))
+            plot_volume_difference_bar(df, save_path=os.path.join(plot_base, "volume_difference.png"))
         else:
             print("⚠️ metrics_csv not found, skipping plots.")
 
