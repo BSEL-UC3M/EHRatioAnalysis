@@ -17,6 +17,7 @@ from pipeline_scripts.AuriBox import run_auribox_inference
 from pipeline_scripts.EHMasker import run_ehmasker_inference
 from pipeline_scripts.RatioCalculator import compute_eh_ratios
 from pipeline_scripts.PostProcess3D import postprocess_all_patients_ears, report_mask_volumes
+from pipeline_scripts.PostProcessAndEvaluate import postprocess_and_evaluate_volumes
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -163,27 +164,36 @@ pei_segmentation_masks = run_ehmasker_inference(
     pei_confidence=PEI_CONFIDENCE
 )
 
-postprocess_all_patients_ears(
-    orig_folder=os.path.join(MRC_SEGMENT_DIR, "tiff"),
-    mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
-    out_folder=MRC_POSTPROC_MASKS_DIR,
-    overlay_folder=os.path.join(MRC_SEGMENT_DIR, "overlays_pp")
-)
-postprocess_all_patients_ears(
-    orig_folder=os.path.join(PEI_SEGMENT_DIR, "tiff"),
-    mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks"),
-    out_folder=PEI_POSTPROC_MASKS_DIR,
-    overlay_folder=os.path.join(PEI_SEGMENT_DIR, "overlays_pp")
-)
-
-# TODO: Add for PEI
-report_mask_volumes(
-    before_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
-    after_folder=os.path.join(MRC_SEGMENT_DIR, "masks_postprocessed"),
-    output_csv=os.path.join(RESULTS_FOLDER, "mrc_mask_postproc_comparison.csv")
-)
-
 print("\n✅ EHMasker complete! Segmentation results ready for EH Ratio computation...\n")
+
+# -------------------------------------------------------------------------
+# 🚦 3D Post Process
+# -------------------------------------------------------------------------
+
+postprocess_and_evaluate_volumes(
+    orig_folder=os.path.join(MRC_SEGMENT_DIR, "tiff"),
+    pred_mask_folder=os.path.join(MRC_SEGMENT_DIR, "masks"),
+    out_pred_folder=MRC_POSTPROC_MASKS_DIR,
+    overlay_pred_folder=os.path.join(MRC_SEGMENT_DIR, "overlays_pp"),
+    results_csv=os.path.join(RESULTS_FOLDER, "mrc_mask_postproc_comparison.csv"),
+    gt_mask_folder=MASKS_MRC if HAS_MASKS else None,
+    out_gt_folder=os.path.join(MRC_SEGMENT_DIR, "masks_gt_postprocessed") if HAS_MASKS else None,
+    overlay_gt_folder=os.path.join(MRC_SEGMENT_DIR, "overlays_gt_pp") if HAS_MASKS else None,
+    metrics_csv=os.path.join(RESULTS_FOLDER, "mrc_volume_metrics.csv") if HAS_MASKS else None
+)
+
+postprocess_and_evaluate_volumes(
+    orig_folder=os.path.join(PEI_SEGMENT_DIR, "tiff"),
+    pred_mask_folder=os.path.join(PEI_SEGMENT_DIR, "masks"),
+    out_pred_folder=PEI_POSTPROC_MASKS_DIR,
+    overlay_pred_folder=os.path.join(PEI_SEGMENT_DIR, "overlays_pp"),
+    results_csv=os.path.join(RESULTS_FOLDER, "pei_mask_postproc_comparison.csv"),
+    gt_mask_folder=MASKS_PEI if HAS_MASKS else None,
+    out_gt_folder=os.path.join(PEI_SEGMENT_DIR, "masks_gt_postprocessed") if HAS_MASKS else None,
+    overlay_gt_folder=os.path.join(PEI_SEGMENT_DIR, "overlays_gt_pp") if HAS_MASKS else None,
+    metrics_csv=os.path.join(RESULTS_FOLDER, "pei_volume_metrics.csv") if HAS_MASKS else None
+)
+
 
 # -------------------------------------------------------------------------
 # 📊 RatioCalculator (Volume computation and EH ratio)

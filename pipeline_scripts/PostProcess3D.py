@@ -18,6 +18,7 @@ def parse_patient_and_ear(filename):
     match = re.match(r"(MRC|PEI)_(\d+)_\d+_crop([01])_mask\.png", os.path.basename(filename))
     if not match:
         return None, None
+    
     _, patient_id, crop_idx = match.groups()
     ear = "right" if crop_idx == "0" else "left"
     return patient_id, ear
@@ -56,30 +57,59 @@ def postprocess_3d_mask(stack,  connectivity=26, fill_3d_holes=True):
 
     return biggest.astype(np.uint8)
 
-def postprocess_all_patients_ears(orig_folder, mask_folder, out_folder, overlay_folder):
+def parse_gt_patient_ear_slice(filename):
+    # Matches PEI_100_63728457_left.tif
+    m = re.match(r"(MRC|PEI)_(\d+)_(\d+)_(left|right)\.[a-zA-Z0-9]+$", filename)
+    if not m:
+        return None, None, None
+    prefix, patient_id, slice_idx, ear = m.groups()
+    return f"{prefix}_{patient_id}", ear, int(slice_idx)
+
+
+def postprocess_all_patients_ears(orig_folder, mask_folder, out_folder, overlay_folder, has_masks=False):
     os.makedirs(out_folder, exist_ok=True)
     groups = {}
-    for fname in sorted(os.listdir(mask_folder)):
-        if not fname.endswith("_mask.png"):
-            continue
-        patient_id, ear = parse_patient_and_ear(fname)
-        if patient_id is None or ear is None:
-            print(f"⚠️ Skipping unrecognized mask filename: {fname}")
-            continue
-        key = (patient_id, ear)
-        if key not in groups:
-            groups[key] = []
-        groups[key].append(fname)
+
+    if not has_masks:
+        # Crop-style masks
+        for fname in sorted(os.listdir(mask_folder)):
+            if not fname.endswith("_mask.png"):
+                continue
+            patient_id, ear = parse_patient_and_ear(fname)
+            if patient_id is None or ear is None:
+                print(f"⚠️ Skipping unrecognized mask filename: {fname}")
+                continue
+            key = (patient_id, ear)
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(fname)
+    else:
+        # GT mask style
+        for fname in sorted(os.listdir(mask_folder)):
+            if not (fname.lower().endswith(".tif") or fname.lower().endswith(".tiff") or fname.lower().endswith(".png")):
+                continue
+            patient_id, ear, slice_idx = parse_gt_patient_ear_slice(fname)
+            if patient_id is None or ear is None:
+                print(f"⚠️ Skipping unrecognized GT mask filename: {fname}")
+                continue
+            key = (patient_id, ear)
+            if key not in groups:
+                groups[key] = []
+            groups[key].append((fname, slice_idx))
+
+    # For GT, sort by slice index; for pred, sort by filename extractor
     for (patient_id, ear), mask_list in groups.items():
-        mask_list_sorted = sorted(mask_list, key=extract_slice_index)
+        if has_masks:
+            mask_list_sorted = [fname for fname, _ in sorted(mask_list, key=lambda x: x[1])]
+        else:
+            mask_list_sorted = sorted(mask_list, key=extract_slice_index)
         stack = []
         for fname in mask_list_sorted:
-            mask = np.array(Image.open(os.path.join(mask_folder, fname)).convert("L"))
-            stack.append(mask > 127)
+            mask = np.array(Image.open(os.path.join(mask_folder, fname)).convert("L")) > 0
+            stack.append(mask)
         stack = np.stack(stack, axis=0)
         cleaned = postprocess_3d_mask(stack)
         for idx, fname in enumerate(mask_list_sorted):
-            # Saving the mask with postprocess
             out_path = os.path.join(out_folder, fname)
             mask_save = (cleaned[idx] * 255).astype(np.uint8)
             Image.fromarray(mask_save).save(out_path)
@@ -99,7 +129,8 @@ def postprocess_all_patients_ears(orig_folder, mask_folder, out_folder, overlay_
                     print(f"⚠️ Original image not found for overlay: {orig_path}")
                     continue
             else:
-                print(f"⚠️ Could not parse filename for overlay: {fname}")
+                if not has_masks:  # Only warn for predicted/crop-style, not GT
+                    print(f"⚠️ Could not parse filename for overlay: {fname}")
                 continue
 
             # Read original image (grayscale or RGB)
@@ -118,9 +149,6 @@ def postprocess_all_patients_ears(orig_folder, mask_folder, out_folder, overlay_
             os.makedirs(os.path.dirname(overlay_path), exist_ok=True)
             save_segmentation_overlay(image_np=orig_image, mask_np=binary_mask, save_path=overlay_path)
             
-
-# -- keep only report_mask_volumes and remove volume_difference_report
-
 def report_mask_volumes(
     before_folder,
     after_folder,

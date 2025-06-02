@@ -151,3 +151,56 @@ def plot_postprocessing_comparison(
     plt.tight_layout()
     plt.show()
 
+def plot_scatter_pred_vs_gt_volume(df, save_path=None, title="Predicted vs GT Volume (per ear)"):
+    """
+    Scatter plot comparing predicted and GT volumes per ear.
+    """
+    plt.figure(figsize=(6,6))
+    plt.scatter(df['gt_volume_voxels'], df['pred_volume_voxels'], s=70, alpha=0.8, edgecolor='k')
+    min_v = min(df['gt_volume_voxels'].min(), df['pred_volume_voxels'].min())
+    max_v = max(df['gt_volume_voxels'].max(), df['pred_volume_voxels'].max())
+    plt.plot([min_v, max_v], [min_v, max_v], 'k--', label='Perfect agreement')
+    plt.xlabel('GT Volume (voxels)')
+    plt.ylabel('Predicted Volume (voxels)')
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150)
+    plt.close()
+
+def plot_vsi_bar(df, save_path=None, title="Volume Similarity Index (VSI) per ear"):
+    """
+    Bar plot of VSI per patient/ear.
+    """
+    labels = df['patient_id'] + "_" + df['ear']
+    plt.figure(figsize=(0.35*len(labels), 4))
+    plt.bar(labels, df['vsi'], color='royalblue')
+    plt.axhline(1, ls='--', c='green', label='Perfect (1.0)')
+    plt.ylim(0, 1.05)
+    plt.ylabel('VSI')
+    plt.xticks(rotation=90)
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150)
+    plt.close()
+
+def plot_volume_difference_bar(df, save_path=None, title="Predicted - GT Volume per ear"):
+    """
+    Bar plot of (Predicted - GT) volume per patient/ear.
+    """
+    labels = df['patient_id'] + "_" + df['ear']
+    df['vol_diff'] = df['pred_volume_voxels'] - df['gt_volume_voxels']
+    plt.figure(figsize=(0.35*len(labels), 4))
+    plt.bar(labels, df['vol_diff'], color='coral')
+    plt.axhline(0, ls='--', c='black')
+    plt.ylabel('Predicted - GT Volume (voxels)')
+    plt.xticks(rotation=90)
+    plt.title(title)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150)
+    plt.close()
+
