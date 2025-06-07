@@ -34,7 +34,7 @@ NUM_EPOCHS = 25
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 32
 
-MODE = "inferemce"  # Set the mode: "train", "inference"
+MODE = "inference"  # Set the mode: "train", "inference"
 
 LOSS_FUNCTION = "bce_dice"  # Options: "bce_dice", "focal", "FLProbs", "custom_combined", "dice", "bce", "tversky"
 
@@ -65,7 +65,6 @@ elif USE_PEI:
 # Initialize the segmentation model
 
 segmentator = UNetOptimizedDO()
-#segmentator = Segmentator()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 segmentator = segmentator.to(device)
