@@ -465,7 +465,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class TverskyLoss(nn.Module):
-    def __init__(self, alpha=0.5, beta=0.5, smooth=1e-6):
+    def __init__(self, alpha=0.4, beta=0.6, smooth=1e-6):
         """
         Tversky Loss for binary segmentation.
 

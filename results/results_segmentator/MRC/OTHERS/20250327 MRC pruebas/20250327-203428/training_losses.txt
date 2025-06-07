@@ -1,3 +1,0 @@
-Epoch 1: Training Loss = 2.4524
-Epoch 2: Training Loss = 1.8908
-Epoch 3: Training Loss = 1.2871

@@ -29,12 +29,12 @@ USE_PEI = True
 
 SAVE_RESULTS = True  
 SAVE_WEIGHTS = True
-NUM_EPOCHS = 40
+NUM_EPOCHS = 25
 
 LEARNING_RATE = 1e-4
-BATCH_SIZE = 6
+BATCH_SIZE = 32
 
-MODE = "train"  # Set the mode: "train", "inference"
+MODE = "inferemce"  # Set the mode: "train", "inference"
 
 LOSS_FUNCTION = "bce_dice"  # Options: "bce_dice", "focal", "FLProbs", "custom_combined", "dice", "bce", "tversky"
 
@@ -52,10 +52,7 @@ else:
     MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\new_flipped_labels_MRC' #augmented
     PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\flipped_images_PEI' #augmented
     PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\mod_flipped_labels_PEI' #augmented
-    #MRC_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_MRC' #augmented
-    #MRC_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_MRC' #augmented
-    #PEI_IMAGES_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\images\\normalized_images_PEI' #augmented
-    #PEI_LABELS_FOLDER = 'C:\\Users\\TFM1\\Documents\\Data\\EHydropsAnalysis\\NORMALIZED_CROPPED_DATASET\\labels\\labels_PEI' #augmented
+    
 if USE_MRC:
     IMAGES_FOLDER = MRC_IMAGES_FOLDER
     LABELS_FOLDER = MRC_LABELS_FOLDER
@@ -103,7 +100,7 @@ optimizer = optim.Adam(segmentator.parameters(), lr=LEARNING_RATE)
 # ==============================================================================
 
 if SAVE_RESULTS:
-    results_folder = "./results/results_segmentator/RESULTS_loss/bce"
+    results_folder = "./results/results_segmentator/Inference"
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     results_dir = os.path.join(results_folder, timestamp)
     os.makedirs(results_dir, exist_ok=True)
