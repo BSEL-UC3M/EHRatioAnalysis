@@ -69,6 +69,5 @@ The impact of different loss functions was also explored. The combination of **B
 
 - The segmentation model used is **UNet** with variations in normalization (GroupNorm, InstanceNorm), activation functions (ReLU, LeakyReLU), weight initialization (Kaiming), and regularization (Dropout).
 - Loss functions evaluated include BCE, Dice, BCE + Dice, Focal, and Tversky.
-- The segmentation model used is **UNet**. [Model README](MRC/BEST/20250405%20MRC%20NEW%20TRAINING%20MODIEFIED%20LABELS/20250405-170559/README.md)
 ---
 
