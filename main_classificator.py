@@ -27,7 +27,7 @@ LEARNING_RATE = 0.0005
 BATCH_SIZE = 16
 DATA_SPLITS = (0.7, 0.1, 0.2)
 NUM_EPOCHS = 30
-IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/data/MRC_data/MRC_images"
+IMAGES_FOLDER = "/Users/claudiacastrillonalvarez/Desktop/data/PEI_data"
 THRESHOLD = 0.2
 DROPOUT = 0.5
 SEEDS = [42, 123, 456, 789, 1011]
@@ -61,7 +61,7 @@ num_classes = len(set(
 results_root = "./results/results_classificator/repeated_runs"
 os.makedirs(results_root, exist_ok=True)
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-results_dir = os.path.join(results_root, f"resnet_{timestamp}")
+results_dir = os.path.join(results_root, f"resnet_pei_{timestamp}")
 os.makedirs(results_dir, exist_ok=True)
 
 # Metrics storage

@@ -1,9 +1,0 @@
-=== Final Summary ===
-Learning Rate: 0.0005
-Batch Size: 16
-Epochs: 30
-Dropout: 0.5
-
-Accuracy: 89.70 ± 1.08
-Loss: 0.3131 ± 0.0161
-False Negatives: 68.0 ± 16.6
