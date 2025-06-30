@@ -1,7 +1,0 @@
-names:
-- left ear
-- right ear
-nc: 2
-test: /Users/claudiacastrillonalvarez/Documents/GitHub/EHRatioAnalysis/YOLO_annotations_PEI_uint8/test
-train: /Users/claudiacastrillonalvarez/Documents/GitHub/EHRatioAnalysis/YOLO_annotations_PEI_uint8/train
-val: /Users/claudiacastrillonalvarez/Documents/GitHub/EHRatioAnalysis/YOLO_annotations_PEI_uint8/val
