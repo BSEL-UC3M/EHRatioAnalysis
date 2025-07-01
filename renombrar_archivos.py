@@ -1,11 +1,10 @@
 import os
 
 # Ruta base donde están todas las carpetas de pacientes
-directorio_base = '/Users/claudiacastrillonalvarez/Desktop/TIFF'
+directorio_base = '/Users/claudiacastrillonalvarez/Desktop/patients_tiff_104_107'
 
-# Pacientes a procesar (97 al 102)
-pacientes = [f"PACIENTE {i}" for i in range(97, 103)]
-
+# Pacientes a procesar (ejemplo: del 104 al 107)
+pacientes = ["PACIENTE_107"]
 # Subcarpetas esperadas
 tipos = ["MRC", "PEI"]
 
@@ -17,7 +16,7 @@ for paciente in pacientes:
         print(f"❌ No se encontró la carpeta del paciente: {ruta_paciente}")
         continue
 
-    num_paciente = paciente.split()[1]  # Por ejemplo, '97'
+    num_paciente = paciente.split("_")[1]  # Extrae el número, ej. '104'
 
     for tipo in tipos:
         ruta_tipo = os.path.join(ruta_paciente, tipo)
