@@ -9,12 +9,26 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 import numpy as np
+from sklearn.metrics import confusion_matrix
 
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device,
-                num_epochs=10, update_freq=10, early_stop_patience=10, model_type="custom"):
+def train_model(
+    model,
+    train_loader,
+    val_loader,
+    criterion,
+    optimizer,
+    scheduler,
+    device,
+    num_epochs=10,
+    update_freq=10,
+    early_stop_patience=10,
+    model_type="custom",
+    resnet_dropout_schedule=False
+):
     """
-    Generic training function for any classification model with early stopping and learning rate scheduling.
+    Unified training loop for any classification model (CNN, ResNet).
+    Includes early stopping, live metrics, dropout update (for ResNet), and TQDM.
     """
     model.train()
     train_losses, val_losses = [], []
@@ -23,18 +37,20 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     best_val_loss = float('inf')
     early_stop_counter = 0
 
-    print(f"\n Training {model_type} started for {num_epochs} epochs...\n")
+    print(f"\n🚀 Training started for {num_epochs} epochs...\n")
 
     for epoch in range(num_epochs):
+        if resnet_dropout_schedule and epoch == 10 and hasattr(model, 'fc_layers'):
+            model.fc_layers = nn.Sequential(
+                nn.Dropout(0.6),
+                nn.Linear(model.fc_layers[1].in_features, 2)
+            ).to(device)
+
         running_loss = 0.0
         correct_train, total_train = 0, 0
+        progress_bar = tqdm(total=len(train_loader), desc=f"Epoch {epoch+1}/{num_epochs}", unit="batch", leave=True)
 
-        progress_bar = tqdm(total=len(train_loader),
-                            desc=f"Epoch {epoch+1}/{num_epochs}",
-                            unit="batch",
-                            leave=True,
-                            dynamic_ncols=True)
-
+        model.train()
         for batch_idx, (inputs, labels) in enumerate(train_loader):
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -81,26 +97,23 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         train_accuracies.append(train_accuracy)
         val_accuracies.append(val_accuracy)
 
-        print(f"\n Epoch {epoch + 1}/{num_epochs} | Train Loss: {avg_train_loss:.4f}, Train Acc: {train_accuracy:.2f}% | Val Loss: {avg_val_loss:.4f}, Val Acc: {val_accuracy:.2f}%\n")
+        print(f"\n✅ Epoch {epoch + 1}/{num_epochs} | Train Loss: {avg_train_loss:.4f}, Train Acc: {train_accuracy:.2f}% | Val Loss: {avg_val_loss:.4f}, Val Acc: {val_accuracy:.2f}%\n")
 
         scheduler.step(avg_val_loss)
-        model.train()
 
-        # Early Stopping
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             early_stop_counter = 0
         else:
             early_stop_counter += 1
             if early_stop_counter >= early_stop_patience:
-                print("\n Early stopping triggered.")
+                print("🛑 Early stopping triggered.")
                 break
 
-    print(" Training complete!")
+    print("🎉 Training complete!")
     return model, train_losses, val_losses, train_accuracies, val_accuracies
 
-
-def evaluate_model(model, test_loader, device, threshold=0.5):
+def evaluate_model(model, test_loader, device, threshold=0.5, return_all=False):
     """
     Evaluate a classification model and return predictions, average loss, and accuracy.
     """
@@ -132,5 +145,8 @@ def evaluate_model(model, test_loader, device, threshold=0.5):
     accuracy = 100 * total_correct / total_samples
     print(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {accuracy:.2f}% (Threshold={threshold})")
 
-
-    return y_true, y_pred, avg_loss, accuracy
+    if return_all:
+        return y_pred, y_true, avg_loss, accuracy
+    else:
+        conf_matrix = confusion_matrix(y_true, y_pred)
+        return avg_loss, accuracy, conf_matrix

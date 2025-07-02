@@ -1,43 +1,45 @@
 # ==============================================================================
 # File: main_classificator_PEI.py
-# Description: Main script for training and evaluating the classification model with PEI data.
+# Description: Main script for k-fold training and evaluation with PEI data.
 # Author: @claudiacastrillon
-# Modified: 02/07/2025 by @ChatGPT for dynamic data splits
+# Modified: 02/07/2025 
 # ==============================================================================
 
 import torch
 import platform
 import os
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
-from sklearn.metrics import confusion_matrix
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, classification_report, precision_score, recall_score, f1_score
 
 from dataloader.dataloader_PEI_classificator import ClassificationDataLoader
-from models.classificator.five_layer_cnn_PEI import train_model as train_model_cnn, evaluate_model as eval_model_cnn, FiveLayerCNN
-from models.classificator.resnet50 import fine_tune_resnet, train_model as train_model_resnet, evaluate_model as eval_model_resnet
+from trainers.classificator.trainer import evaluate_model, train_model
+from models.classificator.five_layer_cnn_PEI import FiveLayerCNN
+from models.classificator.resnet50 import fine_tune_resnet
 from utils.preprocessing_all_images import preprocess_all_images
 
 # ==============================================================================
 # Configuration Parameters
 # ==============================================================================
-SAVE_RESULTS = False
-SAVE_WEIGHTS = False
+SAVE_RESULTS = True
+SAVE_WEIGHTS = True
 SAVE_PREPROCESSING = False
 
 MODEL_TYPE = "resnet50"  # Choose between 'cnn' and 'resnet50'
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 16
-NUM_EPOCHS = 1
+NUM_EPOCHS = 30
+NUM_FOLDS = 5
+SEED = 42
+TEST_SPLIT_RATIO = 0.1  # 10% for final testing
 
-# Dataset paths
 RAW_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/paper-experiments/classification/PEI"
 ANNOTATIONS_FOLDER = RAW_IMAGES_FOLDER
 PROCESSED_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/paper-experiments/classification/PEI-PREPROCESSED"
 RESULTS_ROOT = "D:/Results/EHydrops/Paper-experiments/classification/PEI"
+WEIGHTS_ROOT = "D:/Models/EHydropsAnalysis/2025/paper-experiments/classification/PEI"
 
 # ==============================================================================
 # Environment Setup
@@ -49,9 +51,7 @@ elif system_name in ["windows", "linux"]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 else:
     device = torch.device("cpu")
-
 print(f" Using device: {device}")
-
 # ==============================================================================
 # Step 1: Preprocess Images
 # ==============================================================================
@@ -64,23 +64,29 @@ else:
     print(" Skipping image preprocessing. Using existing processed images.")
 
 # ==============================================================================
-# Step 2: Load Dataset
+# Step 2: Load Dataset & Partition into Train+Val and Test
 # ==============================================================================
 annotations = ClassificationDataLoader.load_annotations(ANNOTATIONS_FOLDER)
-all_patients = list(annotations.keys())
+trainval_patients, test_patients = ClassificationDataLoader.split_train_val_test_patients(
+    annotations, test_ratio=TEST_SPLIT_RATIO, seed=SEED
+)
 
-# Split: 70% train, 10% val, 20% test
-train_val_patients, test_patients = train_test_split(all_patients, test_size=0.2, random_state=42)
-train_patients, val_patients = train_test_split(train_val_patients, test_size=0.125, random_state=42)  # 0.125 * 0.8 = 0.1
-
-train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_split(
+test_loader = ClassificationDataLoader.get_test_dataloader(
     images_folder=PROCESSED_IMAGES_FOLDER,
     annotations=annotations,
-    train_patients=train_patients,
-    val_patients=val_patients,
-    test_patients=test_patients,
+    patient_ids=test_patients,
     batch_size=BATCH_SIZE,
     transform=None
+)
+
+folds = ClassificationDataLoader.get_kfold_dataloaders(
+    images_folder=PROCESSED_IMAGES_FOLDER,
+    annotations=annotations,
+    patient_ids=trainval_patients,
+    k=NUM_FOLDS,
+    batch_size=BATCH_SIZE,
+    transform=None,
+    seed=SEED
 )
 
 num_classes = len(set(
@@ -89,88 +95,212 @@ num_classes = len(set(
     for annotation in patient_data['Annotation']
 ))
 
-# ==============================================================================
-# Step 3: Model Setup & Training
-# ==============================================================================
-print(f"\nTraining {MODEL_TYPE.upper()} model...\n")
+fold_accuracies, fold_losses = [], []
+model_paths = []
 
-if MODEL_TYPE == "cnn":
-    model = FiveLayerCNN(num_classes).to(device)
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=5e-4)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
-    train_fn, eval_fn = train_model_cnn, eval_model_cnn
+# ==============================================================================
+# Step 3: K-Fold Training
+# ==============================================================================
+for fold_idx, train_loader, val_loader in folds:
+    print(f"\n📂 Fold {fold_idx + 1}/{NUM_FOLDS} - Training {MODEL_TYPE.upper()}...\n")
 
-elif MODEL_TYPE == "resnet50":
-    model, criterion, optimizer, scheduler = fine_tune_resnet(
-        num_classes, device, learning_rate=LEARNING_RATE, model_type="resnet50"
+    if MODEL_TYPE == "cnn":
+        model = FiveLayerCNN(num_classes).to(device)
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=5e-4)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
+        train_fn = train_model
+        train_args = {"resnet_dropout_schedule": False}
+
+    elif MODEL_TYPE == "resnet50":
+        model, criterion, optimizer, scheduler = fine_tune_resnet(
+            num_classes, device, learning_rate=LEARNING_RATE, model_type="resnet50"
+        )
+        train_fn = train_model
+        train_args = {"resnet_dropout_schedule": True}
+
+    trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_fn(
+        model,
+        train_loader,
+        val_loader,
+        criterion,
+        optimizer,
+        scheduler,
+        device,
+        num_epochs=NUM_EPOCHS,
+        **train_args 
     )
-    train_fn, eval_fn = train_model_resnet, eval_model_resnet
 
-print(f"\n Training {MODEL_TYPE.upper()} model for {NUM_EPOCHS} epochs...\n")
-trained_model, train_losses, val_losses, train_accuracies, val_accuracies = train_fn(
-    model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS
+    preds, targets, avg_loss, accuracy = evaluate_model(trained_model, val_loader, device, return_all=True)
+    conf_matrix = confusion_matrix(targets, preds)
+    fold_accuracies.append(accuracy)
+    fold_losses.append(avg_loss)
+
+    if SAVE_WEIGHTS:
+        os.makedirs(WEIGHTS_ROOT, exist_ok=True)
+        model_path = os.path.join(WEIGHTS_ROOT, f"{MODEL_TYPE}_fold{fold_idx + 1}_seed{SEED}.pt").replace("\\", "/")
+        torch.save(trained_model.state_dict(), model_path)
+        model_paths.append(model_path)
+
+# ==============================================================================
+# Step 4: Final Test Evaluation (all models)
+# ==============================================================================
+import pandas as pd  # Make sure this is imported at the top
+
+test_metrics = []
+fold_metrics_summary = []
+
+timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+summary_dir = os.path.join(RESULTS_ROOT, f"summary_{MODEL_TYPE}_{timestamp}").replace("\\", "/")
+os.makedirs(summary_dir, exist_ok=True)
+
+for fold_idx, model_path in enumerate(model_paths):
+    print(f"\n🧪 Evaluating fold {fold_idx + 1} model on test set...")
+    if MODEL_TYPE == "cnn":
+        model = FiveLayerCNN(num_classes).to(device)
+    elif MODEL_TYPE == "resnet50":
+        model, _, _, _ = fine_tune_resnet(num_classes, device, learning_rate=LEARNING_RATE, model_type="resnet50")
+
+    state_dict = torch.load(model_path, weights_only=True)
+    model.load_state_dict(state_dict)
+    model.to(device)
+    model.eval()
+
+    preds, targets, test_loss, test_acc = evaluate_model(model, test_loader, device, return_all=True)
+    test_metrics.append((preds, targets, test_loss, test_acc))
+
+    # Compute classification report
+    class_report_str = classification_report(
+        targets, preds,
+        target_names=[f"Class {i}" for i in range(num_classes)],
+        digits=4,
+        zero_division=0
+    )
+    f1 = f1_score(targets, preds, average="binary", zero_division=0)
+    precision = precision_score(targets, preds, average="binary", zero_division=0)
+    recall = recall_score(targets, preds, average="binary", zero_division=0)
+
+    # Save fold confusion matrix
+    cm = confusion_matrix(targets, preds)
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=[f'Class {i}' for i in range(num_classes)],
+                yticklabels=[f'Class {i}' for i in range(num_classes)],
+                annot_kws={"size": 14})
+    plt.xlabel("Predicted Label", fontsize=12)
+    plt.ylabel("True Label", fontsize=12)
+    plt.title(f"Confusion Matrix - Fold {fold_idx+1}", fontsize=14)
+    plt.tight_layout()
+    plt.savefig(os.path.join(summary_dir, f"test_confusion_matrix_fold{fold_idx+1}.png"))
+    plt.close()
+
+    # Save classification report
+    with open(os.path.join(summary_dir, f"classification_report_fold{fold_idx+1}.txt"), "w") as f:
+        f.write(class_report_str)
+
+    # Save fold results
+    with open(os.path.join(summary_dir, f"test_results_fold{fold_idx+1}.txt"), "w") as f:
+        f.write(f"Fold {fold_idx+1} Test Accuracy: {test_acc:.2f}%\n")
+        f.write(f"Fold {fold_idx+1} Test Loss: {test_loss:.4f}\n")
+        f.write(f"F1 Score: {f1:.4f}\n")
+        f.write(f"Precision: {precision:.4f}\n")
+        f.write(f"Recall: {recall:.4f}\n")
+        f.write(f"Confusion Matrix:\n{np.array2string(cm)}\n")
+
+    # Store for final CSV
+    fold_metrics_summary.append({
+        "fold": fold_idx + 1,
+        "accuracy": test_acc,
+        "loss": test_loss,
+        "f1": f1,
+        "precision": precision,
+        "recall": recall
+    })
+
+# ==============================================================================
+# Step 5: Save Final Results and Summary
+# ==============================================================================
+all_test_acc = [m[3] for m in test_metrics]
+all_test_loss = [m[2] for m in test_metrics]
+all_test_preds = np.concatenate([m[0] for m in test_metrics])
+all_test_targets = np.concatenate([m[1] for m in test_metrics])
+test_conf_matrix = confusion_matrix(all_test_targets, all_test_preds)
+
+pred_classes, pred_counts = np.unique(all_test_preds, return_counts=True)
+true_classes, true_counts = np.unique(all_test_targets, return_counts=True)
+
+class_report = classification_report(
+    all_test_targets, all_test_preds,
+    target_names=[f"Class {i}" for i in range(num_classes)],
+    digits=4,
+    zero_division=0
 )
+f1 = f1_score(all_test_targets, all_test_preds, average="binary", zero_division=0)
+precision = precision_score(all_test_targets, all_test_preds, average="binary", zero_division=0)
+recall = recall_score(all_test_targets, all_test_preds, average="binary", zero_division=0)
 
-avg_loss, accuracy, conf_matrix = eval_fn(trained_model, test_loader, device)
+# Save fold metrics CSV
+df_metrics = pd.DataFrame(fold_metrics_summary)
+df_metrics.to_csv(os.path.join(summary_dir, "fold_results.csv"), index=False)
+
+# Save overall summary
+with open(os.path.join(summary_dir, "final_summary.txt"), "w") as f:
+    f.write("==== Final Configuration ====\n")
+    f.write(f"Model Type: {MODEL_TYPE}\n")
+    f.write(f"Learning Rate: {LEARNING_RATE}\n")
+    f.write(f"Batch Size: {BATCH_SIZE}\n")
+    f.write(f"Epochs: {NUM_EPOCHS}\n")
+    f.write(f"Folds: {NUM_FOLDS}\n")
+    f.write(f"Random Seed: {SEED}\n")
+    f.write(f"Test Set Size: {len(test_loader.dataset)} images\n\n")
+
+    f.write("==== Validation (K-Fold) Results ====\n")
+    f.write(f"Average Accuracy: {np.mean(fold_accuracies):.2f}% ± {np.std(fold_accuracies):.2f}\n")
+    f.write(f"Average Loss: {np.mean(fold_losses):.4f} ± {np.std(fold_losses):.4f}\n\n")
+
+    f.write("==== Test Set Results (Averaged over all folds) ====\n")
+    f.write(f"Accuracy: {np.mean(all_test_acc):.2f}% ± {np.std(all_test_acc):.2f}\n")
+    f.write(f"Loss: {np.mean(all_test_loss):.4f} ± {np.std(all_test_loss):.4f}\n")
+    f.write(f"F1 Score: {f1:.4f}\n")
+    f.write(f"Precision: {precision:.4f}\n")
+    f.write(f"Recall: {recall:.4f}\n\n")
+
+    f.write("Class Distribution:\n")
+    f.write(f"Predicted: {dict(zip(pred_classes, pred_counts))}\n")
+    f.write(f"True: {dict(zip(true_classes, true_counts))}\n\n")
+
+    f.write("Confusion Matrix:\n")
+    f.write(np.array2string(test_conf_matrix))
+    f.write("\n\nClassification Report:\n")
+    f.write(class_report)
+
+plt.figure(figsize=(6, 5))
+sns.heatmap(
+    test_conf_matrix,
+    annot=True,
+    fmt='d',
+    cmap='Blues',
+    xticklabels=[f'Class {i}' for i in range(num_classes)],
+    yticklabels=[f'Class {i}' for i in range(num_classes)],
+    annot_kws={"size": 14}
+)
+plt.xlabel("Predicted Label", fontsize=12)
+plt.ylabel("True Label", fontsize=12)
+plt.title("Test Set Confusion Matrix (All Models)", fontsize=14)
+plt.tight_layout()
+plt.savefig(os.path.join(summary_dir, "test_confusion_matrix_all_folds.png"))
+plt.close()
+
+print(f"\n📁 Final summary and confusion matrix saved to: {summary_dir}")
 
 # ==============================================================================
-# Step 4: Save Results
+# Step 6: Final Console Summary
 # ==============================================================================
-if SAVE_RESULTS or SAVE_WEIGHTS:
-    os.makedirs(RESULTS_ROOT, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    results_dir = os.path.join(RESULTS_ROOT, f"{MODEL_TYPE}_{timestamp}")
-    os.makedirs(results_dir, exist_ok=True)
+print("\n📊 Final Summary Across Folds")
+print(f"Average Validation Accuracy: {np.mean(fold_accuracies):.2f}% ± {np.std(fold_accuracies):.2f}")
+print(f"Average Validation Loss: {np.mean(fold_losses):.4f} ± {np.std(fold_losses):.4f}")
+print(f"Test Accuracy (held-out set): {np.mean(all_test_acc):.2f}% ± {np.std(all_test_acc):.2f}")
+print(f"Test Loss (held-out set): {np.mean(all_test_loss):.4f} ± {np.std(all_test_loss):.4f}")
+print(f"F1 Score: {f1:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
 
-if SAVE_WEIGHTS:
-    best_epoch = np.argmin(val_losses)
-    weights_save_path = os.path.join(results_dir, f"{MODEL_TYPE}_best_weights_PEI.pt")
-    torch.save(trained_model.state_dict(), weights_save_path)
-    print(f" Best model weights saved at {weights_save_path} (Epoch {best_epoch + 1})")
 
-if SAVE_RESULTS:
-    with open(os.path.join(results_dir, "results.txt"), "w") as f:
-        f.write(f"Learning Rate: {LEARNING_RATE}\n")
-        f.write(f"Number of Epochs: {NUM_EPOCHS}\n")
-        f.write(f"Optimizer: {'Adam' if MODEL_TYPE == 'cnn' else 'SGD'}\n")
-        f.write(f"Best Epoch: {best_epoch + 1}\n")
-        f.write(f"Accuracy: {accuracy:.2f}%\n")
-        f.write(f"Average Loss: {avg_loss:.4f}\n")
-        f.write(f"Confusion Matrix:\n{conf_matrix}\n")
-
-    epochs_range = range(1, len(train_losses) + 1)
-
-    plt.figure(figsize=(6,5))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
-                xticklabels=[f'Class {i}' for i in range(num_classes)], 
-                yticklabels=[f'Class {i}' for i in range(num_classes)])
-    plt.xlabel("Predicted Label")
-    plt.ylabel("True Label")
-    plt.title("Confusion Matrix")
-    plt.savefig(os.path.join(results_dir, "confusion_matrix.png"), dpi=300, bbox_inches='tight')
-    plt.close()
-
-    plt.figure(figsize=(8,6))
-    plt.plot(epochs_range, train_losses, label='Train Loss', marker='o')
-    plt.plot(epochs_range, val_losses, label='Validation Loss', marker='o')
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.title("Training and Validation Loss")
-    plt.legend()
-    plt.savefig(os.path.join(results_dir, "train_val_loss.png"), dpi=300, bbox_inches='tight')
-    plt.close()
-
-    plt.figure(figsize=(8,6))
-    plt.plot(epochs_range, train_accuracies, label='Train Accuracy', marker='o')
-    plt.plot(epochs_range, val_accuracies, label='Validation Accuracy', marker='o')
-    plt.xlabel("Epochs")
-    plt.ylabel("Accuracy (%)")
-    plt.title("Training and Validation Accuracy")
-    plt.legend()
-    plt.savefig(os.path.join(results_dir, "train_val_accuracy.png"), dpi=300, bbox_inches='tight')
-    plt.close()
-
-    print(f"\n Results saved in {results_dir}\n")
-
-print("Process completed.")

@@ -1,13 +1,14 @@
 # ==============================================================================
 # File: dataloader_PEI_classificator.py
-# Description: DataLoader for PEI TIFF images and annotations for classification tasks.
+# Description: DataLoader for PEI TIFF images and annotations with k-fold support.
 # Author: @claudiacastrillon
-# Modified: 02/07/2025 by @ChatGPT for dynamic patient split and silent loading
+# Modified: 02/07/2025
 # ==============================================================================
 
 import os
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
+from sklearn.model_selection import StratifiedKFold, train_test_split
 import torch
 import cv2
 from PIL import Image
@@ -77,36 +78,89 @@ class ClassificationDataLoader:
         return all_patient_data
 
     @staticmethod
-    def train_val_test_split(images_folder, annotations, train_patients, val_patients, test_patients, batch_size=8, transform=None):
-        processed_images_folder = images_folder  # Use the exact folder provided
+    def split_train_val_test_patients(annotations, test_ratio=0.1, seed=42):
+        """Split patient-level stratified test set and return train/test patient ids."""
+        all_patient_ids = list(annotations.keys())
+        labels = []
 
-        def get_image_files(patient_folders):
-            image_files = []
-            for folder_name in patient_folders:
-                patient_folder = os.path.join(processed_images_folder, folder_name)
-                if not os.path.exists(patient_folder):
-                    continue  # skip silently
-                patient_images = [
-                    os.path.join(folder_name, file)
-                    for file in os.listdir(patient_folder)
-                    if file.endswith('.tif') and "(1)" not in file and "(2)" not in file
+        for pid in all_patient_ids:
+            df = annotations[pid]
+            label_counts = df['Annotation'].value_counts()
+            if label_counts.empty:
+                labels.append(0)  # fallback
+            else:
+                labels.append(label_counts.idxmax())  # majority label
+
+        train_ids, test_ids = train_test_split(
+            all_patient_ids,
+            test_size=test_ratio,
+            stratify=labels,
+            random_state=seed
+        )
+
+        return train_ids, test_ids
+
+    @staticmethod
+    def get_kfold_dataloaders(images_folder, annotations, patient_ids, k=5, batch_size=8, transform=None, seed=42):
+        processed_images_folder = images_folder
+
+        def get_image_files_and_labels(patients):
+            image_files, image_labels = [], []
+            for pid in patients:
+                folder = os.path.join(processed_images_folder, pid)
+                if not os.path.exists(folder):
+                    continue
+                valid_files = [
+                    f for f in os.listdir(folder)
+                    if f.endswith(".tif") and "(1)" not in f and "(2)" not in f
                 ]
-                image_files.extend(patient_images)
-            return image_files
+                for file in valid_files:
+                    full_path = os.path.join(pid, file)
+                    row = annotations[pid][annotations[pid]["File Name"].str.strip() == file.strip()]
+                    if not row.empty:
+                        label = row["Annotation"].values[0]
+                        image_files.append(full_path)
+                        image_labels.append(label)
+            return np.array(image_files), np.array(image_labels)
 
-        train_files = get_image_files(train_patients)
-        val_files = get_image_files(val_patients)
-        test_files = get_image_files(test_patients)
+        all_files, all_labels = get_image_files_and_labels(patient_ids)
 
-        train_dataset = ClassificationDataset(train_files, processed_images_folder, annotations, transform)
-        val_dataset = ClassificationDataset(val_files, processed_images_folder, annotations, transform)
+        skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=seed)
+        folds = []
+
+        for fold_idx, (train_idx, val_idx) in enumerate(skf.split(all_files, all_labels)):
+            train_files = all_files[train_idx]
+            val_files = all_files[val_idx]
+
+            train_dataset = ClassificationDataset(train_files, processed_images_folder, annotations, transform)
+            val_dataset = ClassificationDataset(val_files, processed_images_folder, annotations, transform)
+
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+            val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+
+            folds.append((fold_idx, train_loader, val_loader))
+
+        return folds
+
+    @staticmethod
+    def get_test_dataloader(images_folder, annotations, patient_ids, batch_size=8, transform=None):
+        processed_images_folder = images_folder
+        test_files = []
+
+        for pid in patient_ids:
+            folder = os.path.join(processed_images_folder, pid)
+            if not os.path.exists(folder):
+                continue
+            valid_files = [
+                f for f in os.listdir(folder)
+                if f.endswith(".tif") and "(1)" not in f and "(2)" not in f
+            ]
+            for file in valid_files:
+                test_files.append(os.path.join(pid, file))
+
         test_dataset = ClassificationDataset(test_files, processed_images_folder, annotations, transform)
-
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-
-        return train_loader, val_loader, test_loader
+        return test_loader
 
 
 class InferenceDataset(Dataset):
@@ -141,3 +195,4 @@ class InferenceDataset(Dataset):
 def load_inference_dataloader(image_folder, batch_size=16, transform=None):
     dataset = InferenceDataset(image_folder, transform=transform)
     return DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
