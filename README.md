@@ -69,6 +69,19 @@ root/
   - Region of Interest (ROI) labels for object detection.
   - Surface labels for segmentation tasks.
 
+> ⚠️ **Important note about PEI TIFF images**
+>
+> Some of the REAL-IR (PEI) TIFF images may be encoded in **32-bit float format**, which is **incompatible with OpenCV** and causes image loading errors during training (e.g., `cv2.cvtColor` failures).
+>
+> Therefore, the **first time you use PEI images**, you must run the classification script with:
+>
+> ```python
+> SAVE_PREPROCESSING = True
+> ```
+>
+> This will convert the 32-bit TIFF images into **8-bit format**, ensuring compatibility. Once processed, you can run classification as usual using the `PEI_processed_data` folder.
+
+
 ### **2. CNN Classifier**
 
 **Data Requirements** 
