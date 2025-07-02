@@ -2,8 +2,7 @@
 # File: main_classificator_PEI.py
 # Description: Main script for training and evaluating the classification model with PEI data.
 # Author: @claudiacastrillon
-# Created: 13/02/2025
-# Modified: 02/07/2025 by @ChatGPT for clarity and automation
+# Modified: 02/07/2025 by @ChatGPT for dynamic data splits
 # ==============================================================================
 
 import torch
@@ -15,6 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
 
 from dataloader.dataloader_PEI_classificator import ClassificationDataLoader
 from models.classificator.five_layer_cnn_PEI import train_model as train_model_cnn, evaluate_model as eval_model_cnn, FiveLayerCNN
@@ -38,21 +38,6 @@ RAW_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/paper-experiments/classification/P
 ANNOTATIONS_FOLDER = RAW_IMAGES_FOLDER
 PROCESSED_IMAGES_FOLDER = "D:/Data/EHydropsAnalysis/paper-experiments/classification/PEI-PREPROCESSED"
 RESULTS_ROOT = "D:/Results/EHydrops/Paper-experiments/classification/PEI"
-
-# Fixed validation and test sets
-VAL_PATIENTS = [
-    "PACIENTE 45 PEI TIFF", "PACIENTE 21 PEI TIFF", "PACIENTE 1 PEI TIFF", "PACIENTE 87 PEI TIFF",
-    "PACIENTE 58 PEI TIFF", "PACIENTE 85 PEI TIFF", "PACIENTE 54 PEI TIFF", "PACIENTE 90 PEI TIFF",
-    "PACIENTE 26 PEI TIFF"
-]
-
-TEST_PATIENTS = [
-    "PACIENTE 77 PEI TIFF", "PACIENTE 65 PEI TIFF", "PACIENTE 30 PEI TIFF", "PACIENTE 28 PEI TIFF",
-    "PACIENTE 81 PEI TIFF", "PACIENTE 88 PEI TIFF", "PACIENTE 5 PEI TIFF", "PACIENTE 55 PEI TIFF",
-    "PACIENTE 76 PEI TIFF", "PACIENTE 12 PEI TIFF", "PACIENTE 70 PEI TIFF", "PACIENTE 14 PEI TIFF",
-    "PACIENTE 18 PEI TIFF", "PACIENTE 29 PEI TIFF", "PACIENTE 32 PEI TIFF", "PACIENTE 36 PEI TIFF",
-    "PACIENTE 4 PEI TIFF", "PACIENTE 15 PEI TIFF", "PACIENTE 82 PEI TIFF"
-]
 
 # ==============================================================================
 # Environment Setup
@@ -83,21 +68,24 @@ else:
 # ==============================================================================
 annotations = ClassificationDataLoader.load_annotations(ANNOTATIONS_FOLDER)
 all_patients = list(annotations.keys())
-train_patients = [p for p in all_patients if p not in VAL_PATIENTS and p not in TEST_PATIENTS]
+
+# Split: 70% train, 10% val, 20% test
+train_val_patients, test_patients = train_test_split(all_patients, test_size=0.2, random_state=42)
+train_patients, val_patients = train_test_split(train_val_patients, test_size=0.125, random_state=42)  # 0.125 * 0.8 = 0.1
 
 train_loader, val_loader, test_loader = ClassificationDataLoader.train_val_test_split(
     images_folder=PROCESSED_IMAGES_FOLDER,
     annotations=annotations,
     train_patients=train_patients,
-    val_patients=VAL_PATIENTS,
-    test_patients=TEST_PATIENTS,
+    val_patients=val_patients,
+    test_patients=test_patients,
     batch_size=BATCH_SIZE,
     transform=None
 )
 
 num_classes = len(set(
-    annotation 
-    for patient_data in annotations.values() 
+    annotation
+    for patient_data in annotations.values()
     for annotation in patient_data['Annotation']
 ))
 
