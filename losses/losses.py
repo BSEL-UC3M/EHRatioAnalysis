@@ -100,7 +100,6 @@ class SymmetricFocalLoss(nn.Module):
         loss = torch.mean(torch.sum(torch.stack([back_ce, fore_ce], axis=-1), axis=-1))
         return loss
 
-
 # AsymmetricFocalLoss class definition
 class AsymmetricFocalLoss(nn.Module):
     """
@@ -134,7 +133,6 @@ class AsymmetricFocalLoss(nn.Module):
 
         loss = torch.mean(torch.sum(torch.stack([back_ce, fore_ce], axis=-1), axis=-1))
         return loss
-
 
 # SymmetricFocalTverskyLoss class definition
 class SymmetricFocalTverskyLoss(nn.Module):
@@ -172,7 +170,6 @@ class SymmetricFocalTverskyLoss(nn.Module):
 
         loss = torch.mean(torch.stack([back_dice, fore_dice], axis=-1))
         return loss
-
 
 # AsymmetricFocalTverskyLoss class definition
 class AsymmetricFocalTverskyLoss(nn.Module):

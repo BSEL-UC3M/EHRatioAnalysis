@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as models
 import torch.nn.functional as F
-from sklearn.metrics import confusion_matrix
 
 class FiveLayerCNN(nn.Module):
     def __init__(self, num_classes, dropout_prob=0.5):
