@@ -101,7 +101,8 @@ for seed in SEEDS:
     )
 
     # Evaluate
-    y_true, y_pred, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device)
+    y_pred, y_true, avg_loss, accuracy = evaluate_model(trained_model, test_loader, device, return_all=True)
+
     cm = confusion_matrix(y_true, y_pred)
     fn = cm[1][0] if cm.shape == (2, 2) else 0
 
