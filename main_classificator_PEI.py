@@ -14,6 +14,7 @@ import seaborn as sns
 from datetime import datetime
 from collections import Counter
 from sklearn.metrics import confusion_matrix, classification_report, precision_score, recall_score, f1_score
+from losses.losses import MulticlassFocalLoss
 
 from dataloader.dataloader_PEI_classificator import ClassificationDataLoader
 from trainers.classificator.trainer import evaluate_model, train_model
@@ -86,13 +87,26 @@ for p in trainval_patients:
         annots = annotations[p]["Annotation"].values
         all_train_labels.extend(annots)
 
+# == Compute class weights dynamically for weighted loss
+# label_counts = Counter(all_train_labels)
+# total_samples = sum(label_counts.values())
+# class_weights = torch.tensor(
+#     [total_samples / label_counts[i] for i in range(num_classes)],
+#     dtype=torch.float32
+# ).to(device)
+
+# == Compute class weights dynamically for multiclass focal loss
+all_train_labels = [
+    annotation
+    for pid in trainval_patients
+    for annotation in annotations[pid]['Annotation']
+]
 label_counts = Counter(all_train_labels)
 total_samples = sum(label_counts.values())
 class_weights = torch.tensor(
     [total_samples / label_counts[i] for i in range(num_classes)],
     dtype=torch.float32
 ).to(device)
-
 test_loader = ClassificationDataLoader.get_test_dataloader(
     images_folder=PROCESSED_IMAGES_FOLDER,
     annotations=annotations,
@@ -124,7 +138,9 @@ for fold_idx, train_loader, val_loader in folds:
 
     if MODEL_TYPE == "cnn":
         model = FiveLayerCNN(num_classes).to(device)
-        criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
+        # Losses: weighted loss, MutilticlassFocalLoss
+        # criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
+        criterion = MulticlassFocalLoss(weight=class_weights)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=5e-4)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
         train_fn = train_model
@@ -273,7 +289,7 @@ with open(os.path.join(summary_dir, "final_summary.txt"), "w") as f:
     f.write(f"Test Set Size: {len(test_loader.dataset)} images\n\n")
     f.write("Class Weights (used in CrossEntropyLoss):\n")
     f.write(f"{class_weights.cpu().numpy().tolist()}\n\n") 
-    
+
     f.write("==== Validation (K-Fold) Results ====\n")
     f.write(f"Average Accuracy: {np.mean(fold_accuracies):.2f}% ± {np.std(fold_accuracies):.2f}\n")
     f.write(f"Average Loss: {np.mean(fold_losses):.4f} ± {np.std(fold_losses):.4f}\n\n")

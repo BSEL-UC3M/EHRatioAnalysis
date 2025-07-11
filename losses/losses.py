@@ -426,10 +426,6 @@ class SimpleDiceLoss(nn.Module):
         intersection = (y_pred * y_true).sum(dim=2).sum(dim=2)
         dice = (2. * intersection + smooth) / (y_pred.sum(dim=2).sum(dim=2) + y_true.sum(dim=2).sum(dim=2) + smooth)
         return 1 - dice.mean()
-    
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 class FocalLoss(nn.Module):
     def __init__(self, alpha=0.25, gamma=2, reduction='mean'):
@@ -456,10 +452,6 @@ class FocalLoss(nn.Module):
             return F_loss.sum()
         else:
             return F_loss
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 class TverskyLoss(nn.Module):
     def __init__(self, alpha=0.4, beta=0.6, smooth=1e-6):
@@ -491,3 +483,26 @@ class TverskyLoss(nn.Module):
 
         tversky = (TP + self.smooth) / (TP + self.alpha * FP + self.beta * FN + self.smooth)
         return 1 - tversky
+
+class MulticlassFocalLoss(nn.Module):
+    """
+    Focal Loss for multi-class classification problems (with logits).
+    """
+    def __init__(self, alpha=1.0, gamma=2.0, weight=None, reduction='mean'):
+        super(MulticlassFocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.weight = weight
+        self.reduction = reduction
+
+    def forward(self, logits, targets):
+        ce_loss = F.cross_entropy(logits, targets, weight=self.weight, reduction='none')
+        pt = torch.exp(-ce_loss)
+        focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
+
+        if self.reduction == 'mean':
+            return focal_loss.mean()
+        elif self.reduction == 'sum':
+            return focal_loss.sum()
+        else:
+            return focal_loss
